@@ -67,6 +67,20 @@ function readTable(path) {
   });
 }
 
+/**
+ * Notion's "Markdown & CSV" export (with Include subpages on) writes a relation
+ * cell as `Title (relative/path/to/page.md)` rather than a bare title. Left
+ * alone, that whole string becomes the name and every account and category gets
+ * silently duplicated — one clean record from its own table, one path-suffixed
+ * record from the relation cells — which splits balances in half.
+ */
+function relationTitle(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .replace(/\s*\([^()]*\.md\)/g, '')
+    .trim();
+}
+
 const pick = (obj, ...names) => {
   for (const n of names) {
     const key = n.toLowerCase();
@@ -122,9 +136,25 @@ const PALETTE = [
 
 /* --------------------------------- Driver --------------------------------- */
 
-const dir = process.argv[2];
+const args = process.argv.slice(2);
+const dir = args.find((a) => !a.startsWith('--'));
+
+/**
+ * Rows with no Date are skipped by default. That is safe for expenses and
+ * incomes, but NOT for transfers: Balance is a lifetime figure, so a dropped
+ * transfer leaves both of its accounts wrong forever. `--undated=YYYY-MM-DD`
+ * imports them on a stand-in date so the balances reconcile; fix the real dates
+ * in the app afterwards.
+ */
+const undatedFlag = args.find((a) => a.startsWith('--undated='));
+const UNDATED = undatedFlag ? undatedFlag.split('=')[1] : null;
+if (UNDATED && !/^\d{4}-\d{2}-\d{2}$/.test(UNDATED)) {
+  console.error('--undated needs a date like --undated=2026-01-01');
+  process.exit(1);
+}
+
 if (!dir) {
-  console.error('Usage: node scripts/notion-import.mjs <notion-export-folder> > backup.json');
+  console.error('Usage: node scripts/notion-import.mjs <notion-export-folder> [--undated=YYYY-MM-DD] > backup.json');
   process.exit(1);
 }
 
@@ -165,8 +195,18 @@ const now = Date.now();
 const accounts = new Map(); // name -> record
 const categories = new Map();
 
-function accountId(name) {
-  const clean = (name || '').split(',')[0].trim();
+/**
+ * Look up or create an account, returning the RECORD (not just the id) so the
+ * caller never has to re-derive the map key. Re-deriving it was the original
+ * bug here: the key was stored one way and looked up another, so any name that
+ * normalised differently came back undefined.
+ *
+ * No comma-splitting. Expense.Account, Income.Accounts and Expense.Category are
+ * all single relations (limit 1) in this Notion schema, so a comma in a cell is
+ * part of the name, not a separator.
+ */
+function upsertAccount(name) {
+  const clean = (name || '').trim();
   if (!clean) return null;
   if (!accounts.has(clean)) {
     accounts.set(clean, {
@@ -179,11 +219,13 @@ function accountId(name) {
       deleted: false,
     });
   }
-  return accounts.get(clean).id;
+  return accounts.get(clean);
 }
 
-function categoryId(name) {
-  const clean = (name || '').split(',')[0].trim();
+const accountId = (name) => upsertAccount(name)?.id ?? null;
+
+function upsertCategory(name) {
+  const clean = (name || '').trim();
   if (!clean) return null;
   if (!categories.has(clean)) {
     categories.set(clean, {
@@ -196,24 +238,24 @@ function categoryId(name) {
       deleted: false,
     });
   }
-  return categories.get(clean).id;
+  return categories.get(clean);
 }
+
+const categoryId = (name) => upsertCategory(name)?.id ?? null;
 
 // Seed the lookup tables first so budgets and initial amounts survive.
 if (paths.categories) {
   for (const r of readTable(paths.categories)) {
-    const name = pick(r, 'category', 'name');
-    if (!name) continue;
-    categoryId(name);
-    categories.get(name.trim()).monthlyBudget = Math.abs(toCents(pick(r, 'monthly budget', 'budget')));
+    const record = upsertCategory(relationTitle(pick(r, 'category', 'name')));
+    if (!record) continue;
+    record.monthlyBudget = Math.abs(toCents(pick(r, 'monthly budget', 'budget')));
   }
 }
 if (paths.accounts) {
   for (const r of readTable(paths.accounts)) {
-    const name = pick(r, 'account', 'name');
-    if (!name) continue;
-    accountId(name);
-    accounts.get(name.trim()).initialAmount = toCents(pick(r, 'initial amount', 'initial'));
+    const record = upsertAccount(relationTitle(pick(r, 'account', 'name')));
+    if (!record) continue;
+    record.initialAmount = toCents(pick(r, 'initial amount', 'initial'));
   }
 }
 
@@ -224,7 +266,7 @@ const skipped = [];
 
 if (paths.expenses) {
   readTable(paths.expenses).forEach((r, i) => {
-    const date = toISODate(pick(r, 'date'));
+    const date = toISODate(pick(r, 'date')) ?? UNDATED;
     const amount = Math.abs(toCents(pick(r, 'amount')));
     if (!date || amount === 0) {
       skipped.push(`Expenses line ${i + 2}: ${!date ? 'unreadable date' : 'zero or unreadable amount'}`);
@@ -235,8 +277,8 @@ if (paths.expenses) {
       name: pick(r, 'expense', 'name') || 'Expense',
       amount,
       date,
-      categoryId: categoryId(pick(r, 'category')),
-      accountId: accountId(pick(r, 'account')),
+      categoryId: categoryId(relationTitle(pick(r, 'category'))),
+      accountId: accountId(relationTitle(pick(r, 'account'))),
       text: pick(r, 'text', 'note'),
       updatedAt: now,
       deleted: false,
@@ -246,7 +288,7 @@ if (paths.expenses) {
 
 if (paths.incomes) {
   readTable(paths.incomes).forEach((r, i) => {
-    const date = toISODate(pick(r, 'date'));
+    const date = toISODate(pick(r, 'date')) ?? UNDATED;
     const amount = Math.abs(toCents(pick(r, 'amount')));
     if (!date || amount === 0) {
       skipped.push(`Incomes line ${i + 2}: ${!date ? 'unreadable date' : 'zero or unreadable amount'}`);
@@ -258,7 +300,7 @@ if (paths.incomes) {
       name: pick(r, 'income', 'name') || 'Income',
       amount,
       date,
-      accountId: accountId(pick(r, 'accounts', 'account')),
+      accountId: accountId(relationTitle(pick(r, 'accounts', 'account'))),
       source: SOURCES.find((s) => s.toLowerCase() === raw.toLowerCase()) ?? null,
       updatedAt: now,
       deleted: false,
@@ -268,7 +310,7 @@ if (paths.incomes) {
 
 if (paths.transfers) {
   readTable(paths.transfers).forEach((r, i) => {
-    const date = toISODate(pick(r, 'date'));
+    const date = toISODate(pick(r, 'date')) ?? UNDATED;
     const amount = Math.abs(toCents(pick(r, 'amount')));
     if (!date || amount === 0) {
       skipped.push(`Transfers line ${i + 2}: ${!date ? 'unreadable date' : 'zero or unreadable amount'}`);
@@ -279,8 +321,8 @@ if (paths.transfers) {
       name: pick(r, 'transactions', 'name') || 'Transfer',
       amount,
       date,
-      fromAccountId: accountId(pick(r, 'from account', 'from')),
-      toAccountId: accountId(pick(r, 'to account', 'to')),
+      fromAccountId: accountId(relationTitle(pick(r, 'from account', 'from'))),
+      toAccountId: accountId(relationTitle(pick(r, 'to account', 'to'))),
       updatedAt: now,
       deleted: false,
     });
@@ -312,6 +354,24 @@ if (skipped.length) {
   console.error(`\nSkipped ${skipped.length} rows:`);
   for (const s of skipped.slice(0, 12)) console.error(`  ${s}`);
   if (skipped.length > 12) console.error(`  ...and ${skipped.length - 12} more`);
+
+  const lostTransfers = skipped.filter((s) => s.startsWith('Transfers')).length;
+  if (lostTransfers > 0 && !UNDATED) {
+    console.error(
+      `\n  WARNING: ${lostTransfers} skipped transfers means those account balances` +
+        `\n  will NOT match Notion. Balance counts every transfer regardless of date.` +
+        `\n  Either add the dates in Notion and re-export, or re-run with` +
+        `\n  --undated=2026-01-01 to bring them in on a stand-in date.`,
+    );
+  }
+}
+
+// A name that appears only in relation cells and never in its own table usually
+// means a spelling mismatch that would split one real account into two.
+const orphanAccounts = [...accounts.values()].filter((a) => a.initialAmount === 0);
+if (orphanAccounts.length > 0 && paths.accounts) {
+  console.error(`\n${orphanAccounts.length} accounts have no Initial Amount — check for duplicates:`);
+  for (const a of orphanAccounts.slice(0, 10)) console.error(`  ${JSON.stringify(a.name)}`);
 }
 console.error(
   '\nAll amounts imported as positive; direction comes from which table a row is in.' +

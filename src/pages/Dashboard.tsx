@@ -15,6 +15,7 @@ import { ExpensesPanel } from '../components/ExpensesPanel';
 import { IncomesPanel } from '../components/IncomesPanel';
 import { TransfersPanel } from '../components/TransfersPanel';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
+import { DataMenu } from '../components/DataMenu';
 
 const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'account'];
 
@@ -165,6 +166,15 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
           <AccountsGallery statuses={accountStatuses} settings={settings} onChanged={onChanged} />
         </div>
       </div>
+
+      <section className="mt-8 border-t border-rule pt-5">
+        <h2 className="mb-2 text-[15px] font-medium">Your data</h2>
+        <p className="mb-3 max-w-prose text-[13px] text-muted">
+          Everything lives on this device, and in your own Google Drive if you connected it. A
+          backup file is the way to move it somewhere else, or to bring your Notion export in.
+        </p>
+        <DataMenu onChanged={onChanged} />
+      </section>
 
       {adding && (
         <AddModal
