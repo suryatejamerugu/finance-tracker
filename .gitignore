@@ -1,0 +1,17 @@
+# dependencies
+node_modules
+
+# build output
+dist
+*.tsbuildinfo
+
+# local env — your Google client ID goes here, never in the repo
+.env
+.env.local
+.env.*.local
+*.local
+
+# editor / OS
+.DS_Store
+.vscode
+.idea

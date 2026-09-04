@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #fafafa;
+  --color-raised: #ffffff;
+  --color-ink: #14161a;
+  --color-muted: #6e7178;
+  --color-faint: #9a9da3;
+  --color-rule: #e4e4e2;
+  --color-brand: #3b37c4;
+  --color-brand-soft: #ecebfa;
+  --color-under: #2f7a55;
+  --color-over: #c0392b;
+  --color-over-soft: #fbeceb;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    @theme {
+      --color-paper: #101317;
+      --color-raised: #171b21;
+      --color-ink: #f2f3f4;
+      --color-muted: #9299a3;
+      --color-faint: #6a707a;
+      --color-rule: #262b33;
+      --color-brand: #8b87ee;
+      --color-brand-soft: #1e2140;
+      --color-under: #63b98c;
+      --color-over: #e8756a;
+      --color-over-soft: #3a1f1d;
+    }
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Money and counts must never jitter as digits change. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  input,
+  select,
+  button,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Kill the iOS zoom-on-focus without shrinking the visible text. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
