@@ -39,7 +39,7 @@ export function Panel<T extends string>({
         </div>
         {action && <div className="ml-auto">{action}</div>}
       </div>
-      <div className="rounded-xl border border-rule bg-raised">{children(tab)}</div>
+      <div className="rounded-xl border border-rule bg-raised shadow-card card-hover">{children(tab)}</div>
     </section>
   );
 }

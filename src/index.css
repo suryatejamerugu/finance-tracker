@@ -3,17 +3,22 @@
 @theme {
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
 
-  --color-paper: #fafafa;
+  --color-paper: #f6f6fb;
   --color-raised: #ffffff;
-  --color-ink: #14161a;
-  --color-muted: #6e7178;
-  --color-faint: #9a9da3;
-  --color-rule: #e4e4e2;
-  --color-brand: #3b37c4;
-  --color-brand-soft: #ecebfa;
-  --color-under: #2f7a55;
-  --color-over: #c0392b;
-  --color-over-soft: #fbeceb;
+  --color-ink: #15161c;
+  --color-muted: #63646f;
+  --color-faint: #94959f;
+  --color-rule: #e7e7f0;
+  --color-brand: #5b4fe8;
+  --color-brand-2: #14b8a6;
+  --color-brand-soft: #edebfe;
+  --color-under: #16a34a;
+  --color-under-soft: #e7f7ec;
+  --color-over: #e11d48;
+  --color-over-soft: #fdecef;
+
+  --shadow-card: 0 1px 2px rgba(30, 24, 90, 0.04), 0 10px 28px -14px rgba(30, 24, 90, 0.16);
+  --shadow-pop: 0 20px 50px -12px rgba(20, 15, 60, 0.35);
 }
 
 @layer base {
@@ -21,20 +26,65 @@
     color-scheme: light dark;
   }
 
+  /* System preference, only when the user hasn't chosen explicitly. */
   @media (prefers-color-scheme: dark) {
-    @theme {
-      --color-paper: #101317;
-      --color-raised: #171b21;
-      --color-ink: #f2f3f4;
-      --color-muted: #9299a3;
-      --color-faint: #6a707a;
-      --color-rule: #262b33;
-      --color-brand: #8b87ee;
-      --color-brand-soft: #1e2140;
-      --color-under: #63b98c;
-      --color-over: #e8756a;
-      --color-over-soft: #3a1f1d;
+    :root:not([data-theme='light']) {
+      --color-paper: #0a0d14;
+      --color-raised: #141826;
+      --color-ink: #f3f4f8;
+      --color-muted: #9a9dae;
+      --color-faint: #666a7d;
+      --color-rule: #242a3d;
+      --color-brand: #8b7bf3;
+      --color-brand-2: #2dd4bf;
+      --color-brand-soft: #221f3f;
+      --color-under: #34d399;
+      --color-under-soft: #12261f;
+      --color-over: #fb7185;
+      --color-over-soft: #341721;
+
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+      --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
     }
+  }
+
+  /* Explicit user choice always wins over system preference. */
+  :root[data-theme='dark'] {
+    --color-paper: #0a0d14;
+    --color-raised: #141826;
+    --color-ink: #f3f4f8;
+    --color-muted: #9a9dae;
+    --color-faint: #666a7d;
+    --color-rule: #242a3d;
+    --color-brand: #8b7bf3;
+    --color-brand-2: #2dd4bf;
+    --color-brand-soft: #221f3f;
+    --color-under: #34d399;
+    --color-under-soft: #12261f;
+    --color-over: #fb7185;
+    --color-over-soft: #341721;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  :root[data-theme='light'] {
+    --color-paper: #f6f6fb;
+    --color-raised: #ffffff;
+    --color-ink: #15161c;
+    --color-muted: #63646f;
+    --color-faint: #94959f;
+    --color-rule: #e7e7f0;
+    --color-brand: #5b4fe8;
+    --color-brand-2: #14b8a6;
+    --color-brand-soft: #edebfe;
+    --color-under: #16a34a;
+    --color-under-soft: #e7f7ec;
+    --color-over: #e11d48;
+    --color-over-soft: #fdecef;
+
+    --shadow-card: 0 1px 2px rgba(30, 24, 90, 0.04), 0 10px 28px -14px rgba(30, 24, 90, 0.16);
+    --shadow-pop: 0 20px 50px -12px rgba(20, 15, 60, 0.35);
   }
 
   html {
@@ -85,6 +135,35 @@
   }
   .safe-top {
     padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, var(--color-brand), var(--color-brand-2));
+  }
+  .text-brand-gradient {
+    background: linear-gradient(135deg, var(--color-brand), var(--color-brand-2));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .card-hover {
+    transition:
+      transform 180ms cubic-bezier(0.2, 0.7, 0.3, 1),
+      box-shadow 180ms cubic-bezier(0.2, 0.7, 0.3, 1),
+      border-color 180ms ease;
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-card);
+    border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-rule));
+  }
+
+  .theme-transition,
+  .theme-transition * {
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease;
   }
 }
 

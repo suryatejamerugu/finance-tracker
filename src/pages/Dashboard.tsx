@@ -16,6 +16,7 @@ import { IncomesPanel } from '../components/IncomesPanel';
 import { TransfersPanel } from '../components/TransfersPanel';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
 import { DataMenu } from '../components/DataMenu';
+import { LedgerView } from '../components/LedgerView';
 
 const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'account'];
 
@@ -28,6 +29,7 @@ const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'acco
 export function Dashboard({ onChanged }: { onChanged: () => void }) {
   const [month, setMonth] = useState(currentMonth());
   const [adding, setAdding] = useState<AddKind | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const data = useLiveQuery(async () => {
     const [accounts, categories, expenses, incomes, transfers, settings] = await Promise.all([
@@ -103,22 +105,29 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
         </dl>
       </div>
 
-      {/* The five Notion dashboard buttons */}
+      {/* The five Notion dashboard buttons, plus the full-history/export view */}
       <div className="mb-5 flex flex-wrap gap-2">
         {ADD_ORDER.map((kind) => (
           <button
             key={kind}
             type="button"
             onClick={() => setAdding(kind)}
-            className={`rounded-lg px-3 py-1.5 text-[13px] ${
+            className={`rounded-lg px-3 py-1.5 text-[13px] transition-transform hover:-translate-y-px ${
               kind === 'expense'
-                ? 'bg-ink text-paper'
+                ? 'bg-brand-gradient text-white shadow-card'
                 : 'border border-rule text-muted hover:border-brand hover:text-brand'
             }`}
           >
             {ADD_LABELS[kind]}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          className="ml-auto rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted transition-transform hover:-translate-y-px hover:border-brand hover:text-brand"
+        >
+          Full history
+        </button>
       </div>
 
       {(summary.overspent > 0 || summary.unbudgeted > 0) && (
@@ -127,7 +136,7 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
             `${summary.overspent} ${summary.overspent === 1 ? 'category is' : 'categories are'} over budget.`}
           {summary.overspent > 0 && summary.unbudgeted > 0 && ' '}
           {summary.unbudgeted > 0 &&
-            `${summary.unbudgeted} ${summary.unbudgeted === 1 ? 'has' : 'have'} spending but no budget set.`}
+            `${summary.unbudgeted} ${summary.unbudgeted === 1 ? 'category has' : 'categories have'} spending but no budget set.`}
         </p>
       )}
 
@@ -183,6 +192,22 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
           accounts={liveAccounts}
           onClose={() => setAdding(null)}
           onSaved={onChanged}
+        />
+      )}
+
+      {historyOpen && (
+        <LedgerView
+          expenses={data.expenses}
+          incomes={data.incomes}
+          transfers={data.transfers}
+          categories={data.categories}
+          accounts={data.accounts}
+          settings={settings}
+          month={month}
+          categoryStatuses={categoryStatuses}
+          monthSummary={summary}
+          onChanged={onChanged}
+          onClose={() => setHistoryOpen(false)}
         />
       )}
     </div>

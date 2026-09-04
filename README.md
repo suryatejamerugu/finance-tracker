@@ -8,6 +8,37 @@ Nobody else is holding your financial history. That is the entire point.
 
 ---
 
+## What's here
+
+- **Light and dark themes.** Follows the system by default; the toggle in the
+  header pins an explicit choice to `localStorage` and applies it before
+  first paint, so there's no flash of the wrong theme on reload.
+- **Every category and account gets its own color automatically.** New rows
+  cycle through a 16-color palette (`src/lib/colors.ts`) instead of all
+  landing on the same grey, and you can override the pick with the swatch
+  picker in the "New category" / "New account" form. That color is what
+  shows up in the donut, the stacked bar charts, and the swatch next to the
+  name everywhere else — one color per thing, everywhere that thing appears.
+- **Charts are interactive, not just colored.** Hover a slice of the "This
+  month" donut and its legend row highlights back, and vice versa. On the
+  Expenses/Incomes "Chart" tab, click a legend entry to hide that series or
+  hover it to dim the rest — useful once a category list gets long.
+- **Accounts and categories can be deleted.** The gallery rows in "Accounts"
+  and "Budget" both got an × on hover, same pattern as the ledger rows. It's
+  a soft delete — the row disappears from the dashboard, and its past
+  transactions stay in your ledger but show as "Uncategorised" (or lose the
+  account name) rather than vanishing.
+- **Full history.** The "Full history" button opens the three ledgers
+  (Expenses, Incomes, Transfers) merged into one searchable, filterable,
+  chronological table — the closest equivalent to opening a Notion database
+  and seeing every row, rather than the capped Recent/Weekly/Monthly tabs.
+- **Export.** From Full history: **Export CSV** downloads the currently
+  filtered rows; **Export PDF** builds a one-page report for the selected
+  month — headline numbers, the category/budget breakdown, and that month's
+  transactions — using `jspdf` + `jspdf-autotable`.
+
+---
+
 ## Run it locally
 
 ```bash
@@ -78,7 +109,7 @@ Restart `npm run dev`. A "Back up to Drive" button appears in the header.
 Same as any static site, with one extra step for the env var.
 
 ```bash
-git init && git add -A && git commit -m "Ledgerlight"
+git init && git add -A && git commit -m "Finance Tracker"
 # push to GitHub, then import the repo at app.netlify.com
 ```
 
@@ -129,16 +160,25 @@ src/
   lib/selectors.ts            the Notion rollups and formulas, reimplemented
   lib/store.ts                every mutation, so updatedAt is always stamped
   lib/seed.ts                 starter categories and accounts
+  lib/colors.ts               the categorical palette + auto-assignment
+  lib/theme.ts                light/dark: read, apply, persist
+  lib/ledger.ts                expenses + incomes + transfers, merged into one table
+  lib/exportCsv.ts            CSV builder + browser download
+  lib/exportPdf.ts            the month PDF report (jspdf + jspdf-autotable)
   sync/google.ts              GIS token client
   sync/drive.ts               appDataFolder read and write
   hooks/useSync.ts            debounced pull-then-push
+  hooks/useTheme.ts           theme state, wired to lib/theme.ts
   components/Panel.tsx        panel shell with Notion-style view tabs
   components/ExpensesPanel    Recent · Weekly · Monthly · Chart
   components/IncomesPanel     Recent · Monthly · Yearly · Chart
   components/TransfersPanel   Recent Transfers · Monthly
   components/CategoryGallery  This Month · Last Month
   components/RightRail        donut chart + account balances
-  components/AddModal         the five dashboard buttons
+  components/AddModal         the five dashboard buttons + color picker
+  components/LedgerView       Full history: search, filter, export
+  components/ThemeToggle      the light/dark switch in the header
+  components/Footer           copyright + portfolio link
   pages/Dashboard.tsx         the whole app, one page, three columns
 tests/logic.test.mjs          35 assertions on the formulas
 ```
@@ -200,10 +240,8 @@ weeks for the round trip and do it before you promise anyone a launch date.
 
 ## Still to build
 
-- PDF export of the month (was in the previous build; needs rewriting for the
-  three-table model)
 - Recurring expenses — Notion has a "Recurring Expense" template for this
 - Editing a row after it's saved; right now you can add and delete
-- Reordering and archiving categories and accounts
+- Reordering categories and accounts (deleting is in; reordering isn't)
 - A service worker, for genuine offline rather than just a cached shell
 - Real PNG icons (`public/icon.svg` is currently the only one)

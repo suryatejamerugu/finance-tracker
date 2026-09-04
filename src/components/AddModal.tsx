@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { INCOME_SOURCES, type Account, type Category, type IncomeSource } from '../types';
 import { parseAmount, todayISO } from '../lib/money';
 import { addAccount, addCategory, addExpense, addIncome, addTransfer } from '../lib/store';
+import { PALETTE, suggestedColor } from '../lib/colors';
 
 export type AddKind = 'expense' | 'income' | 'transfer' | 'category' | 'account';
 
@@ -37,6 +38,9 @@ export function AddModal({
   const [toAccountId, setToAccountId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? '');
   const [source, setSource] = useState<IncomeSource>('Salary');
   const [text, setText] = useState('');
+  const [color, setColor] = useState(() =>
+    suggestedColor(kind === 'account' ? accounts.length : categories.length),
+  );
   const [error, setError] = useState<string | null>(null);
   const first = useRef<HTMLInputElement>(null);
 
@@ -73,9 +77,9 @@ export function AddModal({
       }
       await addTransfer({ name, amount: value, date, fromAccountId: accountId || null, toAccountId: toAccountId || null });
     } else if (kind === 'category') {
-      await addCategory(name, value, '#6E7178');
+      await addCategory(name, value, color);
     } else {
-      await addAccount(name, value, '#6E7178');
+      await addAccount(name, value, color);
     }
 
     onSaved();
@@ -191,6 +195,29 @@ export function AddModal({
               aria-label="Note"
               className={field}
             />
+          )}
+
+          {(kind === 'category' || kind === 'account') && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Color</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PALETTE.map((swatch) => (
+                  <button
+                    key={swatch}
+                    type="button"
+                    onClick={() => setColor(swatch)}
+                    aria-label={`Use color ${swatch}`}
+                    aria-pressed={color === swatch}
+                    className="h-6 w-6 shrink-0 rounded-full transition-transform hover:scale-110"
+                    style={{
+                      background: swatch,
+                      boxShadow:
+                        color === swatch ? `0 0 0 2px var(--color-raised), 0 0 0 4px ${swatch}` : 'none',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </div>
 

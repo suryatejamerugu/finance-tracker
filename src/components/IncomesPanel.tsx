@@ -2,7 +2,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,7 +12,7 @@ import { formatMoney, monthLabel, shortMonthLabel } from '../lib/money';
 import { groupByPeriod, live, stackedByMonth } from '../lib/selectors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
-import { AXIS, chartTooltip } from './chartTheme';
+import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
 
 const TABS = ['Recent', 'Monthly', 'Yearly', 'Chart'] as const;
 type Tab = (typeof TABS)[number];
@@ -48,6 +47,7 @@ export function IncomesPanel({
   const money = (c: number) => formatMoney(c, { currency, locale });
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
   const rows = live(incomes);
+  const chartSeries = useSeriesInteraction();
 
   const Row = ({ i }: { i: Income }) => (
     <div className="group flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5 last:border-b-0">
@@ -77,7 +77,9 @@ export function IncomesPanel({
   const render = (tab: Tab) => {
     if (tab === 'Chart') {
       const { data, series } = stackedByMonth(rows, month, 12, (i) => i.source);
+      const color = (name: string) => SOURCE_COLORS[name] ?? '#9A9DA3';
       if (series.length === 0) return <EmptyRow>No income in the last 12 months.</EmptyRow>;
+      const { hidden, active, setActive, toggle } = chartSeries;
       return (
         <div className="p-3">
           <ResponsiveContainer width="100%" height={240}>
@@ -92,17 +94,30 @@ export function IncomesPanel({
               />
               <YAxis tick={AXIS} axisLine={false} tickLine={false} width={46} />
               <Tooltip {...chartTooltip(currency, locale)} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              {series.map((name) => (
-                <Bar
-                  key={name}
-                  dataKey={name}
-                  stackId="incomes"
-                  fill={SOURCE_COLORS[name] ?? '#9A9DA3'}
-                />
-              ))}
+              {series
+                .filter((name) => !hidden.has(name))
+                .map((name) => (
+                  <Bar
+                    key={name}
+                    dataKey={name}
+                    stackId="incomes"
+                    fill={color(name)}
+                    fillOpacity={active === null || active === name ? 1 : 0.3}
+                    onMouseEnter={() => setActive(name)}
+                    onMouseLeave={() => setActive(null)}
+                    style={{ cursor: 'pointer', transition: 'fill-opacity 150ms ease' }}
+                  />
+                ))}
             </BarChart>
           </ResponsiveContainer>
+          <InteractiveLegend
+            series={series}
+            colorOf={color}
+            hidden={hidden}
+            active={active}
+            onToggle={toggle}
+            onHover={setActive}
+          />
         </div>
       );
     }

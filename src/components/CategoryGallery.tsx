@@ -1,6 +1,6 @@
 import type { CategoryStatus, Settings } from '../types';
 import { formatMoney, parseAmount } from '../lib/money';
-import { setMonthlyBudget } from '../lib/store';
+import { setMonthlyBudget, softDelete } from '../lib/store';
 import { EmptyRow, Panel } from './Panel';
 
 const TABS = ['This Month', 'Last Month'] as const;
@@ -30,6 +30,15 @@ export function CategoryGallery({
   const { currency, locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale, showCents: false });
 
+  async function remove(name: string, id: string) {
+    if (
+      !window.confirm(`Delete "${name}"? Its past expenses stay in your ledger but will show as Uncategorised.`)
+    )
+      return;
+    await softDelete('categories', id);
+    onChanged();
+  }
+
   const render = (tab: Tab) => {
     if (statuses.length === 0) return <EmptyRow>No categories yet.</EmptyRow>;
     const isThis = tab === 'This Month';
@@ -44,15 +53,30 @@ export function CategoryGallery({
           const state = budget > 0 ? (usage > 1 ? 'over' : usage >= 0.85 ? 'close' : 'under') : 'unbudgeted';
 
           return (
-            <div key={s.category.id} className="px-3.5 py-2.5">
+            <div key={s.category.id} className="group px-3.5 py-2.5">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-[13.5px]">{s.category.name}</span>
-                <span
-                  className={`num shrink-0 text-[12px] ${
-                    state === 'over' ? 'text-over' : 'text-faint'
-                  }`}
-                >
-                  {budget > 0 ? `${Math.round(usage * 100)}%` : 'no budget'}
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: s.category.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate text-[13.5px]">{s.category.name}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <span
+                    className={`num text-[12px] ${state === 'over' ? 'text-over' : 'text-faint'}`}
+                  >
+                    {budget > 0 ? `${Math.round(usage * 100)}%` : 'no budget'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void remove(s.category.name, s.category.id)}
+                    aria-label={`Delete ${s.category.name}`}
+                    className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                  >
+                    ×
+                  </button>
                 </span>
               </div>
 

@@ -1,6 +1,6 @@
 {
-  "name": "Ledgerlight",
-  "short_name": "Ledgerlight",
+  "name": "Finance Tracker",
+  "short_name": "Finance Tracker",
   "description": "A private budget tracker. Your numbers stay in your own Google Drive.",
   "start_url": "/",
   "display": "standalone",
