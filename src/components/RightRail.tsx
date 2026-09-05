@@ -131,7 +131,7 @@ export function AccountsGallery({
         {statuses.length === 0 ? (
           <EmptyRow>No accounts yet.</EmptyRow>
         ) : (
-          <div className="divide-y divide-rule">
+          <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
             {statuses.map((s) => (
               <div key={s.account.id} className="group px-3.5 py-2.5">
                 <div className="flex items-baseline justify-between gap-2">

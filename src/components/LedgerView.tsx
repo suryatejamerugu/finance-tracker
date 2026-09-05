@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Account, Category, CategoryStatus, Expense, Income, ISOMonth, Settings, Transfer } from '../types';
 import { buildLedger, type LedgerEntry, type LedgerEntryType } from '../lib/ledger';
 import { downloadFile, ledgerToCsv } from '../lib/exportCsv';
-import { exportMonthPdf } from '../lib/exportPdf';
+import { exportLedgerPdf, exportMonthPdf } from '../lib/exportPdf';
 import type { MonthSummary } from '../lib/selectors';
 import { formatMoney, monthLabel, todayISO } from '../lib/money';
 import { softDelete } from '../lib/store';
@@ -91,7 +91,7 @@ export function LedgerView({
     downloadFile(`finance-tracker-history-${todayISO()}.csv`, ledgerToCsv(filtered), 'text/csv;charset=utf-8');
   }
 
-  function exportPdf() {
+  function exportMonthReport() {
     exportMonthPdf({
       month,
       currency,
@@ -100,6 +100,14 @@ export function LedgerView({
       categoryStatuses,
       entries: all.filter((e) => e.date.slice(0, 7) === month),
     });
+  }
+
+  function exportAllPdf() {
+    const title =
+      type === 'all' && !query.trim()
+        ? 'Finance Tracker — Full history'
+        : `Finance Tracker — Full history (filtered: ${type === 'all' ? 'all types' : TYPE_LABEL[type]}${query.trim() ? `, "${query.trim()}"` : ''})`;
+    exportLedgerPdf({ title, currency, locale, entries: filtered });
   }
 
   return (
@@ -126,10 +134,19 @@ export function LedgerView({
             </button>
             <button
               type="button"
-              onClick={exportPdf}
+              onClick={exportMonthReport}
+              title="A one-page report for the selected month: budget breakdown plus that month's transactions."
               className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
             >
-              Export PDF ({monthLabel(month, locale)})
+              PDF: {monthLabel(month, locale)}
+            </button>
+            <button
+              type="button"
+              onClick={exportAllPdf}
+              title="Every row currently shown below (respects the search and type filter)."
+              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
+            >
+              PDF: All ({filtered.length})
             </button>
             <button
               type="button"

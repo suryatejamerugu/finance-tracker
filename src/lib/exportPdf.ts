@@ -60,3 +60,49 @@ export function exportMonthPdf(opts: {
 
   doc.save(`finance-tracker-${month}.pdf`);
 }
+
+/**
+ * The month report above answers "how did this month go against budget?".
+ * This answers "give me everything" — the same rows Full history is
+ * currently showing (respecting its search/type filter), with no budget
+ * breakdown since a mixed date range has no single month to budget against.
+ */
+export function exportLedgerPdf(opts: {
+  title: string;
+  currency: string;
+  locale: string;
+  entries: LedgerEntry[];
+}): void {
+  const { title, currency, locale, entries } = opts;
+  const doc = new jsPDF() as DocWithTable;
+
+  const income = entries.filter((e) => e.amount > 0).reduce((sum, e) => sum + e.amount, 0);
+  const expense = entries.filter((e) => e.amount < 0).reduce((sum, e) => sum + e.amount, 0);
+  const money = (c: number) => formatMoney(c, { currency, locale });
+
+  doc.setFontSize(16);
+  doc.text(title, 14, 18);
+  doc.setFontSize(10);
+  doc.setTextColor(110);
+  doc.text(
+    `${entries.length} transactions   In ${money(income)}   Out ${money(Math.abs(expense))}   Net ${formatMoney(income + expense, { currency, locale, signed: true })}`,
+    14,
+    25,
+  );
+
+  autoTable(doc, {
+    startY: 32,
+    head: [['Date', 'Type', 'Name', 'Category / Account', 'Amount']],
+    body: entries.map((e) => [
+      e.date,
+      e.type,
+      e.name,
+      e.detail ?? e.account ?? '',
+      formatMoney(e.amount, { currency, locale, signed: true }),
+    ]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: BRAND },
+  });
+
+  doc.save(`finance-tracker-full-history.pdf`);
+}

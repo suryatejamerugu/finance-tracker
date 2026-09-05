@@ -44,7 +44,7 @@ export function CategoryGallery({
     const isThis = tab === 'This Month';
 
     return (
-      <div className="divide-y divide-rule">
+      <div className="max-h-[600px] divide-y divide-rule overflow-y-auto">
         {statuses.map((s) => {
           const spent = isThis ? s.expenseThisMonth : s.expenseLastMonth;
           const usage = isThis ? s.usage : s.usageLastMonth;
