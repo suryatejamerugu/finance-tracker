@@ -10,6 +10,7 @@ import type {
   Transfer,
 } from '../types';
 import { monthOf, shiftMonth } from './money';
+import { resolveDistinctColors } from './colors';
 
 export const live = <T extends { deleted: boolean }>(rows: T[]): T[] => rows.filter((r) => !r.deleted);
 
@@ -203,7 +204,7 @@ export function donutByCategory(
     const key = e.categoryId ?? 'none';
     totals.set(key, (totals.get(key) ?? 0) + e.amount);
   }
-  return [...totals.entries()]
+  const slices = [...totals.entries()]
     .map(([id, cents]) => ({
       name: byId.get(id)?.name ?? 'Uncategorised',
       value: cents / 100,
@@ -211,6 +212,7 @@ export function donutByCategory(
     }))
     .filter((s) => s.value > 0)
     .sort((a, b) => b.value - a.value);
+  return resolveDistinctColors(slices);
 }
 
 /** Group rows into buckets keyed by day, month, or year, newest bucket first. */

@@ -1,8 +1,11 @@
-import type { CategoryStatus, Settings } from '../types';
+import { useState } from 'react';
+import type { Category, CategoryStatus, Settings } from '../types';
 import { formatMoney, parseAmount } from '../lib/money';
-import { reorder, setMonthlyBudget, softDelete } from '../lib/store';
+import { reorder, setMonthlyBudget, softDelete, updateCategory } from '../lib/store';
 import { EmptyRow, Panel } from './Panel';
 import { DragHandle, SortableList, SortableRow } from './dnd';
+import { EditNameColorModal } from './EditNameColorModal';
+import { EditIcon } from './icons';
 
 const TABS = ['This Month', 'Last Month'] as const;
 type Tab = (typeof TABS)[number];
@@ -30,6 +33,7 @@ export function CategoryGallery({
 }) {
   const { currency, locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale, showCents: false });
+  const [editing, setEditing] = useState<Category | null>(null);
 
   async function remove(name: string, id: string) {
     if (
@@ -82,6 +86,14 @@ export function CategoryGallery({
                         </span>
                         <button
                           type="button"
+                          onClick={() => setEditing(s.category)}
+                          aria-label={`Edit ${s.category.name}`}
+                          className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                        >
+                          <EditIcon />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => void remove(s.category.name, s.category.id)}
                           aria-label={`Delete ${s.category.name}`}
                           className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
@@ -127,8 +139,23 @@ export function CategoryGallery({
   };
 
   return (
-    <Panel title="Budget" tabs={TABS}>
-      {render}
-    </Panel>
+    <>
+      <Panel title="Budget" tabs={TABS}>
+        {render}
+      </Panel>
+
+      {editing && (
+        <EditNameColorModal
+          title="Edit category"
+          initialName={editing.name}
+          initialColor={editing.color}
+          onClose={() => setEditing(null)}
+          onSave={async (name, color) => {
+            await updateCategory(editing.id, name, color);
+            onChanged();
+          }}
+        />
+      )}
+    </>
   );
 }

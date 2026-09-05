@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import type { AccountStatus, Settings } from '../types';
+import type { Account, AccountStatus, Settings } from '../types';
 import { formatBig, formatMoney, parseAmount } from '../lib/money';
-import { reorder, setInitialAmount, softDelete } from '../lib/store';
+import { reorder, setInitialAmount, softDelete, updateAccount } from '../lib/store';
 import { EmptyRow } from './Panel';
 import { chartTooltip } from './chartTheme';
 import { DragHandle, SortableList, SortableRow } from './dnd';
+import { EditNameColorModal } from './EditNameColorModal';
+import { EditIcon } from './icons';
 
 /**
  * Notion's right-column donut: this month's Expenses grouped by Category.
@@ -107,6 +109,7 @@ export function AccountsGallery({
 }) {
   const { currency, locale } = settings;
   const total = statuses.reduce((sum, s) => sum + s.balance, 0);
+  const [editing, setEditing] = useState<Account | null>(null);
 
   async function remove(name: string, id: string) {
     if (
@@ -125,73 +128,96 @@ export function AccountsGallery({
   }
 
   return (
-    <section className="mb-7">
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-[15px] font-medium">Accounts</h2>
-        <span className={`num text-[13px] ${total < 0 ? 'text-over' : 'text-muted'}`}>
-          {formatMoney(total, { currency, locale, showCents: false })}
-        </span>
-      </div>
+    <>
+      <section className="mb-7">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="text-[15px] font-medium">Accounts</h2>
+          <span className={`num text-[13px] ${total < 0 ? 'text-over' : 'text-muted'}`}>
+            {formatMoney(total, { currency, locale, showCents: false })}
+          </span>
+        </div>
 
-      <div className="rounded-xl border border-rule bg-raised shadow-card card-hover">
-        {statuses.length === 0 ? (
-          <EmptyRow>No accounts yet.</EmptyRow>
-        ) : (
-          <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
-            <SortableList ids={statuses.map((s) => s.account.id)} onReorder={handleReorder}>
-              {statuses.map((s) => (
-                <SortableRow key={s.account.id} id={s.account.id}>
-                  {(handle) => (
-                    <div className="group bg-raised px-3.5 py-2.5">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="flex min-w-0 items-center gap-1.5">
-                          <DragHandle {...handle} />
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ background: s.account.color }}
-                            aria-hidden="true"
-                          />
-                          <span className="truncate text-[13.5px]">{s.account.name}</span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-2">
-                          <span className={`num text-[14px] ${s.balance < 0 ? 'text-over' : ''}`}>
-                            {formatMoney(s.balance, { currency, locale })}
+        <div className="rounded-xl border border-rule bg-raised shadow-card card-hover">
+          {statuses.length === 0 ? (
+            <EmptyRow>No accounts yet.</EmptyRow>
+          ) : (
+            <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
+              <SortableList ids={statuses.map((s) => s.account.id)} onReorder={handleReorder}>
+                {statuses.map((s) => (
+                  <SortableRow key={s.account.id} id={s.account.id}>
+                    {(handle) => (
+                      <div className="group bg-raised px-3.5 py-2.5">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <DragHandle {...handle} />
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ background: s.account.color }}
+                              aria-hidden="true"
+                            />
+                            <span className="truncate text-[13.5px]">{s.account.name}</span>
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => void remove(s.account.name, s.account.id)}
-                            aria-label={`Delete ${s.account.name}`}
-                            className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
-                          >
-                            ×
-                          </button>
-                        </span>
+                          <span className="flex shrink-0 items-center gap-2">
+                            <span className={`num text-[14px] ${s.balance < 0 ? 'text-over' : ''}`}>
+                              {formatMoney(s.balance, { currency, locale })}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setEditing(s.account)}
+                              aria-label={`Edit ${s.account.name}`}
+                              className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                            >
+                              <EditIcon />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void remove(s.account.name, s.account.id)}
+                              aria-label={`Delete ${s.account.name}`}
+                              className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-baseline gap-2 text-[11.5px] text-faint">
+                          <span>start</span>
+                          <input
+                            defaultValue={(s.account.initialAmount / 100).toFixed(0)}
+                            onBlur={async (e) => {
+                              await setInitialAmount(s.account.id, parseAmount(e.target.value) ?? 0);
+                              onChanged();
+                            }}
+                            inputMode="decimal"
+                            aria-label={`Initial amount for ${s.account.name}`}
+                            className="num w-14 rounded border border-transparent bg-transparent px-1 text-right outline-none hover:border-rule focus:border-brand focus:text-ink"
+                          />
+                          <span className="ml-auto num">
+                            +{formatBig(s.totalIncome + s.transferIn, currency, locale)} · −
+                            {formatBig(s.totalExpenses + s.transferOut, currency, locale)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="mt-1 flex items-baseline gap-2 text-[11.5px] text-faint">
-                        <span>start</span>
-                        <input
-                          defaultValue={(s.account.initialAmount / 100).toFixed(0)}
-                          onBlur={async (e) => {
-                            await setInitialAmount(s.account.id, parseAmount(e.target.value) ?? 0);
-                            onChanged();
-                          }}
-                          inputMode="decimal"
-                          aria-label={`Initial amount for ${s.account.name}`}
-                          className="num w-14 rounded border border-transparent bg-transparent px-1 text-right outline-none hover:border-rule focus:border-brand focus:text-ink"
-                        />
-                        <span className="ml-auto num">
-                          +{formatBig(s.totalIncome + s.transferIn, currency, locale)} · −
-                          {formatBig(s.totalExpenses + s.transferOut, currency, locale)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </SortableRow>
-              ))}
-            </SortableList>
-          </div>
-        )}
-      </div>
-    </section>
+                    )}
+                  </SortableRow>
+                ))}
+              </SortableList>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {editing && (
+        <EditNameColorModal
+          title="Edit account"
+          initialName={editing.name}
+          initialColor={editing.color}
+          onClose={() => setEditing(null)}
+          onSave={async (name, color) => {
+            await updateAccount(editing.id, name, color);
+            onChanged();
+          }}
+        />
+      )}
+    </>
   );
 }

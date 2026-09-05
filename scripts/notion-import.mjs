@@ -129,9 +129,14 @@ const SOURCES = [
   'Splitwise',
 ];
 
+// Keep in sync with src/lib/colors.ts — this is a plain Node script and can't
+// import that TS module directly. 16 colors rather than the original 11:
+// with a real Notion category list (easily 12+ rows) the old palette cycled
+// back around and gave two categories the exact same color.
 const PALETTE = [
-  '#3B37C4', '#2F7A55', '#C0654B', '#9B5FA8', '#4C8FB5',
-  '#B5734C', '#6E63D8', '#5E8C6A', '#7FA8C4', '#4F6D8C', '#8A8F98',
+  '#5B4FE8', '#14B8A6', '#F59E0B', '#EC4899', '#22C55E', '#3B82F6',
+  '#EF4444', '#A855F7', '#84CC16', '#06B6D4', '#F97316', '#E11D48',
+  '#8B5CF6', '#10B981', '#D946EF', '#0EA5E9',
 ];
 
 /* --------------------------------- Driver --------------------------------- */

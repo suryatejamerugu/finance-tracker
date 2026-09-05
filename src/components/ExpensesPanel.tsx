@@ -10,6 +10,7 @@ import {
 import type { Account, Category, Expense, ISOMonth, Settings } from '../types';
 import { dayLabel, formatMoney, monthLabel, shortMonthLabel } from '../lib/money';
 import { groupByPeriod, live, stackedByMonth } from '../lib/selectors';
+import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
@@ -69,7 +70,9 @@ export function ExpensesPanel({
   const render = (tab: Tab) => {
     if (tab === 'Chart') {
       const { data, series } = stackedByMonth(rows, month, 12, (e) => catName.get(e.categoryId ?? '') ?? null);
-      const colorOf = new Map(categories.map((c) => [c.name, c.color]));
+      const rawColorOf = new Map(categories.map((c) => [c.name, c.color]));
+      const resolved = resolveDistinctColors(series.map((name) => ({ name, color: rawColorOf.get(name) ?? '#9A9DA3' })));
+      const colorOf = new Map(resolved.map((r) => [r.name, r.color]));
       const color = (name: string) => colorOf.get(name) ?? '#9A9DA3';
       if (series.length === 0) return <EmptyRow>No expenses in the last 12 months.</EmptyRow>;
       const { hidden, active, setActive, toggle } = chartSeries;

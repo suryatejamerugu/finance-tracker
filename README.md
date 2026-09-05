@@ -16,9 +16,15 @@ Nobody else is holding your financial history. That is the entire point.
 - **Every category and account gets its own color automatically.** New rows
   cycle through a 16-color palette (`src/lib/colors.ts`) instead of all
   landing on the same grey, and you can override the pick with the swatch
-  picker in the "New category" / "New account" form. That color is what
-  shows up in the donut, the stacked bar charts, and the swatch next to the
-  name everywhere else — one color per thing, everywhere that thing appears.
+  picker in the "New category" / "New account" form — or change it later
+  from the edit (pencil) icon on the row, alongside renaming it. That color
+  is what shows up in the donut, the stacked bar charts, and the swatch next
+  to the name everywhere else. Nothing stops two rows from independently
+  landing on the same color though (a Notion import cycling back around, or
+  a rename picking an already-used swatch), so the donut and stacked charts
+  resolve collisions at render time (`resolveDistinctColors` in
+  `src/lib/colors.ts`) — two categories never silently collapse into one
+  indistinguishable slice.
 - **Charts are interactive, not just colored.** Hover a slice of the "This
   month" donut and its legend row highlights back, and vice versa. On the
   Expenses/Incomes "Chart" tab, click a legend entry to hide that series or

@@ -27,3 +27,30 @@ export const PALETTE: readonly string[] = [
 export function suggestedColor(existingCount: number): string {
   return PALETTE[((existingCount % PALETTE.length) + PALETTE.length) % PALETTE.length];
 }
+
+/**
+ * Guarantees every item in a group renders with a visually distinct color,
+ * even when two stored colors happen to collide — a category imported from
+ * Notion whose palette cycle lined up with another's, or a user who simply
+ * picked the same swatch for two categories in the color picker. Nothing
+ * upstream prevents that, so a chart can't just trust the stored color and
+ * has to resolve collisions for the specific set it's about to draw.
+ *
+ * First occurrence of a color always wins; later duplicates get bumped
+ * forward to the next palette color nothing in this group is using yet.
+ * Falls back to the original (still-duplicate) color only if the whole
+ * palette is already spoken for, which a category/account list won't hit.
+ */
+export function resolveDistinctColors<T extends { color: string }>(items: readonly T[]): T[] {
+  const used = new Set<string>();
+  return items.map((item) => {
+    if (!used.has(item.color)) {
+      used.add(item.color);
+      return item;
+    }
+    const next = PALETTE.find((c) => !used.has(c));
+    if (!next) return item;
+    used.add(next);
+    return { ...item, color: next };
+  });
+}

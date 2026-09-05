@@ -105,6 +105,18 @@ export async function setInitialAmount(accountId: string, amount: Cents): Promis
   await db.accounts.put({ ...existing, initialAmount: amount, updatedAt: Date.now() });
 }
 
+export async function updateCategory(id: string, name: string, color: string): Promise<void> {
+  const existing = await db.categories.get(id);
+  if (!existing) return;
+  await db.categories.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
+}
+
+export async function updateAccount(id: string, name: string, color: string): Promise<void> {
+  const existing = await db.accounts.get(id);
+  if (!existing) return;
+  await db.accounts.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
+}
+
 type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts';
 
 export async function softDelete(table: Soft, id: string): Promise<void> {
