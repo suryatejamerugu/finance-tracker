@@ -118,3 +118,19 @@ export async function softDelete(table: Soft, id: string): Promise<void> {
     updatedAt: Date.now(),
   });
 }
+
+type Orderable = 'categories' | 'accounts';
+
+/** Persists a drag-and-drop reorder: `orderedIds` is the full list, top to bottom. */
+export async function reorder(table: Orderable, orderedIds: string[]): Promise<void> {
+  const coll = db[table] as unknown as {
+    get: (id: string) => Promise<(Category | Account) | undefined>;
+    put: (row: unknown) => Promise<unknown>;
+  };
+  const now = Date.now();
+  for (let i = 0; i < orderedIds.length; i++) {
+    const existing = await coll.get(orderedIds[i]);
+    if (!existing) continue;
+    await coll.put({ ...existing, order: i, updatedAt: now });
+  }
+}

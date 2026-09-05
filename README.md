@@ -23,11 +23,13 @@ Nobody else is holding your financial history. That is the entire point.
   month" donut and its legend row highlights back, and vice versa. On the
   Expenses/Incomes "Chart" tab, click a legend entry to hide that series or
   hover it to dim the rest — useful once a category list gets long.
-- **Accounts and categories can be deleted.** The gallery rows in "Accounts"
-  and "Budget" both got an × on hover, same pattern as the ledger rows. It's
-  a soft delete — the row disappears from the dashboard, and its past
-  transactions stay in your ledger but show as "Uncategorised" (or lose the
-  account name) rather than vanishing.
+- **Accounts and categories can be deleted, and dragged into a new order.**
+  The gallery rows in "Accounts" and "Budget" both got an × on hover, same
+  pattern as the ledger rows — a soft delete, so the row disappears from the
+  dashboard but its past transactions stay in your ledger (showing as
+  "Uncategorised," or losing the account name, rather than vanishing). A grip
+  handle next to each row (`src/components/dnd.tsx`, built on `@dnd-kit`)
+  lets you drag it to reorder the list, persisted to that row's `order` field.
 - **Full history.** The "Full history" button opens the three ledgers
   (Expenses, Incomes, Transfers) merged into one searchable, filterable,
   chronological table — the closest equivalent to opening a Notion database
@@ -175,6 +177,7 @@ src/
   components/TransfersPanel   Recent Transfers · Monthly
   components/CategoryGallery  This Month · Last Month
   components/RightRail        donut chart + account balances
+  components/dnd.tsx          drag-to-reorder wrapper (@dnd-kit)
   components/AddModal         the five dashboard buttons + color picker
   components/LedgerView       Full history: search, filter, export
   components/ThemeToggle      the light/dark switch in the header
@@ -242,6 +245,5 @@ weeks for the round trip and do it before you promise anyone a launch date.
 
 - Recurring expenses — Notion has a "Recurring Expense" template for this
 - Editing a row after it's saved; right now you can add and delete
-- Reordering categories and accounts (deleting is in; reordering isn't)
 - A service worker, for genuine offline rather than just a cached shell
 - Real PNG icons (`public/icon.svg` is currently the only one)
