@@ -120,9 +120,9 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
             key={kind}
             type="button"
             onClick={() => setAdding(kind)}
-            className={`rounded-lg px-3 py-1.5 text-[13px] transition-transform hover:-translate-y-px ${
+            className={`press rounded-lg px-3 py-1.5 text-[13px] ${
               kind === 'expense'
-                ? 'bg-brand-gradient text-white shadow-card'
+                ? 'bg-brand-gradient text-white shadow-card hover:shadow-card-hover'
                 : 'border border-rule text-muted hover:border-brand hover:text-brand'
             }`}
           >
@@ -132,7 +132,7 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          className="ml-auto rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted transition-transform hover:-translate-y-px hover:border-brand hover:text-brand"
+          className="press ml-auto rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted hover:border-brand hover:text-brand"
         >
           Full history
         </button>

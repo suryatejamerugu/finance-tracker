@@ -91,12 +91,12 @@ export function AddModal({
   const dated = kind === 'expense' || kind === 'income' || kind === 'transfer';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={ADD_LABELS[kind]}
-        className="w-full max-w-md rounded-t-2xl bg-raised p-5 shadow-xl safe-bottom sm:rounded-2xl sm:pb-5"
+        className="w-full max-w-md rounded-t-2xl bg-raised p-5 shadow-pop safe-bottom sm:rounded-2xl sm:pb-5"
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-medium">{ADD_LABELS[kind]}</h2>
@@ -230,7 +230,7 @@ export function AddModal({
         <button
           type="button"
           onClick={() => void save()}
-          className="mt-5 w-full rounded-lg bg-ink py-3 text-[15px] font-medium text-paper"
+          className="press mt-5 w-full rounded-lg bg-brand-gradient py-3 text-[15px] font-medium text-white shadow-card hover:shadow-card-hover"
         >
           Save
         </button>

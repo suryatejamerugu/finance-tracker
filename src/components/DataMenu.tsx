@@ -87,12 +87,12 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
       {notice && <p className="mt-2 text-[13px] text-muted">{notice}</p>}
 
       {pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Confirm restore"
-            className="w-full max-w-md rounded-2xl bg-raised p-5 shadow-xl"
+            className="w-full max-w-md rounded-2xl bg-raised p-5 shadow-pop"
           >
             <h2 className="text-[16px] font-medium">Replace everything with this backup?</h2>
 
@@ -114,7 +114,7 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
               <button
                 type="button"
                 onClick={() => setPending(null)}
-                className="flex-1 rounded-lg border border-rule py-2.5 text-[14px]"
+                className="press flex-1 rounded-lg border border-rule py-2.5 text-[14px]"
               >
                 Cancel
               </button>
@@ -122,7 +122,7 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
                 type="button"
                 disabled={busy}
                 onClick={() => void confirmRestore()}
-                className="flex-1 rounded-lg bg-ink py-2.5 text-[14px] font-medium text-paper disabled:opacity-50"
+                className="press flex-1 rounded-lg bg-over py-2.5 text-[14px] font-medium text-white shadow-card disabled:opacity-50"
               >
                 {busy ? 'Restoring…' : 'Replace my data'}
               </button>
