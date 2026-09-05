@@ -10,6 +10,13 @@ export function Footer() {
           className="text-muted underline decoration-rule underline-offset-2 hover:text-brand"
         >
           Portfolio
+        </a>{' '}
+        ·{' '}
+        <a
+          href="/privacy.html"
+          className="text-muted underline decoration-rule underline-offset-2 hover:text-brand"
+        >
+          Privacy Policy
         </a>
       </p>
     </footer>
