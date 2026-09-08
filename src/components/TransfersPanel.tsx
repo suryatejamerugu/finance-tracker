@@ -3,6 +3,7 @@ import { formatMoney, monthLabel } from '../lib/money';
 import { groupByPeriod, live } from '../lib/selectors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
+import { EditIcon } from './icons';
 
 const TABS = ['Recent Transfers', 'Monthly'] as const;
 type Tab = (typeof TABS)[number];
@@ -12,11 +13,13 @@ export function TransfersPanel({
   accounts,
   settings,
   onChanged,
+  onEdit,
 }: {
   transfers: Transfer[];
   accounts: Account[];
   settings: Settings;
   onChanged: () => void;
+  onEdit: (transfer: Transfer) => void;
 }) {
   const { currency, locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
@@ -33,6 +36,14 @@ export function TransfersPanel({
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="num text-[14px]">{money(t.amount)}</span>
+        <button
+          type="button"
+          onClick={() => onEdit(t)}
+          aria-label={`Edit ${t.name}`}
+          className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+        >
+          <EditIcon />
+        </button>
         <button
           type="button"
           onClick={async () => {

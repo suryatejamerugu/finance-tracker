@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Account, Category, CategoryStatus, Expense, Income, ISOMonth, Settings, Transfer } from '../types';
+import type {
+  Account,
+  Category,
+  CategoryStatus,
+  Expense,
+  Income,
+  IncomeCategory,
+  ISOMonth,
+  Settings,
+  Transfer,
+} from '../types';
 import { buildLedger, type LedgerEntry, type LedgerEntryType } from '../lib/ledger';
 import { downloadFile, ledgerToCsv } from '../lib/exportCsv';
 import { exportLedgerPdf, exportMonthPdf } from '../lib/exportPdf';
-import type { MonthSummary } from '../lib/selectors';
+import { buildCategoryStatuses, monthSummary as computeMonthSummary, type MonthSummary } from '../lib/selectors';
 import { formatMoney, monthLabel, todayISO } from '../lib/money';
 import { softDelete } from '../lib/store';
 import { EmptyRow } from './Panel';
+import { EditIcon } from './icons';
+import type { AddKind, EditingRow } from './AddModal';
 
 const TYPE_LABEL: Record<LedgerEntryType, string> = { expense: 'Expense', income: 'Income', transfer: 'Transfer' };
 const TYPE_TABLE: Record<LedgerEntryType, 'expenses' | 'incomes' | 'transfers'> = {
@@ -34,28 +46,37 @@ export function LedgerView({
   transfers,
   categories,
   accounts,
+  incomeCategories,
   settings,
   month,
   categoryStatuses,
   monthSummary,
+  userLabel,
   onChanged,
   onClose,
+  onEdit,
 }: {
   expenses: Expense[];
   incomes: Income[];
   transfers: Transfer[];
   categories: Category[];
   accounts: Account[];
+  incomeCategories: IncomeCategory[];
   settings: Settings;
   month: ISOMonth;
   categoryStatuses: CategoryStatus[];
   monthSummary: MonthSummary;
+  userLabel: string | null;
   onChanged: () => void;
   onClose: () => void;
+  onEdit: (kind: AddKind, row: EditingRow) => void;
 }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'all' | LedgerEntryType>('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [visible, setVisible] = useState(PAGE);
+  const [pdfMonth, setPdfMonth] = useState(month);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -64,22 +85,41 @@ export function LedgerView({
   }, [onClose]);
 
   const all = useMemo(
-    () => buildLedger(expenses, incomes, transfers, categories, accounts),
-    [expenses, incomes, transfers, categories, accounts],
+    () => buildLedger(expenses, incomes, transfers, categories, accounts, incomeCategories),
+    [expenses, incomes, transfers, categories, accounts, incomeCategories],
   );
+
+  const availableMonths = useMemo(() => {
+    const set = new Set(all.map((e) => e.date.slice(0, 7)));
+    if (set.size === 0) set.add(month);
+    return [...set].sort().reverse();
+  }, [all, month]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return all.filter((e) => {
       if (type !== 'all' && e.type !== type) return false;
+      if (fromDate && e.date < fromDate) return false;
+      if (toDate && e.date > toDate) return false;
       if (!q) return true;
       return [e.name, e.detail, e.account, e.note].filter(Boolean).some((v) => v!.toLowerCase().includes(q));
     });
-  }, [all, query, type]);
+  }, [all, query, type, fromDate, toDate]);
 
   const shown = filtered.slice(0, visible);
   const { currency, locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale, signed: true });
+
+  function rawRow(entry: LedgerEntry): EditingRow | undefined {
+    if (entry.type === 'expense') return expenses.find((e) => e.id === entry.id);
+    if (entry.type === 'income') return incomes.find((i) => i.id === entry.id);
+    return transfers.find((t) => t.id === entry.id);
+  }
+
+  function edit(entry: LedgerEntry) {
+    const row = rawRow(entry);
+    if (row) onEdit(entry.type, row);
+  }
 
   async function remove(entry: LedgerEntry) {
     if (!window.confirm(`Delete "${entry.name}"?`)) return;
@@ -91,23 +131,32 @@ export function LedgerView({
     downloadFile(`finance-tracker-history-${todayISO()}.csv`, ledgerToCsv(filtered), 'text/csv;charset=utf-8');
   }
 
-  function exportMonthReport() {
+  function exportPickedMonthReport() {
+    const statuses = pdfMonth === month ? categoryStatuses : buildCategoryStatuses(categories, expenses, pdfMonth);
+    const summary = pdfMonth === month ? monthSummary : computeMonthSummary(statuses, expenses, incomes, pdfMonth);
     exportMonthPdf({
-      month,
+      month: pdfMonth,
       currency,
       locale,
-      summary: monthSummary,
-      categoryStatuses,
-      entries: all.filter((e) => e.date.slice(0, 7) === month),
+      summary,
+      categoryStatuses: statuses,
+      entries: all.filter((e) => e.date.slice(0, 7) === pdfMonth),
+      userLabel,
     });
   }
 
+  function describeCriteria(): string | null {
+    const parts: string[] = [];
+    if (type !== 'all') parts.push(TYPE_LABEL[type]);
+    if (query.trim()) parts.push(`search "${query.trim()}"`);
+    if (fromDate || toDate) parts.push(`${fromDate || 'earliest'} → ${toDate || 'latest'}`);
+    return parts.length ? parts.join(', ') : null;
+  }
+
   function exportAllPdf() {
-    const title =
-      type === 'all' && !query.trim()
-        ? 'Finance Tracker — Full history'
-        : `Finance Tracker — Full history (filtered: ${type === 'all' ? 'all types' : TYPE_LABEL[type]}${query.trim() ? `, "${query.trim()}"` : ''})`;
-    exportLedgerPdf({ title, currency, locale, entries: filtered });
+    const criteria = describeCriteria();
+    const title = criteria ? `Finance Tracker — Full history (filtered)` : 'Finance Tracker — Full history';
+    exportLedgerPdf({ title, currency, locale, entries: filtered, userLabel, criteria });
   }
 
   return (
@@ -124,39 +173,14 @@ export function LedgerView({
       >
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule px-5 py-3.5">
           <h2 className="text-[15px] font-medium">Full history</h2>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={exportCsv}
-              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
-            >
-              Export CSV
-            </button>
-            <button
-              type="button"
-              onClick={exportMonthReport}
-              title="A one-page report for the selected month: budget breakdown plus that month's transactions."
-              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
-            >
-              PDF: {monthLabel(month, locale)}
-            </button>
-            <button
-              type="button"
-              onClick={exportAllPdf}
-              title="Every row currently shown below (respects the search and type filter)."
-              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
-            >
-              PDF: All ({filtered.length})
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="px-1 text-[16px] text-muted hover:text-ink"
-            >
-              ✕
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="px-1 text-[16px] text-muted hover:text-ink"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-rule px-5 py-3">
@@ -190,6 +214,83 @@ export function LedgerView({
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 border-b border-rule px-5 py-2.5">
+          <label className="flex items-center gap-1.5 text-[12px] text-faint">
+            From
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setVisible(PAGE);
+              }}
+              aria-label="From date"
+              className="rounded-md border border-rule bg-paper px-2 py-1 text-[12.5px] outline-none focus:border-brand"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-[12px] text-faint">
+            To
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setVisible(PAGE);
+              }}
+              aria-label="To date"
+              className="rounded-md border border-rule bg-paper px-2 py-1 text-[12.5px] outline-none focus:border-brand"
+            />
+          </label>
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFromDate('');
+                setToDate('');
+              }}
+              className="text-[12px] text-faint hover:text-brand"
+            >
+              Clear dates
+            </button>
+          )}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
+            >
+              Export CSV
+            </button>
+            <select
+              value={pdfMonth}
+              onChange={(e) => setPdfMonth(e.target.value)}
+              aria-label="Month for PDF report"
+              className="rounded-md border border-rule bg-paper px-2 py-1 text-[12px] text-muted outline-none focus:border-brand"
+            >
+              {availableMonths.map((m) => (
+                <option key={m} value={m}>{monthLabel(m, locale)}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={exportPickedMonthReport}
+              title="A one-page report for the selected month: budget breakdown plus that month's transactions."
+              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
+            >
+              PDF: month
+            </button>
+            <button
+              type="button"
+              onClick={exportAllPdf}
+              title="Every row currently shown below (respects search, type and date filters)."
+              className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
+            >
+              PDF: filtered ({filtered.length})
+            </button>
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto">
           {shown.length === 0 ? (
             <EmptyRow>Nothing matches.</EmptyRow>
@@ -215,6 +316,14 @@ export function LedgerView({
                   >
                     {money(e.amount)}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => edit(e)}
+                    aria-label={`Edit ${e.name}`}
+                    className="shrink-0 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                  >
+                    <EditIcon />
+                  </button>
                   <button
                     type="button"
                     onClick={() => void remove(e)}

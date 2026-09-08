@@ -1,6 +1,6 @@
 import { addExpense, addIncome, addTransfer } from './store';
 import { currentMonth, shiftMonth } from './money';
-import type { Account, Category } from '../types';
+import type { Account, Category, IncomeCategory } from '../types';
 
 function byName<T extends { name: string; id: string }>(rows: T[], name: string): string | null {
   return rows.find((r) => r.name === name)?.id ?? rows[0]?.id ?? null;
@@ -17,9 +17,14 @@ function dateInMonth(month: string, day: number): string {
  * before a single real transaction exists. Falls back to the first available
  * category/account when a starter name isn't found, rather than failing.
  */
-export async function loadDemoData(categories: Category[], accounts: Account[]): Promise<void> {
+export async function loadDemoData(
+  categories: Category[],
+  accounts: Account[],
+  incomeCategories: IncomeCategory[],
+): Promise<void> {
   const cat = (name: string) => byName(categories, name);
   const acct = (name: string) => byName(accounts, name);
+  const source = (name: string) => byName(incomeCategories, name);
 
   const checking = acct('Checking');
   const savings = acct('Savings');
@@ -33,7 +38,7 @@ export async function loadDemoData(categories: Category[], accounts: Account[]):
       amount: 320000,
       date: dateInMonth(month, 1),
       accountId: checking,
-      source: 'Salary',
+      sourceId: source('Salary'),
     });
     await addExpense({
       name: 'Rent',
@@ -106,6 +111,6 @@ export async function loadDemoData(categories: Category[], accounts: Account[]):
     amount: 45000,
     date: dateInMonth(currentMonth(), 20),
     accountId: checking,
-    source: 'Credit Rewards',
+    sourceId: source('Credit Rewards'),
   });
 }

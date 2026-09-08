@@ -1,6 +1,6 @@
 import { db } from './db';
 import { uid } from './money';
-import type { Account, Category, Cents, Expense, Income, IncomeSource, ISODate, Transfer } from '../types';
+import type { Account, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
 
 /**
  * Every mutation goes through here so `updatedAt` is always stamped and deletes
@@ -29,12 +29,37 @@ export async function addExpense(input: {
   });
 }
 
+export async function updateExpense(
+  id: string,
+  input: {
+    name: string;
+    amount: Cents;
+    date: ISODate;
+    categoryId: string | null;
+    accountId: string | null;
+    text?: string;
+  },
+): Promise<void> {
+  const existing = await db.expenses.get(id);
+  if (!existing) return;
+  await db.expenses.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    amount: Math.abs(input.amount),
+    date: input.date,
+    categoryId: input.categoryId,
+    accountId: input.accountId,
+    text: input.text?.trim() ?? '',
+    updatedAt: Date.now(),
+  });
+}
+
 export async function addIncome(input: {
   name: string;
   amount: Cents;
   date: ISODate;
   accountId: string | null;
-  source: IncomeSource | null;
+  sourceId: string | null;
 }): Promise<void> {
   await db.incomes.put({
     id: uid(),
@@ -42,8 +67,25 @@ export async function addIncome(input: {
     amount: Math.abs(input.amount),
     date: input.date,
     accountId: input.accountId,
-    source: input.source,
+    sourceId: input.sourceId,
     ...stamp(),
+  });
+}
+
+export async function updateIncome(
+  id: string,
+  input: { name: string; amount: Cents; date: ISODate; accountId: string | null; sourceId: string | null },
+): Promise<void> {
+  const existing = await db.incomes.get(id);
+  if (!existing) return;
+  await db.incomes.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    amount: Math.abs(input.amount),
+    date: input.date,
+    accountId: input.accountId,
+    sourceId: input.sourceId,
+    updatedAt: Date.now(),
   });
 }
 
@@ -62,6 +104,23 @@ export async function addTransfer(input: {
     fromAccountId: input.fromAccountId,
     toAccountId: input.toAccountId,
     ...stamp(),
+  });
+}
+
+export async function updateTransfer(
+  id: string,
+  input: { name: string; amount: Cents; date: ISODate; fromAccountId: string | null; toAccountId: string | null },
+): Promise<void> {
+  const existing = await db.transfers.get(id);
+  if (!existing) return;
+  await db.transfers.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    amount: Math.abs(input.amount),
+    date: input.date,
+    fromAccountId: input.fromAccountId,
+    toAccountId: input.toAccountId,
+    updatedAt: Date.now(),
   });
 }
 
@@ -87,6 +146,13 @@ export async function addAccount(name: string, initialAmount: Cents, color: stri
     order,
     ...stamp(),
   });
+}
+
+export async function addIncomeCategory(name: string, color: string): Promise<IncomeCategory> {
+  const order = await db.incomeCategories.count();
+  const row: IncomeCategory = { id: uid(), name: name.trim(), color, order, ...stamp() };
+  await db.incomeCategories.put(row);
+  return row;
 }
 
 export async function setMonthlyBudget(categoryId: string, budget: Cents): Promise<void> {
@@ -117,11 +183,17 @@ export async function updateAccount(id: string, name: string, color: string): Pr
   await db.accounts.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
 }
 
-type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts';
+export async function updateIncomeCategory(id: string, name: string, color: string): Promise<void> {
+  const existing = await db.incomeCategories.get(id);
+  if (!existing) return;
+  await db.incomeCategories.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
+}
+
+type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts' | 'incomeCategories';
 
 export async function softDelete(table: Soft, id: string): Promise<void> {
   const existing = await (db[table] as unknown as {
-    get: (id: string) => Promise<Expense | Income | Transfer | Category | Account | undefined>;
+    get: (id: string) => Promise<Expense | Income | Transfer | Category | Account | IncomeCategory | undefined>;
   }).get(id);
   if (!existing) return;
   await (db[table] as unknown as { put: (row: unknown) => Promise<unknown> }).put({
@@ -131,12 +203,12 @@ export async function softDelete(table: Soft, id: string): Promise<void> {
   });
 }
 
-type Orderable = 'categories' | 'accounts';
+type Orderable = 'categories' | 'accounts' | 'incomeCategories';
 
 /** Persists a drag-and-drop reorder: `orderedIds` is the full list, top to bottom. */
 export async function reorder(table: Orderable, orderedIds: string[]): Promise<void> {
   const coll = db[table] as unknown as {
-    get: (id: string) => Promise<(Category | Account) | undefined>;
+    get: (id: string) => Promise<(Category | Account | IncomeCategory) | undefined>;
     put: (row: unknown) => Promise<unknown>;
   };
   const now = Date.now();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Account, Category } from '../types';
+import type { Account, Category, IncomeCategory } from '../types';
 import { loadDemoData } from '../lib/demoData';
 
 const DISMISS_KEY = 'ft.demoDismissed';
@@ -12,10 +12,12 @@ const DISMISS_KEY = 'ft.demoDismissed';
 export function DemoDataBanner({
   categories,
   accounts,
+  incomeCategories,
   onChanged,
 }: {
   categories: Category[];
   accounts: Account[];
+  incomeCategories: IncomeCategory[];
   onChanged: () => void;
 }) {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1');
@@ -31,7 +33,7 @@ export function DemoDataBanner({
   async function load() {
     setLoading(true);
     try {
-      await loadDemoData(categories, accounts);
+      await loadDemoData(categories, accounts, incomeCategories);
       onChanged();
       dismiss();
     } finally {

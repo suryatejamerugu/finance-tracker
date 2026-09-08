@@ -1,4 +1,4 @@
-import type { Account, Category, Cents, Expense, Income, ISODate, Transfer } from '../types';
+import type { Account, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
 import { live } from './selectors';
 
 /**
@@ -28,9 +28,11 @@ export function buildLedger(
   transfers: Transfer[],
   categories: Category[],
   accounts: Account[],
+  incomeCategories: IncomeCategory[] = [],
 ): LedgerEntry[] {
   const catName = new Map(categories.map((c) => [c.id, c.name]));
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
+  const sourceName = new Map(incomeCategories.map((c) => [c.id, c.name]));
 
   const expenseRows: LedgerEntry[] = live(expenses).map((e) => ({
     id: e.id,
@@ -49,7 +51,7 @@ export function buildLedger(
     date: i.date,
     name: i.name,
     amount: i.amount,
-    detail: i.source,
+    detail: sourceName.get(i.sourceId ?? '') ?? 'Uncategorised',
     account: acctName.get(i.accountId ?? '') ?? null,
     note: '',
   }));

@@ -199,6 +199,7 @@ if (!paths.expenses && !paths.incomes) {
 const now = Date.now();
 const accounts = new Map(); // name -> record
 const categories = new Map();
+const incomeCategories = new Map();
 
 /**
  * Look up or create an account, returning the RECORD (not just the id) so the
@@ -247,6 +248,28 @@ function upsertCategory(name) {
 }
 
 const categoryId = (name) => upsertCategory(name)?.id ?? null;
+
+function upsertIncomeCategory(name) {
+  const clean = (name || '').trim();
+  if (!clean) return null;
+  if (!incomeCategories.has(clean)) {
+    incomeCategories.set(clean, {
+      id: randomUUID(),
+      name: clean,
+      color: PALETTE[incomeCategories.size % PALETTE.length],
+      order: incomeCategories.size,
+      updatedAt: now,
+      deleted: false,
+    });
+  }
+  return incomeCategories.get(clean);
+}
+
+const incomeCategoryId = (name) => upsertIncomeCategory(name)?.id ?? null;
+
+// Seed the starter income categories up front so their order/colors match the
+// app's own defaults rather than whatever order Notion's rows happen to hit them in.
+for (const s of SOURCES) upsertIncomeCategory(s);
 
 // Seed the lookup tables first so budgets and initial amounts survive.
 if (paths.categories) {
@@ -300,13 +323,14 @@ if (paths.incomes) {
       return;
     }
     const raw = pick(r, 'source');
+    const matched = SOURCES.find((s) => s.toLowerCase() === raw.toLowerCase()) ?? raw;
     incomes.push({
       id: randomUUID(),
       name: pick(r, 'income', 'name') || 'Income',
       amount,
       date,
       accountId: accountId(relationTitle(pick(r, 'accounts', 'account'))),
-      source: SOURCES.find((s) => s.toLowerCase() === raw.toLowerCase()) ?? null,
+      sourceId: incomeCategoryId(matched),
       updatedAt: now,
       deleted: false,
     });
@@ -337,10 +361,11 @@ if (paths.transfers) {
 process.stdout.write(
   JSON.stringify(
     {
-      schemaVersion: 2,
+      schemaVersion: 3,
       exportedAt: now,
       accounts: [...accounts.values()],
       categories: [...categories.values()],
+      incomeCategories: [...incomeCategories.values()],
       expenses,
       incomes,
       transfers,
@@ -353,7 +378,7 @@ process.stdout.write(
 
 console.error(
   `\n${expenses.length} expenses · ${incomes.length} incomes · ${transfers.length} transfers` +
-    ` · ${categories.size} categories · ${accounts.size} accounts`,
+    ` · ${categories.size} categories · ${accounts.size} accounts · ${incomeCategories.size} income categories`,
 );
 if (skipped.length) {
   console.error(`\nSkipped ${skipped.length} rows:`);

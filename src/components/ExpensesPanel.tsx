@@ -14,6 +14,7 @@ import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
+import { EditIcon } from './icons';
 
 const TABS = ['Recent', 'Weekly', 'Monthly', 'Chart'] as const;
 type Tab = (typeof TABS)[number];
@@ -25,6 +26,7 @@ export function ExpensesPanel({
   month,
   settings,
   onChanged,
+  onEdit,
 }: {
   expenses: Expense[];
   categories: Category[];
@@ -32,6 +34,7 @@ export function ExpensesPanel({
   month: ISOMonth;
   settings: Settings;
   onChanged: () => void;
+  onEdit: (expense: Expense) => void;
 }) {
   const { currency, locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
@@ -52,6 +55,14 @@ export function ExpensesPanel({
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="num text-[14px]">{money(e.amount)}</span>
+        <button
+          type="button"
+          onClick={() => onEdit(e)}
+          aria-label={`Edit ${e.name}`}
+          className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+        >
+          <EditIcon />
+        </button>
         <button
           type="button"
           onClick={async () => {

@@ -48,8 +48,8 @@ export interface Expense extends Synced {
   text: string;
 }
 
-/** Notion: Incomes. Source is a select with this exact option list. */
-export const INCOME_SOURCES = [
+/** Seed list only — income categories are a real, user-editable table (below), same as Categories. */
+export const DEFAULT_INCOME_CATEGORIES = [
   'Salary',
   'Money Transfer',
   'Debt Repayment',
@@ -60,14 +60,19 @@ export const INCOME_SOURCES = [
   'Splitwise',
 ] as const;
 
-export type IncomeSource = (typeof INCOME_SOURCES)[number];
+/** Notion: Income Sources. Like Categories, but for income — no budget field. */
+export interface IncomeCategory extends Synced {
+  name: string;
+  color: string;
+  order: number;
+}
 
 export interface Income extends Synced {
   name: string;
   amount: Cents;
   date: ISODate;
   accountId: string | null;
-  source: IncomeSource | null;
+  sourceId: string | null;
 }
 
 /** Notion: Transfers. Title property is "Transactions". */
@@ -86,13 +91,14 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export interface Snapshot {
   schemaVersion: number;
   exportedAt: number;
   accounts: Account[];
   categories: Category[];
+  incomeCategories: IncomeCategory[];
   expenses: Expense[];
   incomes: Income[];
   transfers: Transfer[];
