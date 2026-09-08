@@ -9,7 +9,7 @@ import {
   monthSummary,
 } from '../lib/selectors';
 import { currentMonth, formatBig, formatMoney, monthLabel, shiftMonth } from '../lib/money';
-import { ADD_LABELS, AddModal, type AddKind } from '../components/AddModal';
+import { ADD_LABELS, AddModal, type AddKind, type EditingRow } from '../components/AddModal';
 import { CategoryGallery } from '../components/CategoryGallery';
 import { ExpensesPanel } from '../components/ExpensesPanel';
 import { IncomesPanel } from '../components/IncomesPanel';
@@ -26,21 +26,37 @@ const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'acco
  * On narrow screens the columns stack, ordered so the numbers you check most
  * often come first.
  */
-export function Dashboard({ onChanged }: { onChanged: () => void }) {
+export function Dashboard({
+  onChanged,
+  userLabel,
+}: {
+  onChanged: () => void;
+  userLabel: string | null;
+}) {
   const [month, setMonth] = useState(currentMonth());
-  const [adding, setAdding] = useState<AddKind | null>(null);
+  const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [dismissedWarning, setDismissedWarning] = useState<string | null>(null);
 
   const data = useLiveQuery(async () => {
-    const [accounts, categories, expenses, incomes, transfers, settings] = await Promise.all([
+    const [accounts, categories, incomeCategories, expenses, incomes, transfers, settings] = await Promise.all([
       db.accounts.toArray(),
       db.categories.toArray(),
+      db.incomeCategories.toArray(),
       db.expenses.toArray(),
       db.incomes.toArray(),
       db.transfers.toArray(),
       db.settings.get('settings'),
     ]);
-    return { accounts, categories, expenses, incomes, transfers, settings: settings ?? DEFAULT_SETTINGS };
+    return {
+      accounts,
+      categories,
+      incomeCategories,
+      expenses,
+      incomes,
+      transfers,
+      settings: settings ?? DEFAULT_SETTINGS,
+    };
   }, []);
 
   if (!data) return <div className="p-6 text-muted">Loading…</div>;
@@ -49,6 +65,7 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
   const { currency, locale } = settings;
   const liveCategories = live(data.categories).sort((a, b) => a.order - b.order);
   const liveAccounts = live(data.accounts).sort((a, b) => a.order - b.order);
+  const liveIncomeCategories = live(data.incomeCategories).sort((a, b) => a.order - b.order);
 
   const categoryStatuses = buildCategoryStatuses(data.categories, data.expenses, month);
   const accountStatuses = buildAccountStatuses(data.accounts, data.expenses, data.incomes, data.transfers);
@@ -61,7 +78,12 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
     <div className="px-4 pb-16 sm:px-6">
       {isEmpty && (
         <div className="pt-4">
-          <DemoDataBanner categories={liveCategories} accounts={liveAccounts} onChanged={onChanged} />
+          <DemoDataBanner
+            categories={liveCategories}
+            accounts={liveAccounts}
+            incomeCategories={liveIncomeCategories}
+            onChanged={onChanged}
+          />
         </div>
       )}
 
@@ -119,7 +141,7 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
           <button
             key={kind}
             type="button"
-            onClick={() => setAdding(kind)}
+            onClick={() => setModal({ kind })}
             className={`press rounded-lg px-3 py-1.5 text-[13px] ${
               kind === 'expense'
                 ? 'bg-brand-gradient text-white shadow-card hover:shadow-card-hover'
@@ -138,15 +160,30 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
         </button>
       </div>
 
-      {(summary.overspent > 0 || summary.unbudgeted > 0) && (
-        <p className="mb-5 rounded-lg border border-rule bg-over-soft px-3 py-2 text-[13px] text-over">
-          {summary.overspent > 0 &&
-            `${summary.overspent} ${summary.overspent === 1 ? 'category is' : 'categories are'} over budget.`}
-          {summary.overspent > 0 && summary.unbudgeted > 0 && ' '}
-          {summary.unbudgeted > 0 &&
-            `${summary.unbudgeted} ${summary.unbudgeted === 1 ? 'category has' : 'categories have'} spending but no budget set.`}
-        </p>
-      )}
+      {(() => {
+        if (summary.overspent === 0 && summary.unbudgeted === 0) return null;
+        const warningKey = `${month}:${summary.overspent}:${summary.unbudgeted}`;
+        if (dismissedWarning === warningKey) return null;
+        return (
+          <p className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-rule bg-over-soft px-3 py-2 text-[13px] text-over">
+            <span>
+              {summary.overspent > 0 &&
+                `${summary.overspent} ${summary.overspent === 1 ? 'category is' : 'categories are'} over budget.`}
+              {summary.overspent > 0 && summary.unbudgeted > 0 && ' '}
+              {summary.unbudgeted > 0 &&
+                `${summary.unbudgeted} ${summary.unbudgeted === 1 ? 'category has' : 'categories have'} spending but no budget set.`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setDismissedWarning(warningKey)}
+              aria-label="Dismiss"
+              className="shrink-0 text-[14px] leading-none hover:text-ink"
+            >
+              ×
+            </button>
+          </p>
+        );
+      })()}
 
       {/* 21 / 54 / 25 on desktop, matching the Notion column ratios */}
       <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-[21fr_54fr_25fr]">
@@ -162,19 +199,23 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
             month={month}
             settings={settings}
             onChanged={onChanged}
+            onEdit={(expense) => setModal({ kind: 'expense', editing: expense })}
           />
           <IncomesPanel
             incomes={data.incomes}
             accounts={liveAccounts}
+            incomeCategories={liveIncomeCategories}
             month={month}
             settings={settings}
             onChanged={onChanged}
+            onEdit={(income) => setModal({ kind: 'income', editing: income })}
           />
           <TransfersPanel
             transfers={data.transfers}
             accounts={liveAccounts}
             settings={settings}
             onChanged={onChanged}
+            onEdit={(transfer) => setModal({ kind: 'transfer', editing: transfer })}
           />
         </div>
 
@@ -184,12 +225,14 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
         </div>
       </div>
 
-      {adding && (
+      {modal && (
         <AddModal
-          kind={adding}
+          kind={modal.kind}
           categories={liveCategories}
           accounts={liveAccounts}
-          onClose={() => setAdding(null)}
+          incomeCategories={liveIncomeCategories}
+          editing={modal.editing ?? null}
+          onClose={() => setModal(null)}
           onSaved={onChanged}
         />
       )}
@@ -201,12 +244,15 @@ export function Dashboard({ onChanged }: { onChanged: () => void }) {
           transfers={data.transfers}
           categories={data.categories}
           accounts={data.accounts}
+          incomeCategories={data.incomeCategories}
           settings={settings}
           month={month}
           categoryStatuses={categoryStatuses}
           monthSummary={summary}
+          userLabel={userLabel}
           onChanged={onChanged}
           onClose={() => setHistoryOpen(false)}
+          onEdit={(kind, row) => setModal({ kind, editing: row })}
         />
       )}
     </div>

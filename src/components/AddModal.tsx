@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { INCOME_SOURCES, type Account, type Category, type IncomeSource } from '../types';
+import type { Account, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
 import { parseAmount, todayISO } from '../lib/money';
-import { addAccount, addCategory, addExpense, addIncome, addTransfer } from '../lib/store';
+import {
+  addAccount,
+  addCategory,
+  addExpense,
+  addIncome,
+  addTransfer,
+  updateExpense,
+  updateIncome,
+  updateTransfer,
+} from '../lib/store';
 import { PALETTE, suggestedColor } from '../lib/colors';
 
 export type AddKind = 'expense' | 'income' | 'transfer' | 'category' | 'account';
@@ -14,30 +23,59 @@ export const ADD_LABELS: Record<AddKind, string> = {
   account: 'New account',
 };
 
+const EDIT_LABELS: Record<AddKind, string> = {
+  expense: 'Edit expense',
+  income: 'Edit income',
+  transfer: 'Edit transfer',
+  category: 'Edit category',
+  account: 'Edit account',
+};
+
 const field =
   'w-full rounded-lg border border-rule bg-paper px-3 py-2 text-[15px] outline-none focus:border-brand';
+
+/** The row being edited, when this is an edit rather than a create. */
+export type EditingRow = Expense | Income | Transfer;
 
 export function AddModal({
   kind,
   categories,
   accounts,
+  incomeCategories,
+  editing,
   onClose,
   onSaved,
 }: {
   kind: AddKind;
   categories: Category[];
   accounts: Account[];
+  incomeCategories: IncomeCategory[];
+  editing?: EditingRow | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(todayISO());
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
-  const [toAccountId, setToAccountId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? '');
-  const [source, setSource] = useState<IncomeSource>('Salary');
-  const [text, setText] = useState('');
+  const [name, setName] = useState(editing?.name ?? '');
+  const [amount, setAmount] = useState(editing ? (editing.amount / 100).toFixed(2) : '');
+  const [date, setDate] = useState(editing && 'date' in editing ? editing.date : todayISO());
+  const [categoryId, setCategoryId] = useState(
+    editing && kind === 'expense' ? ((editing as Expense).categoryId ?? '') : (categories[0]?.id ?? ''),
+  );
+  const [accountId, setAccountId] = useState(() => {
+    if (editing) {
+      if (kind === 'transfer') return (editing as Transfer).fromAccountId ?? '';
+      return (editing as Expense | Income).accountId ?? '';
+    }
+    return accounts[0]?.id ?? '';
+  });
+  const [toAccountId, setToAccountId] = useState(() =>
+    editing && kind === 'transfer'
+      ? ((editing as Transfer).toAccountId ?? '')
+      : (accounts[1]?.id ?? accounts[0]?.id ?? ''),
+  );
+  const [sourceId, setSourceId] = useState(
+    editing && kind === 'income' ? ((editing as Income).sourceId ?? '') : (incomeCategories[0]?.id ?? ''),
+  );
+  const [text, setText] = useState(editing && kind === 'expense' ? ((editing as Expense).text ?? '') : '');
   const [color, setColor] = useState(() =>
     suggestedColor(kind === 'account' ? accounts.length : categories.length),
   );
@@ -67,15 +105,27 @@ export function AddModal({
 
     const value = cents ?? 0;
     if (kind === 'expense') {
-      await addExpense({ name, amount: value, date, categoryId: categoryId || null, accountId: accountId || null, text });
+      const input = { name, amount: value, date, categoryId: categoryId || null, accountId: accountId || null, text };
+      if (editing) await updateExpense(editing.id, input);
+      else await addExpense(input);
     } else if (kind === 'income') {
-      await addIncome({ name, amount: value, date, accountId: accountId || null, source });
+      const input = { name, amount: value, date, accountId: accountId || null, sourceId: sourceId || null };
+      if (editing) await updateIncome(editing.id, input);
+      else await addIncome(input);
     } else if (kind === 'transfer') {
       if (accountId && accountId === toAccountId) {
         setError('From and To must be different accounts');
         return;
       }
-      await addTransfer({ name, amount: value, date, fromAccountId: accountId || null, toAccountId: toAccountId || null });
+      const input = {
+        name,
+        amount: value,
+        date,
+        fromAccountId: accountId || null,
+        toAccountId: toAccountId || null,
+      };
+      if (editing) await updateTransfer(editing.id, input);
+      else await addTransfer(input);
     } else if (kind === 'category') {
       await addCategory(name, value, color);
     } else {
@@ -86,6 +136,7 @@ export function AddModal({
     onClose();
   }
 
+  const title = editing ? EDIT_LABELS[kind] : ADD_LABELS[kind];
   const amountLabel =
     kind === 'category' ? 'Monthly budget' : kind === 'account' ? 'Initial amount' : 'Amount';
   const dated = kind === 'expense' || kind === 'income' || kind === 'transfer';
@@ -95,11 +146,11 @@ export function AddModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={ADD_LABELS[kind]}
+        aria-label={title}
         className="w-full max-w-md rounded-t-2xl bg-raised p-5 shadow-pop safe-bottom sm:rounded-2xl sm:pb-5"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[15px] font-medium">{ADD_LABELS[kind]}</h2>
+          <h2 className="text-[15px] font-medium">{title}</h2>
           <button type="button" onClick={onClose} className="px-2 text-[15px] text-muted">
             Cancel
           </button>
@@ -156,13 +207,14 @@ export function AddModal({
 
           {kind === 'income' && (
             <select
-              value={source}
-              onChange={(e) => setSource(e.target.value as IncomeSource)}
+              value={sourceId}
+              onChange={(e) => setSourceId(e.target.value)}
               aria-label="Source"
               className={field}
             >
-              {INCOME_SOURCES.map((s) => (
-                <option key={s} value={s}>{s}</option>
+              <option value="">No source</option>
+              {incomeCategories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           )}
@@ -232,7 +284,7 @@ export function AddModal({
           onClick={() => void save()}
           className="press mt-5 w-full rounded-lg bg-brand-gradient py-3 text-[15px] font-medium text-white shadow-card hover:shadow-card-hover"
         >
-          Save
+          {editing ? 'Save changes' : 'Save'}
         </button>
       </div>
     </div>

@@ -7,13 +7,19 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { DataMenuModal } from './components/DataMenuModal'
 import { Footer } from './components/Footer'
 import { Dashboard } from './pages/Dashboard'
+import { About } from './pages/About'
 
-/** One page. No tabs, no routes — same as the Notion dashboard. */
+/**
+ * Two pages (dashboard, guide), picked by plain pathname — not worth a router
+ * dependency. Links are real <a> tags (a full navigation, not client-side),
+ * which netlify.toml's SPA redirect makes work correctly either way.
+ */
 export default function App() {
   const [ready, setReady] = useState(false)
   const [dataOpen, setDataOpen] = useState(false)
   const sync = useSync()
   const { theme, toggle: toggleTheme } = useTheme()
+  const isAbout = window.location.pathname.replace(/\/+$/, '') === '/about'
 
   useEffect(() => {
     void seedIfEmpty().finally(() => setReady(true))
@@ -25,11 +31,23 @@ export default function App() {
     <div className="theme-transition flex min-h-dvh flex-col">
       <div className="mx-auto w-full max-w-[1400px] flex-1">
         <header className="flex items-center justify-between border-b border-rule px-4 py-2.5 safe-top sm:px-6">
-          <h1 className="text-[15px] font-semibold tracking-tight">
+          <a href="/" className="text-[15px] font-semibold tracking-tight no-underline">
             <span className="text-brand-gradient">Finance</span> Tracker
-          </h1>
+          </a>
           <div className="flex items-center gap-3">
             <SyncBadge sync={sync} />
+            <a
+              href="/about"
+              aria-label="Guide: how to use this app"
+              title="Guide: how to use this app"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-rule text-muted transition-colors hover:border-brand hover:text-brand"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9.2a2.5 2.5 0 1 1 3.7 2.2c-.9.5-1.2 1-1.2 1.9" />
+                <circle cx="12" cy="16.7" r="0.15" fill="currentColor" stroke="none" />
+              </svg>
+            </a>
             <button
               type="button"
               onClick={() => setDataOpen(true)}
@@ -53,7 +71,7 @@ export default function App() {
           </p>
         )}
 
-        <Dashboard onChanged={sync.scheduleSync} />
+        {isAbout ? <About /> : <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} />}
       </div>
 
       {dataOpen && <DataMenuModal onChanged={sync.scheduleSync} onClose={() => setDataOpen(false)} />}

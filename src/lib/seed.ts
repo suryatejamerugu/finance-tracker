@@ -1,6 +1,7 @@
-import { db, DEFAULT_SETTINGS } from './db';
+import { db, DEFAULT_SETTINGS, LEGACY_SOURCE_COLORS } from './db';
 import { uid } from './money';
-import type { Account, Category } from '../types';
+import { DEFAULT_INCOME_CATEGORIES } from '../types';
+import type { Account, Category, IncomeCategory } from '../types';
 
 /** [name, monthly budget in dollars, swatch] */
 const CATEGORIES: Array<[string, number, string]> = [
@@ -30,7 +31,7 @@ export async function seedIfEmpty(): Promise<void> {
   // two un-serialized calls both see an empty table and both seed, doubling
   // every row. Dexie serializes transactions that touch the same tables, so
   // the second call's count() only runs after the first has committed.
-  await db.transaction('rw', db.categories, db.accounts, db.settings, async () => {
+  await db.transaction('rw', db.categories, db.accounts, db.incomeCategories, db.settings, async () => {
     if ((await db.categories.count()) > 0 || (await db.accounts.count()) > 0) return;
 
     const now = Date.now();
@@ -52,9 +53,18 @@ export async function seedIfEmpty(): Promise<void> {
       updatedAt: now,
       deleted: false,
     }));
+    const incomeCategories: IncomeCategory[] = DEFAULT_INCOME_CATEGORIES.map((name, order) => ({
+      id: uid(),
+      name,
+      color: LEGACY_SOURCE_COLORS[name] ?? '#9A9DA3',
+      order,
+      updatedAt: now,
+      deleted: false,
+    }));
 
     await db.categories.bulkPut(categories);
     await db.accounts.bulkPut(accounts);
+    await db.incomeCategories.bulkPut(incomeCategories);
     await db.settings.put({ ...DEFAULT_SETTINGS, updatedAt: now });
   });
 }

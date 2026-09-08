@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -7,58 +8,62 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { Account, Income, ISOMonth, Settings } from '../types';
+import type { Account, Income, IncomeCategory, ISOMonth, Settings } from '../types';
 import { formatMoney, monthLabel, shortMonthLabel } from '../lib/money';
 import { groupByPeriod, live, stackedByMonth } from '../lib/selectors';
+import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
+import { IncomeCategoriesModal } from './IncomeCategoriesModal';
+import { EditIcon } from './icons';
 
 const TABS = ['Recent', 'Monthly', 'Yearly', 'Chart'] as const;
 type Tab = (typeof TABS)[number];
 
-/** One colour per Source, so the stacked chart is readable across months. */
-const SOURCE_COLORS: Record<string, string> = {
-  Salary: '#2F7A55',
-  'Money Transfer': '#4C8FB5',
-  'Debt Repayment': '#3B37C4',
-  'Credit Rewards': '#9B5FA8',
-  'Return / Refund Credits': '#B5734C',
-  Dividend: '#5E8C6A',
-  'Credit Limit Increased': '#7FA8C4',
-  Splitwise: '#8A6A4F',
-  Uncategorised: '#9A9DA3',
-};
-
 export function IncomesPanel({
   incomes,
   accounts,
+  incomeCategories,
   month,
   settings,
   onChanged,
+  onEdit,
 }: {
   incomes: Income[];
   accounts: Account[];
+  incomeCategories: IncomeCategory[];
   month: ISOMonth;
   settings: Settings;
   onChanged: () => void;
+  onEdit: (income: Income) => void;
 }) {
   const { currency, locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
+  const sourceName = new Map(incomeCategories.map((c) => [c.id, c.name]));
   const rows = live(incomes);
   const chartSeries = useSeriesInteraction();
+  const [managingCategories, setManagingCategories] = useState(false);
 
   const Row = ({ i }: { i: Income }) => (
     <div className="group flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5 last:border-b-0">
       <div className="min-w-0">
         <div className="truncate text-[14px]">{i.name}</div>
         <div className="truncate text-[12px] text-faint">
-          {[i.source, acctName.get(i.accountId ?? '')].filter(Boolean).join(' · ') || '—'}
+          {[sourceName.get(i.sourceId ?? ''), acctName.get(i.accountId ?? '')].filter(Boolean).join(' · ') || '—'}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="num text-[14px] text-under">{money(i.amount)}</span>
+        <button
+          type="button"
+          onClick={() => onEdit(i)}
+          aria-label={`Edit ${i.name}`}
+          className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+        >
+          <EditIcon />
+        </button>
         <button
           type="button"
           onClick={async () => {
@@ -76,8 +81,11 @@ export function IncomesPanel({
 
   const render = (tab: Tab) => {
     if (tab === 'Chart') {
-      const { data, series } = stackedByMonth(rows, month, 12, (i) => i.source);
-      const color = (name: string) => SOURCE_COLORS[name] ?? '#9A9DA3';
+      const { data, series } = stackedByMonth(rows, month, 12, (i) => sourceName.get(i.sourceId ?? '') ?? null);
+      const rawColorOf = new Map(incomeCategories.map((c) => [c.name, c.color]));
+      const resolved = resolveDistinctColors(series.map((name) => ({ name, color: rawColorOf.get(name) ?? '#9A9DA3' })));
+      const colorOf = new Map(resolved.map((r) => [r.name, r.color]));
+      const color = (name: string) => colorOf.get(name) ?? '#9A9DA3';
       if (series.length === 0) return <EmptyRow>No income in the last 12 months.</EmptyRow>;
       const { hidden, active, setActive, toggle } = chartSeries;
       return (
@@ -148,8 +156,30 @@ export function IncomesPanel({
   };
 
   return (
-    <Panel title="Incomes" tabs={TABS}>
-      {render}
-    </Panel>
+    <>
+      <Panel
+        title="Incomes"
+        tabs={TABS}
+        action={
+          <button
+            type="button"
+            onClick={() => setManagingCategories(true)}
+            className="rounded-md px-2 py-0.5 text-[12px] text-faint hover:text-brand"
+          >
+            Categories
+          </button>
+        }
+      >
+        {render}
+      </Panel>
+
+      {managingCategories && (
+        <IncomeCategoriesModal
+          categories={incomeCategories}
+          onChanged={onChanged}
+          onClose={() => setManagingCategories(false)}
+        />
+      )}
+    </>
   );
 }
