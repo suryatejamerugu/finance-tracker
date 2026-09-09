@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Account, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
+import type { Account, AccountType, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
 import { parseAmount, todayISO } from '../lib/money';
 import {
   addAccount,
@@ -13,6 +13,8 @@ import {
 } from '../lib/store';
 import { PALETTE, suggestedColor } from '../lib/colors';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
+import { guessAccountType, guessCategoryIcon } from '../lib/iconGuess';
+import { AccountTypePicker, IconPicker } from './Pickers';
 
 export type AddKind = 'expense' | 'income' | 'transfer' | 'category' | 'account';
 
@@ -85,6 +87,10 @@ export function AddModal({
     suggestedColor(kind === 'account' ? accounts.length : categories.length),
   );
   const [accountCurrency, setAccountCurrency] = useState(currency);
+  const [accountType, setAccountType] = useState<AccountType>('other');
+  const [accountTypeTouched, setAccountTypeTouched] = useState(false);
+  const [icon, setIcon] = useState('tag');
+  const [iconTouched, setIconTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const first = useRef<HTMLInputElement>(null);
 
@@ -139,9 +145,9 @@ export function AddModal({
         if (editing) await updateTransfer(editing.id, input);
         else await addTransfer(input);
       } else if (kind === 'category') {
-        await addCategory(name, value, color, currency);
+        await addCategory({ name, budget: value, color, currency, icon });
       } else {
-        await addAccount(name, value, color, accountCurrency);
+        await addAccount({ name, initialAmount: value, color, currency: accountCurrency, type: accountType });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save that.');
@@ -178,8 +184,11 @@ export function AddModal({
             ref={first}
             value={name}
             onChange={(e) => {
-              setName(e.target.value);
+              const next = e.target.value;
+              setName(next);
               setError(null);
+              if (kind === 'account' && !accountTypeTouched) setAccountType(guessAccountType(next));
+              if (kind === 'category' && !iconTouched) setIcon(guessCategoryIcon(next));
             }}
             placeholder={kind === 'transfer' ? 'What is this transfer for?' : 'Name'}
             aria-label="Name"
@@ -298,6 +307,32 @@ export function AddModal({
                 <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
               ))}
             </select>
+          )}
+
+          {kind === 'account' && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Type</span>
+              <AccountTypePicker
+                value={accountType}
+                onChange={(t) => {
+                  setAccountType(t);
+                  setAccountTypeTouched(true);
+                }}
+              />
+            </div>
+          )}
+
+          {kind === 'category' && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Icon</span>
+              <IconPicker
+                value={icon}
+                onChange={(k) => {
+                  setIcon(k);
+                  setIconTouched(true);
+                }}
+              />
+            </div>
           )}
 
           {(kind === 'category' || kind === 'account') && (

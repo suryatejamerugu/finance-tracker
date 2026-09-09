@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import type { IncomeCategory } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
 import { addIncomeCategory, reorder, softDelete, updateIncomeCategory } from '../lib/store';
+import { IconBadge, iconFor } from '../lib/icons';
+import { guessIncomeIcon } from '../lib/iconGuess';
 import { DragHandle, SortableList, SortableRow } from './dnd';
 import { EditIcon } from './icons';
 import { EditNameColorModal } from './EditNameColorModal';
+import { IconPicker } from './Pickers';
 import { EmptyRow } from './Panel';
 
 /**
@@ -24,6 +27,8 @@ export function IncomeCategoriesModal({
 }) {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(() => suggestedColor(categories.length));
+  const [newIcon, setNewIcon] = useState('tag');
+  const [newIconTouched, setNewIconTouched] = useState(false);
   const [editing, setEditing] = useState<IncomeCategory | null>(null);
 
   useEffect(() => {
@@ -41,9 +46,11 @@ export function IncomeCategoriesModal({
 
   async function add() {
     if (!newName.trim()) return;
-    await addIncomeCategory(newName, newColor);
+    await addIncomeCategory({ name: newName, color: newColor, icon: newIcon });
     setNewName('');
     setNewColor(suggestedColor(categories.length + 1));
+    setNewIcon('tag');
+    setNewIconTouched(false);
     onChanged();
   }
 
@@ -87,7 +94,11 @@ export function IncomeCategoriesModal({
             <div className="flex gap-2">
               <input
                 value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setNewName(next);
+                  if (!newIconTouched) setNewIcon(guessIncomeIcon(next));
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && void add()}
                 placeholder="New category name"
                 aria-label="New income category name"
@@ -119,6 +130,15 @@ export function IncomeCategoriesModal({
                 />
               ))}
             </div>
+            <div className="mt-2">
+              <IconPicker
+                value={newIcon}
+                onChange={(k) => {
+                  setNewIcon(k);
+                  setNewIconTouched(true);
+                }}
+              />
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -132,11 +152,7 @@ export function IncomeCategoriesModal({
                       {(handle) => (
                         <div className="group flex items-center gap-2 bg-raised px-5 py-2.5">
                           <DragHandle {...handle} />
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ background: c.color }}
-                            aria-hidden="true"
-                          />
+                          <IconBadge icon={iconFor(c.icon)} color={c.color} size={20} />
                           <span className="min-w-0 flex-1 truncate text-[13.5px]">{c.name}</span>
                           <button
                             type="button"
@@ -170,9 +186,10 @@ export function IncomeCategoriesModal({
           title="Edit income category"
           initialName={editing.name}
           initialColor={editing.color}
+          iconField={{ value: editing.icon }}
           onClose={() => setEditing(null)}
-          onSave={async (name, color) => {
-            await updateIncomeCategory(editing.id, name, color);
+          onSave={async ({ name, color, icon }) => {
+            await updateIncomeCategory(editing.id, { name, color, icon });
             onChanged();
           }}
         />

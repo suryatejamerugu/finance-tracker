@@ -22,12 +22,32 @@ interface Synced {
   deleted: boolean;
 }
 
+/**
+ * A bounded list rather than free text, so the account gallery can show a
+ * matching icon without guessing. NRO/NRE are Indian non-resident account
+ * types — distinct from a plain savings account, and specific enough that a
+ * generic "bank account" type wouldn't do them justice.
+ */
+export const ACCOUNT_TYPES = [
+  'checking',
+  'savings',
+  'credit_card',
+  'nro',
+  'nre',
+  'loan',
+  'investment',
+  'cash',
+  'other',
+] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
 /** Notion: Accounts. Title property is "Account". */
 export interface Account extends Synced {
   name: string;
   initialAmount: Cents;
   /** ISO 4217 code (USD, INR, ...). Fixed once the account has any transaction. */
   currency: string;
+  type: AccountType;
   color: string;
   order: number;
 }
@@ -36,11 +56,13 @@ export interface Account extends Synced {
  * Notion: Categories. Title property is "Category". Budget is keyed by
  * currency rather than a single number, since the same category (e.g.
  * "Dining Out") can be used for expenses in more than one currency and a
- * budget only means something within one currency at a time.
+ * budget only means something within one currency at a time. `icon` is a key
+ * into the curated icon set in lib/icons.tsx, not the icon itself.
  */
 export interface Category extends Synced {
   name: string;
   budgets: Record<string, Cents>;
+  icon: string;
   color: string;
   order: number;
 }
@@ -70,6 +92,7 @@ export const DEFAULT_INCOME_CATEGORIES = [
 /** Notion: Income Sources. Like Categories, but for income — no budget field. */
 export interface IncomeCategory extends Synced {
   name: string;
+  icon: string;
   color: string;
   order: number;
 }
@@ -98,7 +121,7 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export interface Snapshot {
   schemaVersion: number;

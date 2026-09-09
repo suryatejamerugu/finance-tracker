@@ -3,6 +3,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Account, AccountStatus, Settings } from '../types';
 import { formatBig, formatMoney, parseAmount } from '../lib/money';
 import { reorder, setInitialAmount, softDelete, updateAccount } from '../lib/store';
+import { accountTypeMeta, IconBadge } from '../lib/icons';
 import { EmptyRow } from './Panel';
 import { chartTooltip } from './chartTheme';
 import { DragHandle, SortableList, SortableRow } from './dnd';
@@ -160,11 +161,7 @@ export function AccountsGallery({
                         <div className="flex items-baseline justify-between gap-2">
                           <span className="flex min-w-0 items-center gap-1.5">
                             <DragHandle {...handle} />
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ background: s.account.color }}
-                              aria-hidden="true"
-                            />
+                            <IconBadge icon={accountTypeMeta(s.account.type).icon} color={s.account.color} size={20} />
                             <span className="truncate text-[13.5px]">{s.account.name}</span>
                           </span>
                           <span className="flex shrink-0 items-center gap-2">
@@ -226,9 +223,10 @@ export function AccountsGallery({
             initialName={editing.name}
             initialColor={editing.color}
             currencyField={{ value: editing.currency, locked: hasHistory }}
+            typeField={{ value: editing.type }}
             onClose={() => setEditing(null)}
-            onSave={async (name, color, currency) => {
-              await updateAccount(editing.id, name, color, currency);
+            onSave={async ({ name, color, currency, type }) => {
+              await updateAccount(editing.id, { name, color, currency, type });
               onChanged();
             }}
           />

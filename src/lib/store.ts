@@ -1,6 +1,6 @@
 import { db } from './db';
 import { uid } from './money';
-import type { Account, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
+import type { Account, AccountType, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
 
 /**
  * Every mutation goes through here so `updatedAt` is always stamped and deletes
@@ -138,34 +138,55 @@ export async function updateTransfer(
   });
 }
 
-export async function addCategory(name: string, budget: Cents, color: string, currency: string): Promise<void> {
+export async function addCategory(input: {
+  name: string;
+  budget: Cents;
+  color: string;
+  currency: string;
+  icon: string;
+}): Promise<void> {
   const order = await db.categories.count();
   await db.categories.put({
     id: uid(),
-    name: name.trim(),
-    budgets: budget > 0 ? { [currency]: Math.max(0, budget) } : {},
-    color,
+    name: input.name.trim(),
+    budgets: input.budget > 0 ? { [input.currency]: Math.max(0, input.budget) } : {},
+    icon: input.icon,
+    color: input.color,
     order,
     ...stamp(),
   });
 }
 
-export async function addAccount(name: string, initialAmount: Cents, color: string, currency: string): Promise<void> {
+export async function addAccount(input: {
+  name: string;
+  initialAmount: Cents;
+  color: string;
+  currency: string;
+  type: AccountType;
+}): Promise<void> {
   const order = await db.accounts.count();
   await db.accounts.put({
     id: uid(),
-    name: name.trim(),
-    initialAmount,
-    currency,
-    color,
+    name: input.name.trim(),
+    initialAmount: input.initialAmount,
+    currency: input.currency,
+    type: input.type,
+    color: input.color,
     order,
     ...stamp(),
   });
 }
 
-export async function addIncomeCategory(name: string, color: string): Promise<IncomeCategory> {
+export async function addIncomeCategory(input: { name: string; color: string; icon: string }): Promise<IncomeCategory> {
   const order = await db.incomeCategories.count();
-  const row: IncomeCategory = { id: uid(), name: name.trim(), color, order, ...stamp() };
+  const row: IncomeCategory = {
+    id: uid(),
+    name: input.name.trim(),
+    icon: input.icon,
+    color: input.color,
+    order,
+    ...stamp(),
+  };
   await db.incomeCategories.put(row);
   return row;
 }
@@ -185,28 +206,50 @@ export async function setInitialAmount(accountId: string, amount: Cents): Promis
   await db.accounts.put({ ...existing, initialAmount: amount, updatedAt: Date.now() });
 }
 
-export async function updateCategory(id: string, name: string, color: string): Promise<void> {
+export async function updateCategory(
+  id: string,
+  input: { name: string; color: string; icon?: string },
+): Promise<void> {
   const existing = await db.categories.get(id);
   if (!existing) return;
-  await db.categories.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
-}
-
-export async function updateAccount(id: string, name: string, color: string, currency?: string): Promise<void> {
-  const existing = await db.accounts.get(id);
-  if (!existing) return;
-  await db.accounts.put({
+  await db.categories.put({
     ...existing,
-    name: name.trim() || existing.name,
-    color,
-    currency: currency || existing.currency,
+    name: input.name.trim() || existing.name,
+    color: input.color,
+    icon: input.icon || existing.icon,
     updatedAt: Date.now(),
   });
 }
 
-export async function updateIncomeCategory(id: string, name: string, color: string): Promise<void> {
+export async function updateAccount(
+  id: string,
+  input: { name: string; color: string; currency?: string; type?: AccountType },
+): Promise<void> {
+  const existing = await db.accounts.get(id);
+  if (!existing) return;
+  await db.accounts.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    color: input.color,
+    currency: input.currency || existing.currency,
+    type: input.type || existing.type,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function updateIncomeCategory(
+  id: string,
+  input: { name: string; color: string; icon?: string },
+): Promise<void> {
   const existing = await db.incomeCategories.get(id);
   if (!existing) return;
-  await db.incomeCategories.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
+  await db.incomeCategories.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    color: input.color,
+    icon: input.icon || existing.icon,
+    updatedAt: Date.now(),
+  });
 }
 
 type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts' | 'incomeCategories';
