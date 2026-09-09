@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import type { Account, Category, Expense, ISOMonth, Settings } from '../types';
 import { dayLabel, formatMoney, monthLabel, shortMonthLabel } from '../lib/money';
-import { groupByPeriod, live, stackedByMonth } from '../lib/selectors';
+import { filterByCurrency, groupByPeriod, live, stackedByMonth } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
@@ -23,6 +23,8 @@ export function ExpensesPanel({
   expenses,
   categories,
   accounts,
+  currency,
+  homeCurrency,
   month,
   settings,
   onChanged,
@@ -31,16 +33,19 @@ export function ExpensesPanel({
   expenses: Expense[];
   categories: Category[];
   accounts: Account[];
+  /** The dashboard's current currency lens. */
+  currency: string;
+  homeCurrency: string;
   month: ISOMonth;
   settings: Settings;
   onChanged: () => void;
   onEdit: (expense: Expense) => void;
 }) {
-  const { currency, locale } = settings;
+  const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
   const catName = new Map(categories.map((c) => [c.id, c.name]));
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
-  const rows = live(expenses);
+  const rows = filterByCurrency(live(expenses), accounts, currency, homeCurrency);
   const chartSeries = useSeriesInteraction();
 
   const Row = ({ e, show }: { e: Expense; show: 'account' | 'category' }) => (

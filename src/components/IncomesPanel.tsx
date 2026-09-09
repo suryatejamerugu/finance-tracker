@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import type { Account, Income, IncomeCategory, ISOMonth, Settings } from '../types';
 import { formatMoney, monthLabel, shortMonthLabel } from '../lib/money';
-import { groupByPeriod, live, stackedByMonth } from '../lib/selectors';
+import { filterByCurrency, groupByPeriod, live, stackedByMonth } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
@@ -25,6 +25,8 @@ export function IncomesPanel({
   incomes,
   accounts,
   incomeCategories,
+  currency,
+  homeCurrency,
   month,
   settings,
   onChanged,
@@ -33,16 +35,19 @@ export function IncomesPanel({
   incomes: Income[];
   accounts: Account[];
   incomeCategories: IncomeCategory[];
+  /** The dashboard's current currency lens. */
+  currency: string;
+  homeCurrency: string;
   month: ISOMonth;
   settings: Settings;
   onChanged: () => void;
   onEdit: (income: Income) => void;
 }) {
-  const { currency, locale } = settings;
+  const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
   const sourceName = new Map(incomeCategories.map((c) => [c.id, c.name]));
-  const rows = live(incomes);
+  const rows = filterByCurrency(live(incomes), accounts, currency, homeCurrency);
   const chartSeries = useSeriesInteraction();
   const [managingCategories, setManagingCategories] = useState(false);
 

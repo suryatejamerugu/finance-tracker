@@ -105,6 +105,35 @@ class LedgerDB extends Dexie {
             delete row.source;
           });
       });
+
+    // v4: multi-currency. Every account gets a fixed currency (previously
+    // implicit — the whole app assumed one global currency, settings.currency).
+    // Every category's single monthlyBudget becomes a budget-per-currency map,
+    // since the same category can now be used across more than one currency.
+    // Existing numbers are not reinterpreted: an account that was implicitly
+    // USD becomes explicitly USD, and a $50 budget becomes a $50 USD budget —
+    // nothing changes for a user who never touches a second currency.
+    this.version(4)
+      .stores({ accounts: 'id, order, currency' })
+      .upgrade(async (tx) => {
+        const settings = await tx.table('settings').get('settings');
+        const homeCurrency = settings?.currency ?? 'USD';
+        await tx
+          .table('accounts')
+          .toCollection()
+          .modify((row: { currency?: string }) => {
+            row.currency = row.currency || homeCurrency;
+          });
+        await tx
+          .table('categories')
+          .toCollection()
+          .modify((row: { monthlyBudget?: number; budgets?: Record<string, number> }) => {
+            if (row.budgets) return;
+            const budget = row.monthlyBudget ?? 0;
+            row.budgets = budget > 0 ? { [homeCurrency]: budget } : {};
+            delete row.monthlyBudget;
+          });
+      });
   }
 }
 
@@ -206,6 +235,29 @@ function normalizeIncomes(
   return { incomes: resolved, newCategories };
 }
 
+/**
+ * A snapshot written by a pre-v4 build (an older Drive backup, or a backup
+ * file saved before this update) has accounts with no `currency` and
+ * categories with `monthlyBudget` instead of `budgets`. Normalized the same
+ * way the v4 Dexie upgrade does it, so a stale payload arriving via sync or
+ * restore can't leave an account with no currency or a category with no
+ * usable budget.
+ */
+function normalizeAccounts(accounts: unknown[], homeCurrency: string): Account[] {
+  return (accounts as Array<Account & { currency?: string }>).map((a) => ({
+    ...a,
+    currency: a.currency || homeCurrency,
+  }));
+}
+
+function normalizeCategories(categories: unknown[], homeCurrency: string): Category[] {
+  return (categories as Array<Category & { monthlyBudget?: number; budgets?: Record<string, number> }>).map((c) => {
+    if (c.budgets) return c as Category;
+    const { monthlyBudget, ...rest } = c;
+    return { ...rest, budgets: monthlyBudget && monthlyBudget > 0 ? { [homeCurrency]: monthlyBudget } : {} };
+  });
+}
+
 const TABLES = ['accounts', 'categories', 'incomeCategories', 'expenses', 'incomes', 'transfers', 'settings'] as const;
 
 export async function mergeSnapshot(remote: Snapshot): Promise<void> {
@@ -215,11 +267,14 @@ export async function mergeSnapshot(remote: Snapshot): Promise<void> {
     );
   }
   const local = await buildSnapshot();
+  const homeCurrency = local.settings.currency;
   const { incomes: remoteIncomes, newCategories } = normalizeIncomes(remote.incomes ?? [], local.incomeCategories);
+  const remoteAccounts = normalizeAccounts(remote.accounts ?? [], homeCurrency);
+  const remoteCategories = normalizeCategories(remote.categories ?? [], homeCurrency);
 
   await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
-    await db.accounts.bulkPut(mergeRows(local.accounts, remote.accounts ?? []));
-    await db.categories.bulkPut(mergeRows(local.categories, remote.categories ?? []));
+    await db.accounts.bulkPut(mergeRows(local.accounts, remoteAccounts));
+    await db.categories.bulkPut(mergeRows(local.categories, remoteCategories));
     await db.incomeCategories.bulkPut(
       mergeRows([...local.incomeCategories, ...newCategories], remote.incomeCategories ?? []),
     );
@@ -234,11 +289,14 @@ export async function mergeSnapshot(remote: Snapshot): Promise<void> {
 
 /** Replace local data outright. Used by file import, where the user chose to. */
 export async function replaceWithSnapshot(snap: Snapshot): Promise<void> {
+  const homeCurrency = snap.settings?.currency ?? DEFAULT_SETTINGS.currency;
   const { incomes, newCategories } = normalizeIncomes(snap.incomes ?? [], snap.incomeCategories ?? []);
+  const accounts = normalizeAccounts(snap.accounts ?? [], homeCurrency);
+  const categories = normalizeCategories(snap.categories ?? [], homeCurrency);
   await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
     await Promise.all(TABLES.map((t) => db[t].clear()));
-    await db.accounts.bulkPut(snap.accounts ?? []);
-    await db.categories.bulkPut(snap.categories ?? []);
+    await db.accounts.bulkPut(accounts);
+    await db.categories.bulkPut(categories);
     await db.incomeCategories.bulkPut([...(snap.incomeCategories ?? []), ...newCategories]);
     await db.expenses.bulkPut(snap.expenses ?? []);
     await db.incomes.bulkPut(incomes);

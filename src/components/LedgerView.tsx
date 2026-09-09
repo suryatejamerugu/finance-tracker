@@ -13,7 +13,12 @@ import type {
 import { buildLedger, type LedgerEntry, type LedgerEntryType } from '../lib/ledger';
 import { downloadFile, ledgerToCsv } from '../lib/exportCsv';
 import { exportLedgerPdf, exportMonthPdf } from '../lib/exportPdf';
-import { buildCategoryStatuses, monthSummary as computeMonthSummary, type MonthSummary } from '../lib/selectors';
+import {
+  availableCurrencies,
+  buildCategoryStatuses,
+  monthSummary as computeMonthSummary,
+  type MonthSummary,
+} from '../lib/selectors';
 import { formatMoney, monthLabel, todayISO } from '../lib/money';
 import { softDelete } from '../lib/store';
 import { EmptyRow } from './Panel';
@@ -47,6 +52,8 @@ export function LedgerView({
   categories,
   accounts,
   incomeCategories,
+  currency,
+  homeCurrency,
   settings,
   month,
   categoryStatuses,
@@ -62,6 +69,9 @@ export function LedgerView({
   categories: Category[];
   accounts: Account[];
   incomeCategories: IncomeCategory[];
+  /** The dashboard's current currency lens — only used as the default for the month-PDF picker; the list itself shows every currency at once. */
+  currency: string;
+  homeCurrency: string;
   settings: Settings;
   month: ISOMonth;
   categoryStatuses: CategoryStatus[];
@@ -73,10 +83,12 @@ export function LedgerView({
 }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'all' | LedgerEntryType>('all');
+  const [ledgerCurrency, setLedgerCurrency] = useState<'all' | string>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [visible, setVisible] = useState(PAGE);
   const [pdfMonth, setPdfMonth] = useState(month);
+  const [pdfCurrency, setPdfCurrency] = useState(currency);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -85,9 +97,11 @@ export function LedgerView({
   }, [onClose]);
 
   const all = useMemo(
-    () => buildLedger(expenses, incomes, transfers, categories, accounts, incomeCategories),
-    [expenses, incomes, transfers, categories, accounts, incomeCategories],
+    () => buildLedger(expenses, incomes, transfers, categories, accounts, incomeCategories, homeCurrency),
+    [expenses, incomes, transfers, categories, accounts, incomeCategories, homeCurrency],
   );
+
+  const currencies = useMemo(() => availableCurrencies(accounts, homeCurrency), [accounts, homeCurrency]);
 
   const availableMonths = useMemo(() => {
     const set = new Set(all.map((e) => e.date.slice(0, 7)));
@@ -99,16 +113,17 @@ export function LedgerView({
     const q = query.trim().toLowerCase();
     return all.filter((e) => {
       if (type !== 'all' && e.type !== type) return false;
+      if (ledgerCurrency !== 'all' && e.currency !== ledgerCurrency) return false;
       if (fromDate && e.date < fromDate) return false;
       if (toDate && e.date > toDate) return false;
       if (!q) return true;
       return [e.name, e.detail, e.account, e.note].filter(Boolean).some((v) => v!.toLowerCase().includes(q));
     });
-  }, [all, query, type, fromDate, toDate]);
+  }, [all, query, type, ledgerCurrency, fromDate, toDate]);
 
   const shown = filtered.slice(0, visible);
-  const { currency, locale } = settings;
-  const money = (c: number) => formatMoney(c, { currency, locale, signed: true });
+  const { locale } = settings;
+  const money = (e: LedgerEntry) => formatMoney(e.amount, { currency: e.currency, locale, signed: true });
 
   function rawRow(entry: LedgerEntry): EditingRow | undefined {
     if (entry.type === 'expense') return expenses.find((e) => e.id === entry.id);
@@ -132,15 +147,20 @@ export function LedgerView({
   }
 
   function exportPickedMonthReport() {
-    const statuses = pdfMonth === month ? categoryStatuses : buildCategoryStatuses(categories, expenses, pdfMonth);
-    const summary = pdfMonth === month ? monthSummary : computeMonthSummary(statuses, expenses, incomes, pdfMonth);
+    const sameAsDashboard = pdfMonth === month && pdfCurrency === currency;
+    const statuses = sameAsDashboard
+      ? categoryStatuses
+      : buildCategoryStatuses(categories, expenses, accounts, pdfMonth, pdfCurrency, homeCurrency);
+    const summary = sameAsDashboard
+      ? monthSummary
+      : computeMonthSummary(statuses, expenses, incomes, accounts, pdfMonth, pdfCurrency, homeCurrency);
     exportMonthPdf({
       month: pdfMonth,
-      currency,
+      currency: pdfCurrency,
       locale,
       summary,
       categoryStatuses: statuses,
-      entries: all.filter((e) => e.date.slice(0, 7) === pdfMonth),
+      entries: all.filter((e) => e.date.slice(0, 7) === pdfMonth && e.currency === pdfCurrency),
       userLabel,
     });
   }
@@ -148,6 +168,7 @@ export function LedgerView({
   function describeCriteria(): string | null {
     const parts: string[] = [];
     if (type !== 'all') parts.push(TYPE_LABEL[type]);
+    if (ledgerCurrency !== 'all') parts.push(ledgerCurrency);
     if (query.trim()) parts.push(`search "${query.trim()}"`);
     if (fromDate || toDate) parts.push(`${fromDate || 'earliest'} → ${toDate || 'latest'}`);
     return parts.length ? parts.join(', ') : null;
@@ -156,7 +177,7 @@ export function LedgerView({
   function exportAllPdf() {
     const criteria = describeCriteria();
     const title = criteria ? `Finance Tracker — Full history (filtered)` : 'Finance Tracker — Full history';
-    exportLedgerPdf({ title, currency, locale, entries: filtered, userLabel, criteria });
+    exportLedgerPdf({ title, locale, entries: filtered, userLabel, criteria });
   }
 
   return (
@@ -212,6 +233,26 @@ export function LedgerView({
               </button>
             ))}
           </div>
+          {currencies.length > 1 && (
+            <div className="flex gap-1">
+              {(['all', ...currencies] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    setLedgerCurrency(c);
+                    setVisible(PAGE);
+                  }}
+                  aria-current={ledgerCurrency === c ? 'true' : undefined}
+                  className={`rounded-md px-2.5 py-1 text-[12px] ${
+                    ledgerCurrency === c ? 'bg-brand-soft text-brand' : 'text-faint hover:text-muted'
+                  }`}
+                >
+                  {c === 'all' ? 'All currencies' : c}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-rule px-5 py-2.5">
@@ -272,6 +313,18 @@ export function LedgerView({
                 <option key={m} value={m}>{monthLabel(m, locale)}</option>
               ))}
             </select>
+            {currencies.length > 1 && (
+              <select
+                value={pdfCurrency}
+                onChange={(e) => setPdfCurrency(e.target.value)}
+                aria-label="Currency for PDF report"
+                className="rounded-md border border-rule bg-paper px-2 py-1 text-[12px] text-muted outline-none focus:border-brand"
+              >
+                {currencies.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               onClick={exportPickedMonthReport}
@@ -314,7 +367,7 @@ export function LedgerView({
                       e.amount < 0 ? 'text-over' : e.type === 'income' ? 'text-under' : ''
                     }`}
                   >
-                    {money(e.amount)}
+                    {money(e)}
                   </span>
                   <button
                     type="button"

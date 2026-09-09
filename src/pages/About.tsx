@@ -65,6 +65,35 @@ export function About() {
         </p>
       </Section>
 
+      <Section title="Multiple currencies">
+        <p>
+          Each account has a fixed currency, set when you create it — a bank account in real life
+          is always one currency, so this app treats it the same way. An expense or income you log
+          against an account is automatically in that account's currency; nothing to pick each
+          time you enter something.
+        </p>
+        <p>
+          Once you have more than one currency across your accounts, a small switcher appears next
+          to the month picker on the dashboard. It scopes the budget cards, the donut, the charts,
+          and the panel lists to one currency at a time, so nothing ever gets summed across
+          currencies by accident. <strong className="text-ink">Full history</strong> and its
+          exports are the exception — they show everything at once, each row in its own currency,
+          with their own separate currency filter.
+        </p>
+        <p>
+          There's no automatic exchange-rate conversion anywhere — every number stays exactly what
+          you entered, in the currency you entered it in. For the same reason, a transfer can only
+          move money between two accounts sharing a currency (there's no rate to apply otherwise);
+          to move money across currencies, log an expense on the source account and an income on
+          the destination account with whatever amount actually landed.
+        </p>
+        <p>
+          An account's currency can be changed later from its edit pencil, but only until it has
+          its first transaction — after that it's locked, so a real historical amount can never get
+          silently relabeled into a different currency.
+        </p>
+      </Section>
+
       <Section title="Categories, income sources, and colors">
         <p>
           Categories (for expenses) and income categories (for income) are separate lists, each
@@ -72,6 +101,11 @@ export function About() {
           automatically; you can override the color from the swatch picker when creating one, or
           later from its edit pencil. Two categories can never end up visually indistinguishable in
           a chart even if they somehow share a stored color — the charts resolve that automatically.
+        </p>
+        <p>
+          A category's monthly budget is per currency: the same "Dining Out" category can carry a
+          separate budget for each currency you spend in, and the budget field on its card always
+          shows and edits whichever currency the dashboard's switcher is currently set to.
         </p>
       </Section>
 

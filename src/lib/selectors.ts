@@ -22,6 +22,39 @@ function sum<T>(rows: T[], pick: (row: T) => Cents): Cents {
   return rows.reduce((total, row) => total + pick(row), 0);
 }
 
+/* -------------------------------- Currency -------------------------------- */
+
+/**
+ * A row's currency is never stored on the row itself — it's derived from the
+ * account it's linked to, so an account's currency can't drift out of sync
+ * with the transactions already logged against it. An unlinked row (no
+ * account) is assumed to be in the user's home currency.
+ */
+export function resolveCurrency<T extends { accountId: string | null }>(
+  row: T,
+  accountById: Map<string, Account>,
+  homeCurrency: string,
+): string {
+  return (row.accountId && accountById.get(row.accountId)?.currency) || homeCurrency;
+}
+
+/** Keeps only the rows whose resolved currency matches the given one — the "currency lens" filter. */
+export function filterByCurrency<T extends { accountId: string | null }>(
+  rows: T[],
+  accounts: Account[],
+  currency: string,
+  homeCurrency: string,
+): T[] {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  return rows.filter((r) => resolveCurrency(r, byId, homeCurrency) === currency);
+}
+
+/** Every currency in play: each account's, plus the home currency so it's always selectable even with zero accounts in it. */
+export function availableCurrencies(accounts: Account[], homeCurrency: string): string[] {
+  const set = new Set([homeCurrency, ...live(accounts).map((a) => a.currency)]);
+  return [homeCurrency, ...[...set].filter((c) => c !== homeCurrency).sort()];
+}
+
 /* ------------------------------- Categories ------------------------------- */
 
 export function categoryState(budget: Cents, spent: Cents): CategoryStatus['state'] {
@@ -36,14 +69,22 @@ export function categoryState(budget: Cents, spent: Cents): CategoryStatus['stat
  * Notion equivalents:
  *   Expense This Month = rollup(sum) over related Expenses filtered to the month
  *   Usage              = Expense This Month / Monthly Budget
+ *
+ * Scoped to one currency at a time (the dashboard's currency lens): a
+ * category's budget only means something within a single currency, so
+ * expenses in any other currency simply don't count toward it here — switch
+ * the lens to see that currency's spending and budget instead.
  */
 export function buildCategoryStatuses(
   categories: Category[],
   expenses: Expense[],
+  accounts: Account[],
   month: ISOMonth,
+  currency: string,
+  homeCurrency: string,
 ): CategoryStatus[] {
   const prev = shiftMonth(month, -1);
-  const rows = live(expenses);
+  const rows = filterByCurrency(live(expenses), accounts, currency, homeCurrency);
 
   const thisMonth = new Map<string, Cents>();
   const lastMonth = new Map<string, Cents>();
@@ -60,7 +101,7 @@ export function buildCategoryStatuses(
     .map((category) => {
       const spent = thisMonth.get(category.id) ?? 0;
       const spentPrev = lastMonth.get(category.id) ?? 0;
-      const budget = category.monthlyBudget;
+      const budget = category.budgets[currency] ?? 0;
       return {
         category,
         expenseThisMonth: spent,
@@ -140,11 +181,16 @@ export function monthSummary(
   statuses: CategoryStatus[],
   expenses: Expense[],
   incomes: Income[],
+  accounts: Account[],
   month: ISOMonth,
+  currency: string,
+  homeCurrency: string,
 ): MonthSummary {
-  const spent = sum(inMonth(live(expenses), month), (e) => e.amount);
-  const income = sum(inMonth(live(incomes), month), (i) => i.amount);
-  const budgeted = sum(statuses, (s) => s.category.monthlyBudget);
+  const scopedExpenses = filterByCurrency(live(expenses), accounts, currency, homeCurrency);
+  const scopedIncomes = filterByCurrency(live(incomes), accounts, currency, homeCurrency);
+  const spent = sum(inMonth(scopedExpenses, month), (e) => e.amount);
+  const income = sum(inMonth(scopedIncomes, month), (i) => i.amount);
+  const budgeted = sum(statuses, (s) => s.category.budgets[currency] ?? 0);
   return {
     income,
     spent,
@@ -196,11 +242,15 @@ export function stackedByMonth<T extends { date: string; amount: Cents; deleted:
 export function donutByCategory(
   categories: Category[],
   expenses: Expense[],
+  accounts: Account[],
   month: ISOMonth,
+  currency: string,
+  homeCurrency: string,
 ): Array<{ name: string; value: number; color: string }> {
   const byId = new Map(categories.map((c) => [c.id, c]));
   const totals = new Map<string, Cents>();
-  for (const e of inMonth(live(expenses), month)) {
+  const scoped = filterByCurrency(live(expenses), accounts, currency, homeCurrency);
+  for (const e of inMonth(scoped, month)) {
     const key = e.categoryId ?? 'none';
     totals.set(key, (totals.get(key) ?? 0) + e.amount);
   }

@@ -89,6 +89,14 @@ export async function updateIncome(
   });
 }
 
+/** Both accounts a transfer touches must share a currency — there's no exchange rate to apply otherwise. */
+async function sameCurrency(fromAccountId: string | null, toAccountId: string | null): Promise<boolean> {
+  if (!fromAccountId || !toAccountId) return true;
+  const [from, to] = await Promise.all([db.accounts.get(fromAccountId), db.accounts.get(toAccountId)]);
+  if (!from || !to) return true;
+  return from.currency === to.currency;
+}
+
 export async function addTransfer(input: {
   name: string;
   amount: Cents;
@@ -96,6 +104,9 @@ export async function addTransfer(input: {
   fromAccountId: string | null;
   toAccountId: string | null;
 }): Promise<void> {
+  if (!(await sameCurrency(input.fromAccountId, input.toAccountId))) {
+    throw new Error('Transfers need both accounts in the same currency.');
+  }
   await db.transfers.put({
     id: uid(),
     name: input.name.trim() || 'Transfer',
@@ -113,6 +124,9 @@ export async function updateTransfer(
 ): Promise<void> {
   const existing = await db.transfers.get(id);
   if (!existing) return;
+  if (!(await sameCurrency(input.fromAccountId, input.toAccountId))) {
+    throw new Error('Transfers need both accounts in the same currency.');
+  }
   await db.transfers.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -124,24 +138,25 @@ export async function updateTransfer(
   });
 }
 
-export async function addCategory(name: string, monthlyBudget: Cents, color: string): Promise<void> {
+export async function addCategory(name: string, budget: Cents, color: string, currency: string): Promise<void> {
   const order = await db.categories.count();
   await db.categories.put({
     id: uid(),
     name: name.trim(),
-    monthlyBudget: Math.max(0, monthlyBudget),
+    budgets: budget > 0 ? { [currency]: Math.max(0, budget) } : {},
     color,
     order,
     ...stamp(),
   });
 }
 
-export async function addAccount(name: string, initialAmount: Cents, color: string): Promise<void> {
+export async function addAccount(name: string, initialAmount: Cents, color: string, currency: string): Promise<void> {
   const order = await db.accounts.count();
   await db.accounts.put({
     id: uid(),
     name: name.trim(),
     initialAmount,
+    currency,
     color,
     order,
     ...stamp(),
@@ -155,14 +170,13 @@ export async function addIncomeCategory(name: string, color: string): Promise<In
   return row;
 }
 
-export async function setMonthlyBudget(categoryId: string, budget: Cents): Promise<void> {
+export async function setCategoryBudget(categoryId: string, currency: string, budget: Cents): Promise<void> {
   const existing = await db.categories.get(categoryId);
   if (!existing) return;
-  await db.categories.put({
-    ...existing,
-    monthlyBudget: Math.max(0, budget),
-    updatedAt: Date.now(),
-  });
+  const budgets = { ...existing.budgets };
+  if (budget > 0) budgets[currency] = budget;
+  else delete budgets[currency];
+  await db.categories.put({ ...existing, budgets, updatedAt: Date.now() });
 }
 
 export async function setInitialAmount(accountId: string, amount: Cents): Promise<void> {
@@ -177,10 +191,16 @@ export async function updateCategory(id: string, name: string, color: string): P
   await db.categories.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
 }
 
-export async function updateAccount(id: string, name: string, color: string): Promise<void> {
+export async function updateAccount(id: string, name: string, color: string, currency?: string): Promise<void> {
   const existing = await db.accounts.get(id);
   if (!existing) return;
-  await db.accounts.put({ ...existing, name: name.trim() || existing.name, color, updatedAt: Date.now() });
+  await db.accounts.put({
+    ...existing,
+    name: name.trim() || existing.name,
+    color,
+    currency: currency || existing.currency,
+    updatedAt: Date.now(),
+  });
 }
 
 export async function updateIncomeCategory(id: string, name: string, color: string): Promise<void> {

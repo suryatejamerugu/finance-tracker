@@ -5,7 +5,7 @@ function csvCell(value: string): string {
 }
 
 export function ledgerToCsv(entries: LedgerEntry[]): string {
-  const header = ['Date', 'Type', 'Name', 'Category / Source', 'Account', 'Note', 'Amount'];
+  const header = ['Date', 'Type', 'Name', 'Category / Source', 'Account', 'Note', 'Amount', 'Currency'];
   const rows = entries.map((e) => [
     e.date,
     e.type,
@@ -14,6 +14,7 @@ export function ledgerToCsv(entries: LedgerEntry[]): string {
     e.account ?? '',
     e.note,
     (e.amount / 100).toFixed(2),
+    e.currency,
   ]);
   return [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
 }
