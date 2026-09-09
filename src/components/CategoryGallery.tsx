@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Category, CategoryStatus, Settings } from '../types';
 import { formatMoney, parseAmount } from '../lib/money';
 import { reorder, setCategoryBudget, softDelete, updateCategory } from '../lib/store';
+import { IconBadge, iconFor } from '../lib/icons';
 import { EmptyRow, Panel } from './Panel';
 import { DragHandle, SortableList, SortableRow } from './dnd';
 import { EditNameColorModal } from './EditNameColorModal';
@@ -74,11 +75,7 @@ export function CategoryGallery({
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-1.5">
                         <DragHandle {...handle} />
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ background: s.category.color }}
-                          aria-hidden="true"
-                        />
+                        <IconBadge icon={iconFor(s.category.icon)} color={s.category.color} size={20} />
                         <span className="truncate text-[13.5px]">{s.category.name}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5">
@@ -153,9 +150,10 @@ export function CategoryGallery({
           title="Edit category"
           initialName={editing.name}
           initialColor={editing.color}
+          iconField={{ value: editing.icon }}
           onClose={() => setEditing(null)}
-          onSave={async (name, color) => {
-            await updateCategory(editing.id, name, color);
+          onSave={async ({ name, color, icon }) => {
+            await updateCategory(editing.id, { name, color, icon });
             onChanged();
           }}
         />

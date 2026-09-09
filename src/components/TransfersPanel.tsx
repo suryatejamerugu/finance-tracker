@@ -2,6 +2,7 @@ import type { Account, Settings, Transfer } from '../types';
 import { formatMoney, monthLabel } from '../lib/money';
 import { groupByPeriod, live } from '../lib/selectors';
 import { softDelete } from '../lib/store';
+import { accountTypeMeta, IconBadge } from '../lib/icons';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
 import { EditIcon } from './icons';
 
@@ -34,9 +35,12 @@ export function TransfersPanel({
     (t) => ((t.fromAccountId && accountById.get(t.fromAccountId)?.currency) || homeCurrency) === currency,
   );
 
-  const Row = ({ t }: { t: Transfer }) => (
+  const Row = ({ t }: { t: Transfer }) => {
+    const fromAccount = accountById.get(t.fromAccountId ?? '');
+    return (
     <div className="group flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5 last:border-b-0">
-      <div className="min-w-0">
+      {fromAccount && <IconBadge icon={accountTypeMeta(fromAccount.type).icon} color={fromAccount.color} size={22} />}
+      <div className="min-w-0 flex-1">
         <div className="truncate text-[14px]">{t.name}</div>
         <div className="truncate text-[12px] text-faint">
           {acctName.get(t.fromAccountId ?? '') ?? '—'} → {acctName.get(t.toAccountId ?? '') ?? '—'}
@@ -65,7 +69,8 @@ export function TransfersPanel({
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   const render = (tab: Tab) => {
     if (rows.length === 0) return <EmptyRow>No transfers yet.</EmptyRow>;

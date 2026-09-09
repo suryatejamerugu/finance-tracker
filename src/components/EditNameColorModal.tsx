@@ -1,32 +1,53 @@
 import { useEffect, useState } from 'react';
+import type { AccountType } from '../types';
 import { PALETTE } from '../lib/colors';
 import { CURRENCIES } from '../lib/currency';
+import { AccountTypePicker, IconPicker } from './Pickers';
+
+export interface EditNameColorResult {
+  name: string;
+  color: string;
+  currency: string;
+  type: AccountType;
+  icon: string;
+}
 
 /**
- * Shared by categories and accounts — both only need a name and a color
- * edited after creation (budget/initial-amount are already inline-editable
- * on the gallery rows themselves). Accounts additionally pass `currencyField`
- * to offer a currency picker — locked once the account has any transaction,
- * since changing it then would silently relabel real historical amounts.
+ * Shared by categories, income categories, and accounts — name and color are
+ * always editable; `currencyField`/`typeField` (accounts) and `iconField`
+ * (categories/income categories) are each optional sections, shown only when
+ * the caller passes them, so one modal covers all three edit flows instead of
+ * three near-duplicates. `onSave` gets a single result object rather than a
+ * growing list of positional args, since this modal has picked up a new
+ * optional field with each round of features.
  */
 export function EditNameColorModal({
   title,
   initialName,
   initialColor,
   currencyField,
+  typeField,
+  iconField,
   onSave,
   onClose,
 }: {
   title: string;
   initialName: string;
   initialColor: string;
+  /** Accounts only. Locked once the account has any transaction — changing currency then would relabel real history. */
   currencyField?: { value: string; locked: boolean } | null;
-  onSave: (name: string, color: string, currency: string) => Promise<void>;
+  /** Accounts only. */
+  typeField?: { value: AccountType } | null;
+  /** Categories/income categories only. */
+  iconField?: { value: string } | null;
+  onSave: (result: EditNameColorResult) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
   const [currency, setCurrency] = useState(currencyField?.value ?? '');
+  const [type, setType] = useState<AccountType>(typeField?.value ?? 'other');
+  const [icon, setIcon] = useState(iconField?.value ?? '');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -39,7 +60,7 @@ export function EditNameColorModal({
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      await onSave(name.trim(), color, currency);
+      await onSave({ name: name.trim(), color, currency, type, icon });
       onClose();
     } finally {
       setSaving(false);
@@ -96,6 +117,20 @@ export function EditNameColorModal({
               ))}
             </div>
           </div>
+
+          {typeField && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Type</span>
+              <AccountTypePicker value={type} onChange={setType} />
+            </div>
+          )}
+
+          {iconField && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Icon</span>
+              <IconPicker value={icon} onChange={setIcon} />
+            </div>
+          )}
 
           {currencyField && (
             <div>

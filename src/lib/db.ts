@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { uid } from './money';
 import { suggestedColor } from './colors';
+import { guessAccountType, guessCategoryIcon, guessIncomeIcon } from './iconGuess';
 
 /**
  * Colors income categories had *before* they were a real table — a hardcoded
@@ -89,6 +90,7 @@ class LedgerDB extends Dexie {
           return {
             id,
             name,
+            icon: guessIncomeIcon(name),
             color: LEGACY_SOURCE_COLORS[name] ?? suggestedColor(order),
             order,
             updatedAt: now,
@@ -134,6 +136,32 @@ class LedgerDB extends Dexie {
             delete row.monthlyBudget;
           });
       });
+
+    // v5: account types (Checking/Savings/Credit Card/NRO/NRE/...) and icons
+    // for categories/income categories, both purely cosmetic — a best guess
+    // from each row's existing name, freely correctable afterward from its
+    // edit pencil. Never overwrites a value that's already there, so this is
+    // safe to run again against rows a v5+ Drive payload already touched.
+    this.version(5).upgrade(async (tx) => {
+      await tx
+        .table('accounts')
+        .toCollection()
+        .modify((row: { type?: string; name: string }) => {
+          if (!row.type) row.type = guessAccountType(row.name);
+        });
+      await tx
+        .table('categories')
+        .toCollection()
+        .modify((row: { icon?: string; name: string }) => {
+          if (!row.icon) row.icon = guessCategoryIcon(row.name);
+        });
+      await tx
+        .table('incomeCategories')
+        .toCollection()
+        .modify((row: { icon?: string; name: string }) => {
+          if (!row.icon) row.icon = guessIncomeIcon(row.name);
+        });
+    });
   }
 }
 
@@ -222,6 +250,7 @@ function normalizeIncomes(
         newCategories.push({
           id: sourceId,
           name: source,
+          icon: guessIncomeIcon(source),
           color: LEGACY_SOURCE_COLORS[source] ?? suggestedColor(order),
           order: order++,
           updatedAt: now,
@@ -236,26 +265,36 @@ function normalizeIncomes(
 }
 
 /**
- * A snapshot written by a pre-v4 build (an older Drive backup, or a backup
- * file saved before this update) has accounts with no `currency` and
- * categories with `monthlyBudget` instead of `budgets`. Normalized the same
- * way the v4 Dexie upgrade does it, so a stale payload arriving via sync or
- * restore can't leave an account with no currency or a category with no
- * usable budget.
+ * A snapshot written by a pre-v4/v5 build (an older Drive backup, or a
+ * backup file saved before these updates) has accounts with no `currency`
+ * or `type`, and categories with `monthlyBudget` instead of `budgets` or no
+ * `icon`. Normalized the same way the Dexie upgrades do it, so a stale
+ * payload arriving via sync or restore can't leave a row missing a field
+ * the current schema requires.
  */
 function normalizeAccounts(accounts: unknown[], homeCurrency: string): Account[] {
-  return (accounts as Array<Account & { currency?: string }>).map((a) => ({
+  return (accounts as Array<Account & { currency?: string; type?: string }>).map((a) => ({
     ...a,
     currency: a.currency || homeCurrency,
+    type: (a.type as Account['type']) || guessAccountType(a.name),
   }));
 }
 
 function normalizeCategories(categories: unknown[], homeCurrency: string): Category[] {
-  return (categories as Array<Category & { monthlyBudget?: number; budgets?: Record<string, number> }>).map((c) => {
-    if (c.budgets) return c as Category;
-    const { monthlyBudget, ...rest } = c;
-    return { ...rest, budgets: monthlyBudget && monthlyBudget > 0 ? { [homeCurrency]: monthlyBudget } : {} };
-  });
+  return (categories as Array<Category & { monthlyBudget?: number; budgets?: Record<string, number>; icon?: string }>).map(
+    (c) => {
+      const budgets = c.budgets ?? (c.monthlyBudget && c.monthlyBudget > 0 ? { [homeCurrency]: c.monthlyBudget } : {});
+      const { monthlyBudget: _monthlyBudget, ...rest } = c;
+      return { ...rest, budgets, icon: c.icon || guessCategoryIcon(c.name) };
+    },
+  );
+}
+
+function normalizeIncomeCategories(categories: unknown[]): IncomeCategory[] {
+  return (categories as Array<IncomeCategory & { icon?: string }>).map((c) => ({
+    ...c,
+    icon: c.icon || guessIncomeIcon(c.name),
+  }));
 }
 
 const TABLES = ['accounts', 'categories', 'incomeCategories', 'expenses', 'incomes', 'transfers', 'settings'] as const;
@@ -271,12 +310,13 @@ export async function mergeSnapshot(remote: Snapshot): Promise<void> {
   const { incomes: remoteIncomes, newCategories } = normalizeIncomes(remote.incomes ?? [], local.incomeCategories);
   const remoteAccounts = normalizeAccounts(remote.accounts ?? [], homeCurrency);
   const remoteCategories = normalizeCategories(remote.categories ?? [], homeCurrency);
+  const remoteIncomeCategories = normalizeIncomeCategories(remote.incomeCategories ?? []);
 
   await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
     await db.accounts.bulkPut(mergeRows(local.accounts, remoteAccounts));
     await db.categories.bulkPut(mergeRows(local.categories, remoteCategories));
     await db.incomeCategories.bulkPut(
-      mergeRows([...local.incomeCategories, ...newCategories], remote.incomeCategories ?? []),
+      mergeRows([...local.incomeCategories, ...newCategories], remoteIncomeCategories),
     );
     await db.expenses.bulkPut(mergeRows(local.expenses, remote.expenses ?? []));
     await db.incomes.bulkPut(mergeRows(local.incomes, remoteIncomes));
@@ -293,11 +333,12 @@ export async function replaceWithSnapshot(snap: Snapshot): Promise<void> {
   const { incomes, newCategories } = normalizeIncomes(snap.incomes ?? [], snap.incomeCategories ?? []);
   const accounts = normalizeAccounts(snap.accounts ?? [], homeCurrency);
   const categories = normalizeCategories(snap.categories ?? [], homeCurrency);
+  const incomeCategories = normalizeIncomeCategories([...(snap.incomeCategories ?? []), ...newCategories]);
   await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
     await Promise.all(TABLES.map((t) => db[t].clear()));
     await db.accounts.bulkPut(accounts);
     await db.categories.bulkPut(categories);
-    await db.incomeCategories.bulkPut([...(snap.incomeCategories ?? []), ...newCategories]);
+    await db.incomeCategories.bulkPut(incomeCategories);
     await db.expenses.bulkPut(snap.expenses ?? []);
     await db.incomes.bulkPut(incomes);
     await db.transfers.bulkPut(snap.transfers ?? []);

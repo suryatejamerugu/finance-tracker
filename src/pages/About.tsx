@@ -94,13 +94,22 @@ export function About() {
         </p>
       </Section>
 
-      <Section title="Categories, income sources, and colors">
+      <Section title="Account types, categories, and icons">
+        <p>
+          Every account also has a type — Checking, Savings, Credit Card, NRO, NRE, Loan,
+          Investment, or Cash — picked when you create it and changeable anytime afterward (unlike
+          currency, this is purely cosmetic, so there's no lock). Each type gets its own icon, shown
+          as a small badge next to the account everywhere it appears. Typing a name like "HDFC NRE"
+          or "Chase Credit Card" pre-selects a sensible type automatically; override it if it
+          guesses wrong.
+        </p>
         <p>
           Categories (for expenses) and income categories (for income) are separate lists, each
-          with its own color, editable the same way. New ones cycle through a 16-color palette
-          automatically; you can override the color from the swatch picker when creating one, or
-          later from its edit pencil. Two categories can never end up visually indistinguishable in
-          a chart even if they somehow share a stored color — the charts resolve that automatically.
+          with its own color and icon, editable the same way. New ones cycle through a 16-color
+          palette automatically, and the icon is pre-suggested from the name you type — pick a
+          different one from the icon picker if you'd rather. Two categories can never end up
+          visually indistinguishable in a chart even if they somehow share a stored color — the
+          charts resolve that automatically.
         </p>
         <p>
           A category's monthly budget is per currency: the same "Dining Out" category can carry a

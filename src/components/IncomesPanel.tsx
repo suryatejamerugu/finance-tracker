@@ -13,6 +13,7 @@ import { formatMoney, monthLabel, shortMonthLabel } from '../lib/money';
 import { filterByCurrency, groupByPeriod, live, stackedByMonth } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
+import { IconBadge, iconFor } from '../lib/icons';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
 import { IncomeCategoriesModal } from './IncomeCategoriesModal';
@@ -46,14 +47,18 @@ export function IncomesPanel({
   const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
+  const sourceById = new Map(incomeCategories.map((c) => [c.id, c]));
   const sourceName = new Map(incomeCategories.map((c) => [c.id, c.name]));
   const rows = filterByCurrency(live(incomes), accounts, currency, homeCurrency);
   const chartSeries = useSeriesInteraction();
   const [managingCategories, setManagingCategories] = useState(false);
 
-  const Row = ({ i }: { i: Income }) => (
+  const Row = ({ i }: { i: Income }) => {
+    const source = sourceById.get(i.sourceId ?? '');
+    return (
     <div className="group flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5 last:border-b-0">
-      <div className="min-w-0">
+      {source && <IconBadge icon={iconFor(source.icon)} color={source.color} size={22} />}
+      <div className="min-w-0 flex-1">
         <div className="truncate text-[14px]">{i.name}</div>
         <div className="truncate text-[12px] text-faint">
           {[sourceName.get(i.sourceId ?? ''), acctName.get(i.accountId ?? '')].filter(Boolean).join(' · ') || '—'}
@@ -82,7 +87,8 @@ export function IncomesPanel({
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   const render = (tab: Tab) => {
     if (tab === 'Chart') {

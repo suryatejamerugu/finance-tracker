@@ -1,29 +1,30 @@
 import { db, DEFAULT_SETTINGS, LEGACY_SOURCE_COLORS } from './db';
 import { uid } from './money';
 import { guessDefaultCurrency } from './currency';
+import { guessIncomeIcon } from './iconGuess';
 import { DEFAULT_INCOME_CATEGORIES } from '../types';
-import type { Account, Category, IncomeCategory } from '../types';
+import type { Account, AccountType, Category, IncomeCategory } from '../types';
 
-/** [name, monthly budget in dollars, swatch] */
-const CATEGORIES: Array<[string, number, string]> = [
-  ['Bills/Utilities', 0, '#3B37C4'],
-  ['Subscriptions', 0, '#6E63D8'],
-  ['Groceries', 300, '#2F7A55'],
-  ['Transportation/Fuel', 0, '#4C8FB5'],
-  ['Health & Self Care', 100, '#B5734C'],
-  ['Dining Out/Coffee', 0, '#C0654B'],
-  ['Entertainment/Shopping', 0, '#9B5FA8'],
-  ['Emergency Fund', 0, '#5E8C6A'],
-  ['Travel Fund', 0, '#7FA8C4'],
-  ['Investment', 0, '#4F6D8C'],
-  ['Education/Learning', 0, '#8A8F98'],
+/** [name, monthly budget in dollars, swatch, icon] */
+const CATEGORIES: Array<[string, number, string, string]> = [
+  ['Bills/Utilities', 0, '#3B37C4', 'receipt'],
+  ['Subscriptions', 0, '#6E63D8', 'repeat'],
+  ['Groceries', 300, '#2F7A55', 'cart'],
+  ['Transportation/Fuel', 0, '#4C8FB5', 'car'],
+  ['Health & Self Care', 100, '#B5734C', 'heart-pulse'],
+  ['Dining Out/Coffee', 0, '#C0654B', 'coffee'],
+  ['Entertainment/Shopping', 0, '#9B5FA8', 'film'],
+  ['Emergency Fund', 0, '#5E8C6A', 'shield-alert'],
+  ['Travel Fund', 0, '#7FA8C4', 'plane'],
+  ['Investment', 0, '#4F6D8C', 'trending-up'],
+  ['Education/Learning', 0, '#8A8F98', 'graduation-cap'],
 ];
 
-/** [name, initial amount in dollars, swatch] */
-const ACCOUNTS: Array<[string, number, string]> = [
-  ['Checking', 0, '#3B37C4'],
-  ['Savings', 0, '#2F7A55'],
-  ['Credit Card', 0, '#C0654B'],
+/** [name, initial amount in dollars, swatch, type] */
+const ACCOUNTS: Array<[string, number, string, AccountType]> = [
+  ['Checking', 0, '#3B37C4', 'checking'],
+  ['Savings', 0, '#2F7A55', 'savings'],
+  ['Credit Card', 0, '#C0654B', 'credit_card'],
 ];
 
 export async function seedIfEmpty(): Promise<void> {
@@ -40,20 +41,22 @@ export async function seedIfEmpty(): Promise<void> {
     // India should see INR from the first screen, not have to go find the
     // setting and change it away from a hardcoded USD.
     const currency = guessDefaultCurrency();
-    const categories: Category[] = CATEGORIES.map(([name, budget, color], order) => ({
+    const categories: Category[] = CATEGORIES.map(([name, budget, color, icon], order) => ({
       id: uid(),
       name,
       budgets: budget > 0 ? { [currency]: Math.round(budget * 100) } : {},
+      icon,
       color,
       order,
       updatedAt: now,
       deleted: false,
     }));
-    const accounts: Account[] = ACCOUNTS.map(([name, initial, color], order) => ({
+    const accounts: Account[] = ACCOUNTS.map(([name, initial, color, type], order) => ({
       id: uid(),
       name,
       initialAmount: Math.round(initial * 100),
       currency,
+      type,
       color,
       order,
       updatedAt: now,
@@ -62,6 +65,7 @@ export async function seedIfEmpty(): Promise<void> {
     const incomeCategories: IncomeCategory[] = DEFAULT_INCOME_CATEGORIES.map((name, order) => ({
       id: uid(),
       name,
+      icon: guessIncomeIcon(name),
       color: LEGACY_SOURCE_COLORS[name] ?? '#9A9DA3',
       order,
       updatedAt: now,

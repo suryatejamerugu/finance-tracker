@@ -12,6 +12,7 @@ import { dayLabel, formatMoney, monthLabel, shortMonthLabel } from '../lib/money
 import { filterByCurrency, groupByPeriod, live, stackedByMonth } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
+import { accountTypeMeta, IconBadge, iconFor } from '../lib/icons';
 import { EmptyRow, GroupHeading, Panel } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
 import { EditIcon } from './icons';
@@ -43,14 +44,28 @@ export function ExpensesPanel({
 }) {
   const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
+  const catById = new Map(categories.map((c) => [c.id, c]));
   const catName = new Map(categories.map((c) => [c.id, c.name]));
+  const acctById = new Map(accounts.map((a) => [a.id, a]));
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
   const rows = filterByCurrency(live(expenses), accounts, currency, homeCurrency);
   const chartSeries = useSeriesInteraction();
 
-  const Row = ({ e, show }: { e: Expense; show: 'account' | 'category' }) => (
+  const Row = ({ e, show }: { e: Expense; show: 'account' | 'category' }) => {
+    const category = catById.get(e.categoryId ?? '');
+    const account = acctById.get(e.accountId ?? '');
+    const badge =
+      show === 'account'
+        ? account
+          ? <IconBadge icon={accountTypeMeta(account.type).icon} color={account.color} size={22} />
+          : null
+        : category
+          ? <IconBadge icon={iconFor(category.icon)} color={category.color} size={22} />
+          : null;
+    return (
     <div className="group flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5 last:border-b-0">
-      <div className="min-w-0">
+      {badge}
+      <div className="min-w-0 flex-1">
         <div className="truncate text-[14px]">{e.name}</div>
         <div className="truncate text-[12px] text-faint">
           {show === 'account'
@@ -81,7 +96,8 @@ export function ExpensesPanel({
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   const render = (tab: Tab) => {
     if (tab === 'Chart') {

@@ -21,6 +21,7 @@ import {
 } from '../lib/selectors';
 import { formatMoney, monthLabel, todayISO } from '../lib/money';
 import { softDelete } from '../lib/store';
+import { IconBadge } from '../lib/icons';
 import { EmptyRow } from './Panel';
 import { EditIcon } from './icons';
 import type { AddKind, EditingRow } from './AddModal';
@@ -351,6 +352,7 @@ export function LedgerView({
             <div className="divide-y divide-rule">
               {shown.map((e) => (
                 <div key={`${e.type}-${e.id}`} className="group flex items-center gap-3 px-5 py-2.5">
+                  <IconBadge icon={e.icon} color={e.color} size={22} />
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium ${TYPE_BADGE[e.type]}`}
                   >
