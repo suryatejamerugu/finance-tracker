@@ -187,6 +187,8 @@ export function AccountsGallery({
                           </span>
                         </div>
                         <div className="mt-1 flex items-baseline gap-2 text-[11.5px] text-faint">
+                          <span>{accountTypeMeta(s.account.type).label}</span>
+                          <span className="text-rule">·</span>
                           <span>start</span>
                           <input
                             defaultValue={(s.account.initialAmount / 100).toFixed(0)}
@@ -198,10 +200,10 @@ export function AccountsGallery({
                             aria-label={`Initial amount for ${s.account.name}`}
                             className="num w-14 rounded border border-transparent bg-transparent px-1 text-right outline-none hover:border-rule focus:border-brand focus:text-ink"
                           />
-                          <span className="ml-auto num">
-                            +{formatBig(s.totalIncome + s.transferIn, s.account.currency, locale)} · −
-                            {formatBig(s.totalExpenses + s.transferOut, s.account.currency, locale)}
-                          </span>
+                        </div>
+                        <div className="mt-0.5 text-right text-[11.5px] text-faint num">
+                          +{formatBig(s.totalIncome + s.transferIn, s.account.currency, locale)} · −
+                          {formatBig(s.totalExpenses + s.transferOut, s.account.currency, locale)}
                         </div>
                       </div>
                     )}
