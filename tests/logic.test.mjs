@@ -31,8 +31,8 @@ eq('formatBig', money.formatBig(124700), '$1,247');
 eq('shiftMonth across year', money.shiftMonth('2026-01', -1), '2025-12');
 
 const row = (o) => ({ updatedAt: 0, deleted: false, ...o });
-const cat = (id, name, budget, order) => row({ id, name, monthlyBudget: budget, color:'#000', order });
-const acct = (id, name, initial, order) => row({ id, name, initialAmount: initial, color:'#000', order });
+const cat = (id, name, budget, order) => row({ id, name, budgets: budget > 0 ? { USD: budget } : {}, color:'#000', order });
+const acct = (id, name, initial, order) => row({ id, name, initialAmount: initial, currency: 'USD', color:'#000', order });
 const exp = (id, date, amount, categoryId, accountId) => row({ id, date, amount, categoryId, accountId, name:'e', text:'' });
 const inc = (id, date, amount, accountId, source) => row({ id, date, amount, accountId, source, name:'i' });
 const trf = (id, date, amount, from, to) => row({ id, date, amount, fromAccountId: from, toAccountId: to, name:'t' });
@@ -51,7 +51,7 @@ const incomes = [inc('i1','2026-09-01',203000,'a1','Salary'), inc('i2','2026-08-
 const transfers = [trf('t1','2026-09-02',25000,'a1','a2')];
 
 // --- Notion: Expense This Month / Last Month / Usage
-const st = sel.buildCategoryStatuses(categories, expenses, '2026-09');
+const st = sel.buildCategoryStatuses(categories, expenses, accounts, '2026-09', 'USD', 'USD');
 const by = Object.fromEntries(st.map(s => [s.category.name, s]));
 eq('Expense This Month (Health)', by['Health & Self Care'].expenseThisMonth, 10044);
 eq('Expense Last Month (Health)', by['Health & Self Care'].expenseLastMonth, 9000);
@@ -74,7 +74,7 @@ eq('SoFi receives the transfer', byA['SoFi Savings'].balance, 25000);
 eq('Balance ignores selected month', byA['BofA Checking'].totalIncome, 406000);
 
 // --- month summary
-const sum = sel.monthSummary(st, expenses, incomes, '2026-09');
+const sum = sel.monthSummary(st, expenses, incomes, accounts, '2026-09', 'USD', 'USD');
 eq('income this month only', sum.income, 203000);
 eq('spent this month only', sum.spent, 10044+8800+25000);
 eq('budgeted', sum.budgeted, 40000);
@@ -91,7 +91,7 @@ eq('Aug bucket has only c1', data[1]['c1'], 90);
 eq('deleted row not charted', data[2]['c3'], 250);
 
 // --- donut
-const donut = sel.donutByCategory(categories, expenses, '2026-09');
+const donut = sel.donutByCategory(categories, expenses, accounts, '2026-09', 'USD', 'USD');
 eq('donut sorted desc', donut.map(d=>d.name), ['Groceries','Health & Self Care','Dining Out/Coffee']);
 eq('donut total matches spent', Math.round(donut.reduce((s,d)=>s+d.value,0)*100), 43844);
 
@@ -99,6 +99,26 @@ eq('donut total matches spent', Math.round(donut.reduce((s,d)=>s+d.value,0)*100)
 const g = sel.groupByPeriod(expenses.filter(e=>!e.deleted), 'month');
 eq('newest month group first', g[0][0], '2026-09');
 eq('day grouping key width', sel.groupByPeriod(expenses.filter(e=>!e.deleted),'day')[0][0].length, 10);
+
+// --- multi-currency
+const inrAccount = acct('a3', 'HDFC Savings', 0, 2);
+inrAccount.currency = 'INR';
+const mixedAccounts = [...accounts, inrAccount];
+const inrExpense = exp('e6', '2026-09-05', 200000, 'c1', 'a3');
+const mixedExpenses = [...expenses, inrExpense];
+
+eq('availableCurrencies includes home + account currencies', sel.availableCurrencies(mixedAccounts, 'USD'), ['USD', 'INR']);
+eq('filterByCurrency keeps only matching rows', sel.filterByCurrency(mixedExpenses.filter(e=>!e.deleted), mixedAccounts, 'INR', 'USD').map(e=>e.id), ['e6']);
+eq('resolveCurrency falls back to home currency when unlinked', sel.resolveCurrency({ accountId: null }, new Map(), 'USD'), 'USD');
+
+const usdStatuses = sel.buildCategoryStatuses(categories, mixedExpenses, mixedAccounts, '2026-09', 'USD', 'USD');
+const usdHealth = usdStatuses.find(s => s.category.name === 'Health & Self Care');
+eq('USD lens excludes INR expenses from the same category', usdHealth.expenseThisMonth, 10044);
+
+const inrStatuses = sel.buildCategoryStatuses(categories, mixedExpenses, mixedAccounts, '2026-09', 'INR', 'USD');
+const inrHealth = inrStatuses.find(s => s.category.name === 'Health & Self Care');
+eq('INR lens sees only the INR expense', inrHealth.expenseThisMonth, 200000);
+eq('INR budget is 0 when only a USD budget was set', inrHealth.category.budgets['INR'] ?? 0, 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DEFAULT_SETTINGS } from '../lib/db';
 import {
+  availableCurrencies,
   buildAccountStatuses,
   buildCategoryStatuses,
   donutByCategory,
@@ -37,6 +38,12 @@ export function Dashboard({
   const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [dismissedWarning, setDismissedWarning] = useState<string | null>(null);
+  const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
+
+  function setLens(c: string) {
+    setCurrencyLens(c);
+    localStorage.setItem('ft.currencyLens', c);
+  }
 
   const data = useLiveQuery(async () => {
     const [accounts, categories, incomeCategories, expenses, incomes, transfers, settings] = await Promise.all([
@@ -62,15 +69,33 @@ export function Dashboard({
   if (!data) return <div className="p-6 text-muted">Loading…</div>;
 
   const { settings } = data;
-  const { currency, locale } = settings;
+  const { locale } = settings;
   const liveCategories = live(data.categories).sort((a, b) => a.order - b.order);
   const liveAccounts = live(data.accounts).sort((a, b) => a.order - b.order);
   const liveIncomeCategories = live(data.incomeCategories).sort((a, b) => a.order - b.order);
 
-  const categoryStatuses = buildCategoryStatuses(data.categories, data.expenses, month);
+  const currencies = availableCurrencies(data.accounts, settings.currency);
+  const currency = currencies.includes(currencyLens) ? currencyLens : settings.currency;
+
+  const categoryStatuses = buildCategoryStatuses(
+    data.categories,
+    data.expenses,
+    data.accounts,
+    month,
+    currency,
+    settings.currency,
+  );
   const accountStatuses = buildAccountStatuses(data.accounts, data.expenses, data.incomes, data.transfers);
-  const summary = monthSummary(categoryStatuses, data.expenses, data.incomes, month);
-  const slices = donutByCategory(data.categories, data.expenses, month);
+  const summary = monthSummary(
+    categoryStatuses,
+    data.expenses,
+    data.incomes,
+    data.accounts,
+    month,
+    currency,
+    settings.currency,
+  );
+  const slices = donutByCategory(data.categories, data.expenses, data.accounts, month, currency, settings.currency);
 
   const isEmpty = data.expenses.length === 0 && data.incomes.length === 0 && data.transfers.length === 0;
 
@@ -108,6 +133,24 @@ export function Dashboard({
             ›
           </button>
         </div>
+
+        {currencies.length > 1 && (
+          <div className="flex gap-1 rounded-lg border border-rule p-0.5">
+            {currencies.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setLens(c)}
+                aria-current={currency === c ? 'true' : undefined}
+                className={`rounded-md px-2 py-1 text-[12.5px] ${
+                  currency === c ? 'bg-brand-soft text-brand' : 'text-faint hover:text-muted'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
 
         <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
           <div className="flex items-baseline gap-1.5">
@@ -188,7 +231,7 @@ export function Dashboard({
       {/* 21 / 54 / 25 on desktop, matching the Notion column ratios */}
       <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-[21fr_54fr_25fr]">
         <div className="order-2 lg:order-1">
-          <CategoryGallery statuses={categoryStatuses} settings={settings} onChanged={onChanged} />
+          <CategoryGallery statuses={categoryStatuses} currency={currency} settings={settings} onChanged={onChanged} />
         </div>
 
         <div className="order-3 lg:order-2">
@@ -196,6 +239,8 @@ export function Dashboard({
             expenses={data.expenses}
             categories={liveCategories}
             accounts={liveAccounts}
+            currency={currency}
+            homeCurrency={settings.currency}
             month={month}
             settings={settings}
             onChanged={onChanged}
@@ -205,6 +250,8 @@ export function Dashboard({
             incomes={data.incomes}
             accounts={liveAccounts}
             incomeCategories={liveIncomeCategories}
+            currency={currency}
+            homeCurrency={settings.currency}
             month={month}
             settings={settings}
             onChanged={onChanged}
@@ -213,6 +260,8 @@ export function Dashboard({
           <TransfersPanel
             transfers={data.transfers}
             accounts={liveAccounts}
+            currency={currency}
+            homeCurrency={settings.currency}
             settings={settings}
             onChanged={onChanged}
             onEdit={(transfer) => setModal({ kind: 'transfer', editing: transfer })}
@@ -220,7 +269,7 @@ export function Dashboard({
         </div>
 
         <div className="order-1 lg:order-3">
-          <SpendDonut slices={slices} total={summary.spent} settings={settings} />
+          <SpendDonut slices={slices} total={summary.spent} currency={currency} settings={settings} />
           <AccountsGallery statuses={accountStatuses} settings={settings} onChanged={onChanged} />
         </div>
       </div>
@@ -231,6 +280,7 @@ export function Dashboard({
           categories={liveCategories}
           accounts={liveAccounts}
           incomeCategories={liveIncomeCategories}
+          currency={currency}
           editing={modal.editing ?? null}
           onClose={() => setModal(null)}
           onSaved={onChanged}
@@ -245,6 +295,8 @@ export function Dashboard({
           categories={data.categories}
           accounts={data.accounts}
           incomeCategories={data.incomeCategories}
+          currency={currency}
+          homeCurrency={settings.currency}
           settings={settings}
           month={month}
           categoryStatuses={categoryStatuses}

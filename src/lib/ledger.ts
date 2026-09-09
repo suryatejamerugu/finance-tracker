@@ -20,6 +20,8 @@ export interface LedgerEntry {
   /** Account name, or "From → To" for a transfer. */
   account: string | null;
   note: string;
+  /** The account's currency (a transfer's "from" side, since both sides always match), or the home currency when unlinked. */
+  currency: string;
 }
 
 export function buildLedger(
@@ -29,10 +31,14 @@ export function buildLedger(
   categories: Category[],
   accounts: Account[],
   incomeCategories: IncomeCategory[] = [],
+  homeCurrency = 'USD',
 ): LedgerEntry[] {
   const catName = new Map(categories.map((c) => [c.id, c.name]));
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
+  const acctById = new Map(accounts.map((a) => [a.id, a]));
   const sourceName = new Map(incomeCategories.map((c) => [c.id, c.name]));
+  const currencyOf = (accountId: string | null) =>
+    (accountId && acctById.get(accountId)?.currency) || homeCurrency;
 
   const expenseRows: LedgerEntry[] = live(expenses).map((e) => ({
     id: e.id,
@@ -43,6 +49,7 @@ export function buildLedger(
     detail: catName.get(e.categoryId ?? '') ?? 'Uncategorised',
     account: acctName.get(e.accountId ?? '') ?? null,
     note: e.text,
+    currency: currencyOf(e.accountId),
   }));
 
   const incomeRows: LedgerEntry[] = live(incomes).map((i) => ({
@@ -54,6 +61,7 @@ export function buildLedger(
     detail: sourceName.get(i.sourceId ?? '') ?? 'Uncategorised',
     account: acctName.get(i.accountId ?? '') ?? null,
     note: '',
+    currency: currencyOf(i.accountId),
   }));
 
   const transferRows: LedgerEntry[] = live(transfers).map((t) => ({
@@ -65,6 +73,7 @@ export function buildLedger(
     detail: null,
     account: `${acctName.get(t.fromAccountId ?? '') ?? '—'} → ${acctName.get(t.toAccountId ?? '') ?? '—'}`,
     note: '',
+    currency: currencyOf(t.fromAccountId),
   }));
 
   return [...expenseRows, ...incomeRows, ...transferRows].sort((a, b) => b.date.localeCompare(a.date));

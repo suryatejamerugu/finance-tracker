@@ -11,20 +11,28 @@ type Tab = (typeof TABS)[number];
 export function TransfersPanel({
   transfers,
   accounts,
+  currency,
+  homeCurrency,
   settings,
   onChanged,
   onEdit,
 }: {
   transfers: Transfer[];
   accounts: Account[];
+  /** The dashboard's current currency lens. Transfers are always same-currency, so the "from" side settles it. */
+  currency: string;
+  homeCurrency: string;
   settings: Settings;
   onChanged: () => void;
   onEdit: (transfer: Transfer) => void;
 }) {
-  const { currency, locale } = settings;
+  const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
-  const rows = live(transfers);
+  const accountById = new Map(accounts.map((a) => [a.id, a]));
+  const rows = live(transfers).filter(
+    (t) => ((t.fromAccountId && accountById.get(t.fromAccountId)?.currency) || homeCurrency) === currency,
+  );
 
   const Row = ({ t }: { t: Transfer }) => (
     <div className="group flex items-center justify-between gap-3 border-b border-rule px-4 py-2.5 last:border-b-0">

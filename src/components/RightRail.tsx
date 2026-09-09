@@ -17,13 +17,16 @@ import { EditIcon } from './icons';
 export function SpendDonut({
   slices,
   total,
+  currency,
   settings,
 }: {
   slices: Array<{ name: string; value: number; color: string }>;
   total: number;
+  /** The dashboard's current currency lens — slices are already scoped to it. */
+  currency: string;
   settings: Settings;
 }) {
-  const { currency, locale } = settings;
+  const { locale } = settings;
   const [active, setActive] = useState<number | null>(null);
 
   return (
@@ -107,8 +110,11 @@ export function AccountsGallery({
   settings: Settings;
   onChanged: () => void;
 }) {
-  const { currency, locale } = settings;
-  const total = statuses.reduce((sum, s) => sum + s.balance, 0);
+  const { locale } = settings;
+  const totalsByCurrency = new Map<string, number>();
+  for (const s of statuses) {
+    totalsByCurrency.set(s.account.currency, (totalsByCurrency.get(s.account.currency) ?? 0) + s.balance);
+  }
   const [editing, setEditing] = useState<Account | null>(null);
 
   async function remove(name: string, id: string) {
@@ -130,10 +136,14 @@ export function AccountsGallery({
   return (
     <>
       <section className="mb-7">
-        <div className="mb-2 flex items-baseline justify-between">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-[15px] font-medium">Accounts</h2>
-          <span className={`num text-[13px] ${total < 0 ? 'text-over' : 'text-muted'}`}>
-            {formatMoney(total, { currency, locale, showCents: false })}
+          <span className="num flex flex-wrap justify-end gap-x-2 text-[13px] text-muted">
+            {[...totalsByCurrency.entries()].map(([cur, sum]) => (
+              <span key={cur} className={sum < 0 ? 'text-over' : ''}>
+                {formatMoney(sum, { currency: cur, locale, showCents: false })}
+              </span>
+            ))}
           </span>
         </div>
 
@@ -159,7 +169,7 @@ export function AccountsGallery({
                           </span>
                           <span className="flex shrink-0 items-center gap-2">
                             <span className={`num text-[14px] ${s.balance < 0 ? 'text-over' : ''}`}>
-                              {formatMoney(s.balance, { currency, locale })}
+                              {formatMoney(s.balance, { currency: s.account.currency, locale })}
                             </span>
                             <button
                               type="button"
@@ -192,8 +202,8 @@ export function AccountsGallery({
                             className="num w-14 rounded border border-transparent bg-transparent px-1 text-right outline-none hover:border-rule focus:border-brand focus:text-ink"
                           />
                           <span className="ml-auto num">
-                            +{formatBig(s.totalIncome + s.transferIn, currency, locale)} · −
-                            {formatBig(s.totalExpenses + s.transferOut, currency, locale)}
+                            +{formatBig(s.totalIncome + s.transferIn, s.account.currency, locale)} · −
+                            {formatBig(s.totalExpenses + s.transferOut, s.account.currency, locale)}
                           </span>
                         </div>
                       </div>
@@ -206,18 +216,24 @@ export function AccountsGallery({
         </div>
       </section>
 
-      {editing && (
-        <EditNameColorModal
-          title="Edit account"
-          initialName={editing.name}
-          initialColor={editing.color}
-          onClose={() => setEditing(null)}
-          onSave={async (name, color) => {
-            await updateAccount(editing.id, name, color);
-            onChanged();
-          }}
-        />
-      )}
+      {editing && (() => {
+        const status = statuses.find((s) => s.account.id === editing.id);
+        const hasHistory = !!status &&
+          (status.totalIncome > 0 || status.totalExpenses > 0 || status.transferIn > 0 || status.transferOut > 0);
+        return (
+          <EditNameColorModal
+            title="Edit account"
+            initialName={editing.name}
+            initialColor={editing.color}
+            currencyField={{ value: editing.currency, locked: hasHistory }}
+            onClose={() => setEditing(null)}
+            onSave={async (name, color, currency) => {
+              await updateAccount(editing.id, name, color, currency);
+              onChanged();
+            }}
+          />
+        );
+      })()}
     </>
   );
 }

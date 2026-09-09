@@ -26,14 +26,21 @@ interface Synced {
 export interface Account extends Synced {
   name: string;
   initialAmount: Cents;
+  /** ISO 4217 code (USD, INR, ...). Fixed once the account has any transaction. */
+  currency: string;
   color: string;
   order: number;
 }
 
-/** Notion: Categories. Title property is "Category". */
+/**
+ * Notion: Categories. Title property is "Category". Budget is keyed by
+ * currency rather than a single number, since the same category (e.g.
+ * "Dining Out") can be used for expenses in more than one currency and a
+ * budget only means something within one currency at a time.
+ */
 export interface Category extends Synced {
   name: string;
-  monthlyBudget: Cents;
+  budgets: Record<string, Cents>;
   color: string;
   order: number;
 }
@@ -91,7 +98,7 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export interface Snapshot {
   schemaVersion: number;

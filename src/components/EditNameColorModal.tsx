@@ -1,26 +1,32 @@
 import { useEffect, useState } from 'react';
 import { PALETTE } from '../lib/colors';
+import { CURRENCIES } from '../lib/currency';
 
 /**
  * Shared by categories and accounts — both only need a name and a color
  * edited after creation (budget/initial-amount are already inline-editable
- * on the gallery rows themselves).
+ * on the gallery rows themselves). Accounts additionally pass `currencyField`
+ * to offer a currency picker — locked once the account has any transaction,
+ * since changing it then would silently relabel real historical amounts.
  */
 export function EditNameColorModal({
   title,
   initialName,
   initialColor,
+  currencyField,
   onSave,
   onClose,
 }: {
   title: string;
   initialName: string;
   initialColor: string;
-  onSave: (name: string, color: string) => Promise<void>;
+  currencyField?: { value: string; locked: boolean } | null;
+  onSave: (name: string, color: string, currency: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
+  const [currency, setCurrency] = useState(currencyField?.value ?? '');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,7 +39,7 @@ export function EditNameColorModal({
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      await onSave(name.trim(), color);
+      await onSave(name.trim(), color, currency);
       onClose();
     } finally {
       setSaving(false);
@@ -90,6 +96,30 @@ export function EditNameColorModal({
               ))}
             </div>
           </div>
+
+          {currencyField && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Currency</span>
+              {currencyField.locked ? (
+                <p className="text-[13px] text-muted">
+                  {currencyField.value} — locked because this account already has transactions.
+                  Historical amounts stay correct only if the currency they were logged in never
+                  changes.
+                </p>
+              ) : (
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  aria-label="Currency"
+                  className="w-full rounded-lg border border-rule bg-transparent px-3 py-2.5 text-[15px] outline-none focus:border-brand"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
         <button

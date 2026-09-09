@@ -1,5 +1,6 @@
 import { db, DEFAULT_SETTINGS, LEGACY_SOURCE_COLORS } from './db';
 import { uid } from './money';
+import { guessDefaultCurrency } from './currency';
 import { DEFAULT_INCOME_CATEGORIES } from '../types';
 import type { Account, Category, IncomeCategory } from '../types';
 
@@ -35,10 +36,14 @@ export async function seedIfEmpty(): Promise<void> {
     if ((await db.categories.count()) > 0 || (await db.accounts.count()) > 0) return;
 
     const now = Date.now();
+    // Guessed from the browser's locale, not asked — a brand-new install from
+    // India should see INR from the first screen, not have to go find the
+    // setting and change it away from a hardcoded USD.
+    const currency = guessDefaultCurrency();
     const categories: Category[] = CATEGORIES.map(([name, budget, color], order) => ({
       id: uid(),
       name,
-      monthlyBudget: Math.round(budget * 100),
+      budgets: budget > 0 ? { [currency]: Math.round(budget * 100) } : {},
       color,
       order,
       updatedAt: now,
@@ -48,6 +53,7 @@ export async function seedIfEmpty(): Promise<void> {
       id: uid(),
       name,
       initialAmount: Math.round(initial * 100),
+      currency,
       color,
       order,
       updatedAt: now,
@@ -65,6 +71,6 @@ export async function seedIfEmpty(): Promise<void> {
     await db.categories.bulkPut(categories);
     await db.accounts.bulkPut(accounts);
     await db.incomeCategories.bulkPut(incomeCategories);
-    await db.settings.put({ ...DEFAULT_SETTINGS, updatedAt: now });
+    await db.settings.put({ ...DEFAULT_SETTINGS, currency, updatedAt: now });
   });
 }

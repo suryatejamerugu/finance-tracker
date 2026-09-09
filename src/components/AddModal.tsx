@@ -12,6 +12,7 @@ import {
   updateTransfer,
 } from '../lib/store';
 import { PALETTE, suggestedColor } from '../lib/colors';
+import { CURRENCIES, currencySymbol } from '../lib/currency';
 
 export type AddKind = 'expense' | 'income' | 'transfer' | 'category' | 'account';
 
@@ -42,6 +43,7 @@ export function AddModal({
   categories,
   accounts,
   incomeCategories,
+  currency,
   editing,
   onClose,
   onSaved,
@@ -50,6 +52,8 @@ export function AddModal({
   categories: Category[];
   accounts: Account[];
   incomeCategories: IncomeCategory[];
+  /** The dashboard's current currency lens — the default for a new account, and the budget slot a new category's initial number is saved into. */
+  currency: string;
   editing?: EditingRow | null;
   onClose: () => void;
   onSaved: () => void;
@@ -67,11 +71,12 @@ export function AddModal({
     }
     return accounts[0]?.id ?? '';
   });
-  const [toAccountId, setToAccountId] = useState(() =>
-    editing && kind === 'transfer'
-      ? ((editing as Transfer).toAccountId ?? '')
-      : (accounts[1]?.id ?? accounts[0]?.id ?? ''),
-  );
+  const [toAccountId, setToAccountId] = useState(() => {
+    if (editing && kind === 'transfer') return (editing as Transfer).toAccountId ?? '';
+    if (kind !== 'transfer') return '';
+    const from = accounts[0];
+    return accounts.find((a) => a.id !== from?.id && a.currency === from?.currency)?.id ?? '';
+  });
   const [sourceId, setSourceId] = useState(
     editing && kind === 'income' ? ((editing as Income).sourceId ?? '') : (incomeCategories[0]?.id ?? ''),
   );
@@ -79,8 +84,14 @@ export function AddModal({
   const [color, setColor] = useState(() =>
     suggestedColor(kind === 'account' ? accounts.length : categories.length),
   );
+  const [accountCurrency, setAccountCurrency] = useState(currency);
   const [error, setError] = useState<string | null>(null);
   const first = useRef<HTMLInputElement>(null);
+
+  const accountById = new Map(accounts.map((a) => [a.id, a]));
+  const fromCurrency = kind === 'transfer' ? (accountById.get(accountId)?.currency ?? null) : null;
+  const toAccounts = kind === 'transfer' ? accounts.filter((a) => !fromCurrency || a.currency === fromCurrency) : accounts;
+  const rowCurrency = accountId ? (accountById.get(accountId)?.currency ?? currency) : currency;
 
   useEffect(() => {
     first.current?.focus();
@@ -104,32 +115,37 @@ export function AddModal({
     }
 
     const value = cents ?? 0;
-    if (kind === 'expense') {
-      const input = { name, amount: value, date, categoryId: categoryId || null, accountId: accountId || null, text };
-      if (editing) await updateExpense(editing.id, input);
-      else await addExpense(input);
-    } else if (kind === 'income') {
-      const input = { name, amount: value, date, accountId: accountId || null, sourceId: sourceId || null };
-      if (editing) await updateIncome(editing.id, input);
-      else await addIncome(input);
-    } else if (kind === 'transfer') {
-      if (accountId && accountId === toAccountId) {
-        setError('From and To must be different accounts');
-        return;
+    try {
+      if (kind === 'expense') {
+        const input = { name, amount: value, date, categoryId: categoryId || null, accountId: accountId || null, text };
+        if (editing) await updateExpense(editing.id, input);
+        else await addExpense(input);
+      } else if (kind === 'income') {
+        const input = { name, amount: value, date, accountId: accountId || null, sourceId: sourceId || null };
+        if (editing) await updateIncome(editing.id, input);
+        else await addIncome(input);
+      } else if (kind === 'transfer') {
+        if (accountId && accountId === toAccountId) {
+          setError('From and To must be different accounts');
+          return;
+        }
+        const input = {
+          name,
+          amount: value,
+          date,
+          fromAccountId: accountId || null,
+          toAccountId: toAccountId || null,
+        };
+        if (editing) await updateTransfer(editing.id, input);
+        else await addTransfer(input);
+      } else if (kind === 'category') {
+        await addCategory(name, value, color, currency);
+      } else {
+        await addAccount(name, value, color, accountCurrency);
       }
-      const input = {
-        name,
-        amount: value,
-        date,
-        fromAccountId: accountId || null,
-        toAccountId: toAccountId || null,
-      };
-      if (editing) await updateTransfer(editing.id, input);
-      else await addTransfer(input);
-    } else if (kind === 'category') {
-      await addCategory(name, value, color);
-    } else {
-      await addAccount(name, value, color);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save that.');
+      return;
     }
 
     onSaved();
@@ -138,8 +154,9 @@ export function AddModal({
 
   const title = editing ? EDIT_LABELS[kind] : ADD_LABELS[kind];
   const amountLabel =
-    kind === 'category' ? 'Monthly budget' : kind === 'account' ? 'Initial amount' : 'Amount';
+    kind === 'category' ? `Monthly budget (${currency})` : kind === 'account' ? 'Initial amount' : 'Amount';
   const dated = kind === 'expense' || kind === 'income' || kind === 'transfer';
+  const amountCurrency = kind === 'account' ? accountCurrency : kind === 'category' ? currency : rowCurrency;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 backdrop-blur-sm sm:items-center sm:p-4">
@@ -170,7 +187,7 @@ export function AddModal({
           />
 
           <div className="flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2">
-            <span className="text-[15px] text-faint">$</span>
+            <span className="text-[15px] text-faint">{currencySymbol(amountCurrency)}</span>
             <input
               value={amount}
               onChange={(e) => {
@@ -220,11 +237,24 @@ export function AddModal({
           )}
 
           {(kind === 'expense' || kind === 'income' || kind === 'transfer') && (
-            <select value={accountId} onChange={(e) => setAccountId(e.target.value)} aria-label={kind === 'transfer' ? 'From account' : 'Account'} className={field}>
+            <select
+              value={accountId}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setAccountId(nextId);
+                if (kind === 'transfer') {
+                  const nextCurrency = accountById.get(nextId)?.currency;
+                  const toCurrency = accountById.get(toAccountId)?.currency;
+                  if (toAccountId && nextCurrency && toCurrency !== nextCurrency) setToAccountId('');
+                }
+              }}
+              aria-label={kind === 'transfer' ? 'From account' : 'Account'}
+              className={field}
+            >
               <option value="">{kind === 'transfer' ? 'From account' : 'No account'}</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {kind === 'transfer' ? `From: ${a.name}` : a.name}
+                  {kind === 'transfer' ? `From: ${a.name} (${a.currency})` : a.name}
                 </option>
               ))}
             </select>
@@ -233,10 +263,18 @@ export function AddModal({
           {kind === 'transfer' && (
             <select value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} aria-label="To account" className={field}>
               <option value="">To account</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>To: {a.name}</option>
-              ))}
+              {toAccounts
+                .filter((a) => a.id !== accountId)
+                .map((a) => (
+                  <option key={a.id} value={a.id}>To: {a.name} ({a.currency})</option>
+                ))}
             </select>
+          )}
+          {kind === 'transfer' && fromCurrency && toAccounts.length <= 1 && (
+            <p className="text-[12px] text-faint">
+              No other {fromCurrency} account to transfer to yet — cross-currency transfers aren't
+              supported directly. Log an expense here and an income on the other account instead.
+            </p>
           )}
 
           {kind === 'expense' && (
@@ -247,6 +285,19 @@ export function AddModal({
               aria-label="Note"
               className={field}
             />
+          )}
+
+          {kind === 'account' && (
+            <select
+              value={accountCurrency}
+              onChange={(e) => setAccountCurrency(e.target.value)}
+              aria-label="Currency"
+              className={field}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+              ))}
+            </select>
           )}
 
           {(kind === 'category' || kind === 'account') && (

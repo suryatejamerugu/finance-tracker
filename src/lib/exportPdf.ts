@@ -55,12 +55,15 @@ export function exportMonthPdf(opts: {
   autoTable(doc, {
     startY: headerY + 7,
     head: [['Category', 'Spent', 'Budget', 'Usage']],
-    body: categoryStatuses.map((s) => [
-      s.category.name,
-      money(s.expenseThisMonth),
-      s.category.monthlyBudget > 0 ? money(s.category.monthlyBudget) : '—',
-      s.category.monthlyBudget > 0 ? `${Math.round(s.usage * 100)}%` : '—',
-    ]),
+    body: categoryStatuses.map((s) => {
+      const budget = s.category.budgets[currency] ?? 0;
+      return [
+        s.category.name,
+        money(s.expenseThisMonth),
+        budget > 0 ? money(budget) : '—',
+        budget > 0 ? `${Math.round(s.usage * 100)}%` : '—',
+      ];
+    }),
     styles: { fontSize: 9 },
     headStyles: { fillColor: BRAND },
   });
@@ -73,13 +76,13 @@ export function exportMonthPdf(opts: {
       e.type,
       e.name,
       e.detail ?? e.account ?? '',
-      formatMoney(e.amount, { currency, locale, signed: true }),
+      formatMoney(e.amount, { currency: e.currency, locale, signed: true }),
     ]),
     styles: { fontSize: 8 },
     headStyles: { fillColor: BRAND },
   });
 
-  doc.save(`finance-tracker-${month}.pdf`);
+  doc.save(`finance-tracker-${month}-${currency}.pdf`);
 }
 
 /**
@@ -88,40 +91,53 @@ export function exportMonthPdf(opts: {
  * currently showing (respecting its search/type filter), with no budget
  * breakdown since a mixed date range has no single month to budget against.
  */
+/**
+ * Entries can span more than one currency (when Full history's own currency
+ * filter is "All"), so summing raw cents across them would be meaningless —
+ * instead each currency present gets its own In/Out/Net figure, and each
+ * row in the table is formatted in its own currency.
+ */
 export function exportLedgerPdf(opts: {
   title: string;
-  currency: string;
   locale: string;
   entries: LedgerEntry[];
   userLabel?: string | null;
   /** Human-readable summary of the search/type/date filters applied, if any. */
   criteria?: string | null;
 }): void {
-  const { title, currency, locale, entries, userLabel, criteria } = opts;
+  const { title, locale, entries, userLabel, criteria } = opts;
   const doc = new jsPDF() as DocWithTable;
 
-  const income = entries.filter((e) => e.amount > 0).reduce((sum, e) => sum + e.amount, 0);
-  const expense = entries.filter((e) => e.amount < 0).reduce((sum, e) => sum + e.amount, 0);
-  const money = (c: number) => formatMoney(c, { currency, locale });
+  const byCurrency = new Map<string, { income: number; expense: number }>();
+  for (const e of entries) {
+    const bucket = byCurrency.get(e.currency) ?? { income: 0, expense: 0 };
+    if (e.amount > 0) bucket.income += e.amount;
+    else bucket.expense += e.amount;
+    byCurrency.set(e.currency, bucket);
+  }
+  const summaryLine = [...byCurrency.entries()]
+    .map(([cur, b]) => {
+      const m = (c: number) => formatMoney(c, { currency: cur, locale });
+      return `${cur} — In ${m(b.income)}  Out ${m(Math.abs(b.expense))}  Net ${formatMoney(b.income + b.expense, { currency: cur, locale, signed: true })}`;
+    })
+    .join('   |   ');
 
   const headerY = drawHeader(doc, title, userLabel, criteria ? `Filters: ${criteria}` : null);
   doc.setFontSize(10);
   doc.setTextColor(110);
-  doc.text(
-    `${entries.length} transactions   In ${money(income)}   Out ${money(Math.abs(expense))}   Net ${formatMoney(income + expense, { currency, locale, signed: true })}`,
-    14,
-    headerY,
-  );
+  doc.text(`${entries.length} transactions`, 14, headerY);
+  doc.setFontSize(8.5);
+  doc.text(summaryLine || 'No transactions', 14, headerY + 5);
 
   autoTable(doc, {
-    startY: headerY + 7,
+    startY: headerY + 11,
     head: [['Date', 'Type', 'Name', 'Category / Account', 'Amount']],
     body: entries.map((e) => [
       e.date,
       e.type,
       e.name,
       e.detail ?? e.account ?? '',
-      formatMoney(e.amount, { currency, locale, signed: true }),
+      formatMoney(e.amount, { currency: e.currency, locale, signed: true }),
     ]),
     styles: { fontSize: 8 },
     headStyles: { fillColor: BRAND },

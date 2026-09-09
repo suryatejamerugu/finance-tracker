@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Category, CategoryStatus, Settings } from '../types';
 import { formatMoney, parseAmount } from '../lib/money';
-import { reorder, setMonthlyBudget, softDelete, updateCategory } from '../lib/store';
+import { reorder, setCategoryBudget, softDelete, updateCategory } from '../lib/store';
 import { EmptyRow, Panel } from './Panel';
 import { DragHandle, SortableList, SortableRow } from './dnd';
 import { EditNameColorModal } from './EditNameColorModal';
@@ -24,14 +24,17 @@ const BAR: Record<CategoryStatus['state'], string> = {
  */
 export function CategoryGallery({
   statuses,
+  currency,
   settings,
   onChanged,
 }: {
   statuses: CategoryStatus[];
+  /** The dashboard's current currency lens — statuses are already scoped to it. */
+  currency: string;
   settings: Settings;
   onChanged: () => void;
 }) {
-  const { currency, locale } = settings;
+  const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale, showCents: false });
   const [editing, setEditing] = useState<Category | null>(null);
 
@@ -60,7 +63,7 @@ export function CategoryGallery({
           {statuses.map((s) => {
             const spent = isThis ? s.expenseThisMonth : s.expenseLastMonth;
             const usage = isThis ? s.usage : s.usageLastMonth;
-            const budget = s.category.monthlyBudget;
+            const budget = s.category.budgets[currency] ?? 0;
             const pct = budget > 0 ? Math.min(100, usage * 100) : spent > 0 ? 100 : 0;
             const state = budget > 0 ? (usage > 1 ? 'over' : usage >= 0.85 ? 'close' : 'under') : 'unbudgeted';
 
@@ -114,14 +117,15 @@ export function CategoryGallery({
                       <span className="num text-[12px] text-muted">{money(spent)}</span>
                       {isThis ? (
                         <input
+                          key={currency}
                           defaultValue={budget > 0 ? (budget / 100).toFixed(0) : ''}
                           onBlur={async (e) => {
-                            await setMonthlyBudget(s.category.id, parseAmount(e.target.value) ?? 0);
+                            await setCategoryBudget(s.category.id, currency, parseAmount(e.target.value) ?? 0);
                             onChanged();
                           }}
                           inputMode="decimal"
                           placeholder="budget"
-                          aria-label={`Monthly budget for ${s.category.name}`}
+                          aria-label={`Monthly ${currency} budget for ${s.category.name}`}
                           className="num w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-[12px] text-faint outline-none hover:border-rule focus:border-brand focus:text-ink"
                         />
                       ) : (
