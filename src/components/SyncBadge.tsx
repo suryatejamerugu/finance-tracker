@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { useSync } from '../hooks/useSync';
 
 function ago(ts: number): string {
@@ -19,6 +19,13 @@ function ago(ts: number): string {
  */
 export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   if (!sync.configured) {
     return <span className="text-[12px] text-faint">Saved on this device</span>;
@@ -62,6 +69,7 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
             role="dialog"
+            aria-modal="true"
             aria-label="Backup account"
             className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-rule bg-raised p-3.5 text-left shadow-pop"
           >

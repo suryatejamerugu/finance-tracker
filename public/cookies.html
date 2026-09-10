@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookies &amp; Local Storage — Finance Tracker</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #f6f6fb;
+        --ink: #15161c;
+        --muted: #63646f;
+        --rule: #e7e7f0;
+        --brand: #5b4fe8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #0a0d14;
+          --ink: #f3f4f8;
+          --muted: #9a9dae;
+          --rule: #242a3d;
+          --brand: #8b7bf3;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 48px 20px 80px;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 32px;
+      }
+      h2 {
+        font-size: 16px;
+        margin-top: 36px;
+        margin-bottom: 8px;
+      }
+      p,
+      li {
+        font-size: 14.5px;
+        color: var(--ink);
+      }
+      a {
+        color: var(--brand);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+        margin: 12px 0;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 6px 8px 6px 0;
+        border-bottom: 1px solid var(--rule);
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      code {
+        background: var(--rule);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      .brand {
+        font-weight: 600;
+      }
+      nav.legal {
+        font-size: 13px;
+        margin-bottom: 28px;
+      }
+      nav.legal a {
+        margin-right: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav class="legal">
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/cookies.html">Cookies &amp; Local Storage</a>
+      </nav>
+
+      <h1><span class="brand">Finance</span> Tracker — Cookies &amp; Local Storage</h1>
+      <p class="updated">Last updated: September 10, 2026</p>
+
+      <h2>This app does not use cookies</h2>
+      <p>
+        Verified directly against the source code: nothing in this app reads or writes an HTTP
+        cookie (<code>document.cookie</code> is never used). Everything below is your browser's
+        <strong>local storage</strong> and <strong>IndexedDB</strong> instead — different, older-web
+        technologies that work similarly (they persist small amounts of data on your device between
+        visits) but are not literally cookies.
+      </p>
+
+      <h2>Why there's no cookie-consent banner</h2>
+      <p>
+        Every value this app stores locally is what regulators typically call "strictly necessary"
+        — each one exists only to make a feature you directly asked for work (remembering your theme,
+        keeping you signed in to your own Drive backup, remembering which currency you were viewing).
+        None of it is used for advertising, cross-site tracking, analytics, or profiling, and nothing
+        is shared with a third party for their own purposes. Under the common EU/UK ePrivacy
+        "strictly necessary" exemption, storage like this generally does not require a consent
+        banner. <strong>This is this app's own assessment based on that widely-used exemption, not a
+        certified legal opinion</strong> — if you plan to serve users in a jurisdiction with stricter
+        rules, have a qualified lawyer confirm this conclusion before relying on it.
+      </p>
+
+      <h2>Everything stored locally, itemized</h2>
+      <table>
+        <tr><th>Key</th><th>Purpose</th><th>Set when</th></tr>
+        <tr><td><code>ft.theme</code></td><td>Remembers your light/dark theme choice</td>
+          <td>You toggle the theme switch</td></tr>
+        <tr><td><code>ft.currencyLens</code></td><td>Remembers which currency you were last
+          viewing on the dashboard</td><td>You switch the currency filter</td></tr>
+        <tr><td><code>ft.demoDismissed</code></td><td>Remembers that you dismissed the "load
+          sample data" banner</td><td>You click "No thanks" or load sample data</td></tr>
+        <tr><td><code>ll.token</code></td><td>Your Google OAuth access token and email, so Drive
+          backup can stay signed in between visits</td><td>Only if you sign in for Drive backup</td></tr>
+        <tr><td><code>ll.lastSync</code></td><td>Timestamp of the last successful Drive sync, shown
+          in the header ("Saved 3m ago")</td><td>Only if you use Drive backup</td></tr>
+        <tr><td>Drive backup file ID (internal)</td><td>Caches the ID of your private backup file
+          so the app doesn't have to search Drive for it on every sync</td>
+          <td>Only if you use Drive backup</td></tr>
+        <tr><td>IndexedDB database</td><td>Every expense, income, transfer, category, account, and
+          setting you've entered</td><td>You use the app</td></tr>
+      </table>
+      <p>
+        This list was produced by searching the app's source code for every <code>localStorage</code>
+        call and the Dexie/IndexedDB database definition — not from memory or a generic template.
+      </p>
+
+      <h2>Third-party cookies you might encounter</h2>
+      <p>
+        This app does not set third-party cookies. If you use "Back up to Drive," Google's own
+        sign-in page (which this app does not control) may set cookies belonging to Google, governed
+        by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer"
+          >Google's own privacy policy</a
+        >, not this one.
+      </p>
+
+      <h2>How to clear everything</h2>
+      <p>
+        Clearing your browser's site data for this app removes all local storage and the IndexedDB
+        database in one step. Disconnecting Drive backup from the sync menu (or revoking access at
+        <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer"
+          >myaccount.google.com/connections</a
+        >) removes the stored Google token and stops the app from syncing.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this page can be sent to
+        <a href="mailto:stylishsurya35@gmail.com">stylishsurya35@gmail.com</a>.
+      </p>
+    </main>
+  </body>
+</html>

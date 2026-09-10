@@ -28,6 +28,20 @@ export function Footer() {
           className="text-muted underline decoration-rule underline-offset-2 hover:text-brand"
         >
           Privacy Policy
+        </a>{' '}
+        ·{' '}
+        <a
+          href="/terms.html"
+          className="text-muted underline decoration-rule underline-offset-2 hover:text-brand"
+        >
+          Terms
+        </a>{' '}
+        ·{' '}
+        <a
+          href="/cookies.html"
+          className="text-muted underline decoration-rule underline-offset-2 hover:text-brand"
+        >
+          Cookies
         </a>
       </p>
     </footer>

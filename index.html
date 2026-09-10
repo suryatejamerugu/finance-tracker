@@ -16,7 +16,13 @@
       href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!--
+      Google Identity Services is intentionally NOT loaded here. It's injected
+      by src/sync/google.ts only when a visitor actually uses "Back up to
+      Drive" (or, for a returning user who already connected, once to
+      silently refresh their token) — so someone who never touches that
+      feature never has their browser contact a Google domain at all.
+    -->
     <script>
       // Set before paint so switching themes never flashes the wrong one.
       (function () {

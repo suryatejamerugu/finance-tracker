@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terms of Service — Finance Tracker</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #f6f6fb;
+        --ink: #15161c;
+        --muted: #63646f;
+        --rule: #e7e7f0;
+        --brand: #5b4fe8;
+        --warn-bg: #fdecef;
+        --warn-ink: #7a1230;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #0a0d14;
+          --ink: #f3f4f8;
+          --muted: #9a9dae;
+          --rule: #242a3d;
+          --brand: #8b7bf3;
+          --warn-bg: #341721;
+          --warn-ink: #fca5b8;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 48px 20px 80px;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+      .updated {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 32px;
+      }
+      h2 {
+        font-size: 16px;
+        margin-top: 36px;
+        margin-bottom: 8px;
+      }
+      p,
+      li {
+        font-size: 14.5px;
+        color: var(--ink);
+      }
+      a {
+        color: var(--brand);
+      }
+      ul {
+        padding-left: 20px;
+      }
+      .brand {
+        font-weight: 600;
+      }
+      .notice {
+        background: var(--warn-bg);
+        color: var(--warn-ink);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 13.5px;
+        margin: 16px 0;
+      }
+      nav.legal {
+        font-size: 13px;
+        margin-bottom: 28px;
+      }
+      nav.legal a {
+        margin-right: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav class="legal">
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/cookies.html">Cookies &amp; Local Storage</a>
+      </nav>
+
+      <h1><span class="brand">Finance</span> Tracker — Terms of Service</h1>
+      <p class="updated">Last updated: September 10, 2026</p>
+
+      <div class="notice">
+        This draft was generated from what the app's code actually does, not from a generic
+        template filled in with guesses. Sections marked <strong>[to be confirmed]</strong> are
+        placeholders for decisions only the developer can make, and this whole document should be
+        reviewed by a qualified lawyer before being relied on — see the note at the bottom.
+      </div>
+
+      <h2>1. What this is</h2>
+      <p>
+        Finance Tracker ("the app") is a free, static personal budgeting tool. It is currently
+        operated by an individual developer — <em>[to be confirmed: legal name/entity, and whether
+        it operates as a registered business]</em> — reachable at
+        <a href="mailto:stylishsurya35@gmail.com">stylishsurya35@gmail.com</a>. By using the app,
+        you agree to these terms.
+      </p>
+
+      <h2>2. No account, no payment</h2>
+      <p>
+        The app does not require creating an account with it directly, and does not process
+        payments, subscriptions, or purchases of any kind — there is nothing to buy and nothing to
+        cancel. The only sign-in available is optional Google sign-in, used solely to back up your
+        data to your own Google Drive; see the <a href="/privacy.html">Privacy Policy</a> for
+        exactly what that involves.
+      </p>
+
+      <h2>3. Your data</h2>
+      <p>
+        Your financial entries are yours. By default they stay only in your browser's local storage
+        on your own device; if you enable Drive backup, a copy also goes to a private folder in your
+        own Google Drive that this app cannot see any other file in. Because there is no server, the
+        developer has no copy of your data and cannot retrieve it for you if you lose access to your
+        device and never enabled Drive backup — you are responsible for keeping your own backups
+        (the app's "Save a backup file" feature exists for this reason).
+      </p>
+
+      <h2>4. Acceptable use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>use the app for any unlawful purpose;</li>
+        <li>attempt to disrupt, overload, or gain unauthorized access to the app's hosting
+          infrastructure or any connected third-party service (including Google's APIs);</li>
+        <li>reverse engineer the app to circumvent its security or the restrictions of the
+          Google Drive scope it uses;</li>
+        <li>misrepresent your identity when using Google sign-in with the app.</li>
+      </ul>
+
+      <h2>5. No warranty</h2>
+      <p>
+        The app is provided "as is" and "as available," without warranty of any kind, express or
+        implied — including, without limitation, warranties of accuracy, merchantability, fitness
+        for a particular purpose, or non-infringement. This is a personal project, not audited
+        professional financial or accounting software; it performs the calculations described in
+        its own documentation, but you are responsible for verifying any figure you rely on for a
+        real financial decision.
+      </p>
+
+      <h2>6. Limitation of liability</h2>
+      <p>
+        To the fullest extent permitted by applicable law, the developer will not be liable for any
+        indirect, incidental, special, consequential, or punitive damages, or any loss of data,
+        arising from your use of, or inability to use, the app — including data loss from clearing
+        your browser's storage, a lost or inaccessible device, or a problem with Google's services
+        that the app depends on for optional backup. <em>[To be confirmed: whether a specific
+        liability cap, appropriate to your jurisdiction, should be added — a qualified lawyer
+        should set this, not a generic number.]</em>
+      </p>
+
+      <h2>7. Third-party services</h2>
+      <p>
+        The app optionally uses Google's sign-in and Drive APIs, and always loads a font from Google
+        Fonts. Your use of those Google services is also subject to
+        <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer"
+          >Google's own Terms of Service</a
+        >, which this app does not control.
+      </p>
+
+      <h2>8. Intellectual property</h2>
+      <p>
+        The app's source code, design, and content are the developer's, except for open-source
+        libraries it depends on (each under its own license) and the Google-provided sign-in
+        widget. <em>[To be confirmed: whether the developer wants to publish the source code under
+        an open-source license — no license file currently exists in the repository, so by default
+        all rights are reserved.]</em> No trademark, logo, or brand of any third party mentioned in
+        the app (including Google or Notion, referenced only to describe interoperability — e.g.
+        importing a Notion CSV export) is claimed, and no affiliation with or endorsement by those
+        companies is implied.
+      </p>
+
+      <h2>9. Changes to the app or these terms</h2>
+      <p>
+        Being a personal project, the app's features may change, and it may be discontinued, at any
+        time without notice. If these terms change, this page will be updated and the "Last updated"
+        date above will change accordingly. Continuing to use the app after a change means you
+        accept the updated terms.
+      </p>
+
+      <h2>10. Governing law</h2>
+      <p>
+        <em>[To be confirmed by the developer: which country/state's law governs these terms, and
+        where any dispute would need to be brought. This cannot be filled in without that
+        decision.]</em>
+      </p>
+
+      <h2>11. Contact</h2>
+      <p>
+        Questions about these terms can be sent to
+        <a href="mailto:stylishsurya35@gmail.com">stylishsurya35@gmail.com</a>.
+      </p>
+
+      <h2>A note on how this document was produced</h2>
+      <p>
+        This draft describes what the app's source code actually does, verified directly rather
+        than assumed. It deliberately does not invent a company name, address, liability cap, or
+        governing law — those are marked "[to be confirmed]" above and need the developer's
+        decision. This is not a substitute for review by a qualified lawyer, particularly for
+        sections 5, 6, and 10.
+      </p>
+    </main>
+  </body>
+</html>
