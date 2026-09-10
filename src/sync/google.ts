@@ -59,9 +59,28 @@ export function isConfigured(): boolean {
   return Boolean(CLIENT_ID && !CLIENT_ID.startsWith('1234567890-'));
 }
 
-/** The GIS script is loaded async in index.html, so wait for it. */
+const GIS_SRC = 'https://accounts.google.com/gsi/client';
+
+/**
+ * Injected on first use rather than sitting in index.html, so a visitor who
+ * never touches Drive backup never has their browser fetch anything from a
+ * Google domain — that request happens only once someone actually clicks
+ * "Back up to Drive" (or, for a returning user who already connected, once
+ * on that first load to silently refresh their token).
+ */
+function loadGisScript(): void {
+  if (document.querySelector(`script[src="${GIS_SRC}"]`)) return;
+  const script = document.createElement('script');
+  script.src = GIS_SRC;
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
+}
+
+/** Injects the GIS script on first call, then waits for it to finish loading. */
 function waitForGis(timeoutMs = 10_000): Promise<void> {
   if (window.google?.accounts?.oauth2) return Promise.resolve();
+  loadGisScript();
   return new Promise((resolve, reject) => {
     const started = Date.now();
     const tick = window.setInterval(() => {

@@ -12,6 +12,8 @@
         --muted: #63646f;
         --rule: #e7e7f0;
         --brand: #5b4fe8;
+        --warn-bg: #fdecef;
+        --warn-ink: #7a1230;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -20,6 +22,8 @@
           --muted: #9a9dae;
           --rule: #242a3d;
           --brand: #8b7bf3;
+          --warn-bg: #341721;
+          --warn-ink: #fca5b8;
         }
       }
       body {
@@ -59,26 +63,113 @@
       ul {
         padding-left: 20px;
       }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+        margin: 12px 0;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 6px 8px 6px 0;
+        border-bottom: 1px solid var(--rule);
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      code {
+        background: var(--rule);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
       .brand {
         font-weight: 600;
+      }
+      .notice {
+        background: var(--warn-bg);
+        color: var(--warn-ink);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 13.5px;
+        margin: 16px 0;
+      }
+      nav.legal {
+        font-size: 13px;
+        margin-bottom: 28px;
+      }
+      nav.legal a {
+        margin-right: 14px;
       }
     </style>
   </head>
   <body>
     <main>
+      <nav class="legal">
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/cookies.html">Cookies &amp; Local Storage</a>
+      </nav>
+
       <h1><span class="brand">Finance</span> Tracker — Privacy Policy</h1>
-      <p class="updated">Last updated: 2026</p>
+      <p class="updated">Last updated: September 10, 2026</p>
+
+      <div class="notice">
+        This app is currently operated by an individual developer, not a registered company.
+        Sections marked <strong>[to be confirmed]</strong> below depend on decisions only the
+        developer can make (legal entity, governing jurisdiction) and have not been finalized.
+      </div>
 
       <p>
-        Finance Tracker is a personal budget tracker. This page explains, plainly, what happens to
-        your data.
+        Finance Tracker is a personal budget tracker. This page explains, as precisely as the code
+        allows, what happens to your data.
       </p>
 
       <h2>There is no server</h2>
       <p>
         Finance Tracker is a static web app with no backend of any kind. Nobody — not the developer,
-        not any company — receives, stores, or has access to your financial data. There is nowhere
-        for it to be sent, because the app never sends it anywhere on its own.
+        not any company — receives, stores, or has access to your financial data on a server, because
+        there is no server for it to be sent to. The application code that runs in your browser is
+        served as static files; it does not transmit your financial entries anywhere on its own.
+      </p>
+
+      <h2>What personal data this app handles</h2>
+      <table>
+        <tr><th>Data</th><th>When</th><th>Where it goes</th></tr>
+        <tr>
+          <td>Amounts, dates, names/notes, and category labels you type into expenses, incomes,
+            transfers, categories, and accounts</td>
+          <td>Whenever you use the app</td>
+          <td>Your browser's local IndexedDB only, unless you enable Drive backup (below)</td>
+        </tr>
+        <tr>
+          <td>Your Google email address</td>
+          <td>Only if you click "Back up to Drive" and sign in</td>
+          <td>Requested from Google's own userinfo endpoint and stored in your browser's
+            local storage, so the app can show which account is connected. It is not sent
+            anywhere else by this app.</td>
+        </tr>
+        <tr>
+          <td>A Google OAuth access token</td>
+          <td>Only if you sign in for Drive backup</td>
+          <td>Stored in your browser's local storage; sent only to Google's own APIs
+            (Drive, userinfo) to authorize reading/writing your one private backup file</td>
+        </tr>
+        <tr>
+          <td>Your IP address and browser/device information</td>
+          <td>Every time the app loads</td>
+          <td>Visible to Google as an incidental effect of loading the "Instrument Sans"
+            font from Google Fonts (<code>fonts.googleapis.com</code> /
+            <code>fonts.gstatic.com</code>) — see "Third-party requests" below</td>
+        </tr>
+      </table>
+      <p>
+        No name, address, phone number, payment details, or government ID is collected anywhere in
+        this app. There is no account-creation form of its own — the only sign-in is the optional
+        Google sign-in described below.
       </p>
 
       <h2>Where your data actually lives</h2>
@@ -99,19 +190,42 @@
 
       <h2>What Google sign-in is used for</h2>
       <p>
-        Signing in with Google is only used to (1) confirm which Google account should read and write
-        that one private backup file, and (2) show your email address in the app so you know which
-        account is connected. That's the entire purpose of the permission request — nothing broader
-        is requested, and nothing is used for advertising, analytics, or any purpose other than
-        syncing your own data to your own Drive.
+        Signing in with Google requests the <code>openid email profile</code> and
+        <code>drive.appdata</code> scopes, used only to (1) confirm which Google account should read
+        and write that one private backup file, and (2) show your email address in the app so you
+        know which account is connected. Nothing broader is requested, and nothing is used for
+        advertising, analytics, or any purpose other than syncing your own data to your own Drive.
+      </p>
+      <p>
+        The Google sign-in script itself is only loaded into your browser the first time you click
+        "Back up to Drive" (or, for a returning user who already connected, once per visit to check
+        whether your sign-in is still valid) — not on every page load, and never for a visitor who
+        doesn't use that feature.
       </p>
 
-      <h2>No tracking, no ads, no selling data</h2>
+      <h2>Local storage and cookies</h2>
       <p>
-        This app does not use analytics, advertising, or tracking scripts, and does not sell or share
-        data with any third party, because there is no data on any server to sell or share in the
-        first place.
+        This app does not set or read any HTTP cookies. It uses your browser's local storage for a
+        short list of functional values (theme preference, which currency you're viewing, a
+        dismissed-banner flag, the Google token described above, and internal sync bookkeeping) —
+        see the <a href="/cookies.html">Cookies &amp; Local Storage</a> page for the full, itemized
+        list and why no cookie-consent banner is shown.
       </p>
+
+      <h2>Third-party requests</h2>
+      <p>
+        Loading the app makes network requests to a small, fixed set of domains, all disclosed here:
+      </p>
+      <ul>
+        <li><code>fonts.googleapis.com</code> / <code>fonts.gstatic.com</code> — loads the
+          "Instrument Sans" typeface, on every visit. This exposes your IP address and browser
+          information to Google as a normal side effect of fetching a font file from Google's
+          servers; the app does not otherwise instruct Google to track you through this request.</li>
+        <li><code>accounts.google.com</code> and Google's Drive/OAuth APIs — only if and when you
+          use "Back up to Drive," as described above.</li>
+      </ul>
+      <p>This app uses no analytics, advertising, or tracking scripts of any kind, and does not sell
+        or share data with any third party for their own purposes.</p>
 
       <h2>Deleting your data</h2>
       <p>
@@ -121,6 +235,24 @@
         <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer"
           >myaccount.google.com/connections</a
         >, which also deletes the app's private folder.
+      </p>
+
+      <h2>Children's privacy</h2>
+      <p>
+        This app is not directed at children and has no age-verification step. <em>[To be confirmed
+        by the developer: intended minimum age, if any.]</em>
+      </p>
+
+      <h2>Governing jurisdiction</h2>
+      <p>
+        <em>[To be confirmed by the developer: which country/state's law applies, and any
+        data-protection authority contact if one is required.]</em>
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        If what this app collects or how it handles data changes, this page will be updated and the
+        "Last updated" date above will change accordingly.
       </p>
 
       <h2>Contact</h2>
