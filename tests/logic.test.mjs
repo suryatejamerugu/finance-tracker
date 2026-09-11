@@ -120,5 +120,55 @@ const inrHealth = inrStatuses.find(s => s.category.name === 'Health & Self Care'
 eq('INR lens sees only the INR expense', inrHealth.expenseThisMonth, 200000);
 eq('INR budget is 0 when only a USD budget was set', inrHealth.category.budgets['INR'] ?? 0, 0);
 
+// --- credit cards
+const cc = (id, name, initial, creditLimit, statementDay, paymentDueDay, order) => row({
+  id, name, initialAmount: initial, currency: 'USD', color: '#000', order,
+  type: 'credit_card', creditLimit, statementDay, paymentDueDay,
+});
+
+const card = cc('cc1', 'Visa', 0, 100000, 31, 15, 3);
+const cardExpenses = [
+  exp('ce1', '2026-08-20', 30000, null, 'cc1'), // billed on the last statement
+  exp('ce2', '2026-09-05', 10000, null, 'cc1'), // new since that statement
+];
+const cardPayment = trf('ct1', '2026-09-08', 15000, 'a1', 'cc1'); // partial payment after the statement cut
+
+const preBalance = sel.buildAccountStatuses([card], cardExpenses, [], [cardPayment]).find(a => a.account.id === 'cc1').balance;
+eq('credit card balance reflects spend minus payment', preBalance, 0 - 40000 + 15000);
+
+const status = sel.creditCardStatus(card, preBalance, cardExpenses, [], [cardPayment], '2026-09-10');
+eq('owed = -balance when balance negative', status.owed, 25000);
+eq('availableCredit = limit + balance', status.availableCredit, 75000);
+eq('lastStatementDate clamps day 31 into the adjacent shorter month', status.lastStatementDate, '2026-08-31');
+eq('statementBalance replays the ledger as of the last statement', status.statementBalance, 30000);
+eq('nextDueDate rolls the due day into the following month', status.nextDueDate, '2026-09-15');
+eq('newSinceStatement clamps to 0 when a payment exceeds new spend', status.newSinceStatement, 0);
+
+// credit limit increase/decrease should move availableCredit only, never owed
+const raised = { ...card, creditLimit: 150000 };
+const lowered = { ...card, creditLimit: 75000 };
+eq('raising the limit increases available credit', sel.creditCardStatus(raised, preBalance, cardExpenses, [], [cardPayment], '2026-09-10').availableCredit, 125000);
+eq('lowering the limit decreases available credit', sel.creditCardStatus(lowered, preBalance, cardExpenses, [], [cardPayment], '2026-09-10').availableCredit, 50000);
+eq('owed is unaffected by a limit change', sel.creditCardStatus(lowered, preBalance, cardExpenses, [], [cardPayment], '2026-09-10').owed, 25000);
+
+// no limit configured -> availableCredit is null, not a huge number or an error
+const noLimitCard = { ...card, creditLimit: null };
+eq('no credit limit means availableCredit is null', sel.creditCardStatus(noLimitCard, preBalance, cardExpenses, [], [cardPayment], '2026-09-10').availableCredit, null);
+
+// overpayment (balance goes positive) -> owed clamps to 0, never negative
+eq('overpayment clamps owed to 0', sel.creditCardStatus(card, 5000, [], [], [], '2026-09-10').owed, 0);
+
+// no statement day configured -> no cycle figures at all
+const noCycleCard = { ...card, statementDay: null };
+const noCycleStatus = sel.creditCardStatus(noCycleCard, preBalance, cardExpenses, [], [cardPayment], '2026-09-10');
+eq('no statement day means no statement balance', noCycleStatus.statementBalance, null);
+eq('no statement day means no due date', noCycleStatus.nextDueDate, null);
+
+// statement day set but no payment due day -> statement balance still computed, but no due date
+const noDueDayCard = { ...card, paymentDueDay: null };
+const noDueStatus = sel.creditCardStatus(noDueDayCard, preBalance, cardExpenses, [], [cardPayment], '2026-09-10');
+eq('statement balance still computed without a due day', noDueStatus.statementBalance, 30000);
+eq('no due day configured means no next due date', noDueStatus.nextDueDate, null);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

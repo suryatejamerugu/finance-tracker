@@ -4,6 +4,7 @@ import {
   SCHEMA_VERSION,
   type Account,
   type Category,
+  type Cents,
   type Expense,
   type Income,
   type IncomeCategory,
@@ -162,6 +163,20 @@ class LedgerDB extends Dexie {
           if (!row.icon) row.icon = guessIncomeIcon(row.name);
         });
     });
+
+    // v6: credit-card billing details — limit, statement day, payment due day.
+    // All three are nullable/unconfigured by default; every existing account
+    // (of any type) just gets null, same as a brand-new account would.
+    this.version(6).upgrade(async (tx) => {
+      await tx
+        .table('accounts')
+        .toCollection()
+        .modify((row: { creditLimit?: Cents | null; statementDay?: number | null; paymentDueDay?: number | null }) => {
+          if (row.creditLimit === undefined) row.creditLimit = null;
+          if (row.statementDay === undefined) row.statementDay = null;
+          if (row.paymentDueDay === undefined) row.paymentDueDay = null;
+        });
+    });
   }
 }
 
@@ -273,10 +288,23 @@ function normalizeIncomes(
  * the current schema requires.
  */
 function normalizeAccounts(accounts: unknown[], homeCurrency: string): Account[] {
-  return (accounts as Array<Account & { currency?: string; type?: string }>).map((a) => ({
+  return (
+    accounts as Array<
+      Account & {
+        currency?: string;
+        type?: string;
+        creditLimit?: Cents | null;
+        statementDay?: number | null;
+        paymentDueDay?: number | null;
+      }
+    >
+  ).map((a) => ({
     ...a,
     currency: a.currency || homeCurrency,
     type: (a.type as Account['type']) || guessAccountType(a.name),
+    creditLimit: a.creditLimit ?? null,
+    statementDay: a.statementDay ?? null,
+    paymentDueDay: a.paymentDueDay ?? null,
   }));
 }
 

@@ -5,6 +5,7 @@ import type {
   CategoryStatus,
   Cents,
   Expense,
+  ISODate,
   Income,
   ISOMonth,
   Transfer,
@@ -161,6 +162,112 @@ export function buildAccountStatuses(
           account.initialAmount + totalIncome - totalExpenses + transferIn - transferOut,
       };
     });
+}
+
+/* ------------------------------ Credit cards ------------------------------ */
+
+/** Same Balance formula as buildAccountStatuses, capped to rows on or before a cutoff date — reconstructs what an account's balance was as of a past date, e.g. a credit card's last statement. */
+function balanceAsOf(
+  account: Account,
+  expenses: Expense[],
+  incomes: Income[],
+  transfers: Transfer[],
+  cutoff: ISODate,
+): Cents {
+  const upTo = <T extends { date: string }>(rows: T[]) => rows.filter((r) => r.date <= cutoff);
+  const totalIncome = sum(upTo(live(incomes).filter((i) => i.accountId === account.id)), (i) => i.amount);
+  const totalExpenses = sum(upTo(live(expenses).filter((e) => e.accountId === account.id)), (e) => e.amount);
+  const transferIn = sum(upTo(live(transfers).filter((t) => t.toAccountId === account.id)), (t) => t.amount);
+  const transferOut = sum(upTo(live(transfers).filter((t) => t.fromAccountId === account.id)), (t) => t.amount);
+  return account.initialAmount + totalIncome - totalExpenses + transferIn - transferOut;
+}
+
+/** The real last day of a month, so a day-of-month setting like 31 degrades gracefully in a shorter month instead of overflowing into the next one. */
+function lastDayOf(year: number, month1to12: number): number {
+  return new Date(year, month1to12, 0).getDate();
+}
+
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+/** The most recent occurrence of `day` (day-of-month) on or before `today`. */
+function lastOccurrence(today: ISODate, day: number): ISODate {
+  const [y, m, d] = today.split('-').map(Number);
+  const clamped = Math.min(day, lastDayOf(y, m));
+  if (d >= clamped) return `${y}-${pad2(m)}-${pad2(clamped)}`;
+  const py = m === 1 ? y - 1 : y;
+  const pm = m === 1 ? 12 : m - 1;
+  return `${py}-${pad2(pm)}-${pad2(Math.min(day, lastDayOf(py, pm)))}`;
+}
+
+/** The next occurrence of `day` (day-of-month) strictly after `fromDate`. */
+function nextOccurrence(fromDate: ISODate, day: number): ISODate {
+  const [y, m, d] = fromDate.split('-').map(Number);
+  const clamped = Math.min(day, lastDayOf(y, m));
+  if (clamped > d) return `${y}-${pad2(m)}-${pad2(clamped)}`;
+  const ny = m === 12 ? y + 1 : y;
+  const nm = m === 12 ? 1 : m + 1;
+  return `${ny}-${pad2(nm)}-${pad2(Math.min(day, lastDayOf(ny, nm)))}`;
+}
+
+export interface CreditCardStatus {
+  /** What you currently owe, right now, across the whole account lifetime. */
+  owed: Cents;
+  /** Credit limit minus what's owed, or null if no limit is set. */
+  availableCredit: Cents | null;
+  creditLimit: Cents | null;
+  /** What was owed as of the most recent statement date — due by the next payment date. Null until a statement day is configured. */
+  statementBalance: Cents | null;
+  /** Spending (net of payments) since that statement — not yet billed, not yet due. */
+  newSinceStatement: Cents;
+  lastStatementDate: ISODate | null;
+  nextDueDate: ISODate | null;
+}
+
+/**
+ * Owed/available fall straight out of the existing signed Balance formula —
+ * spending already pushes a credit card's balance negative and paying it
+ * down already brings it back toward zero, so a credit-limit change or a
+ * partial/minimum payment needs no special-case handling here: each is
+ * already just a different number in the same ledger this already reads.
+ *
+ * The one genuinely new piece is the statement-cycle balance, which replays
+ * that same formula capped to the last statement date — what's actually due
+ * by the next payment date, as opposed to everything owed right now (which
+ * may include newer, not-yet-billed spending).
+ */
+export function creditCardStatus(
+  account: Account,
+  balance: Cents,
+  expenses: Expense[],
+  incomes: Income[],
+  transfers: Transfer[],
+  today: ISODate,
+): CreditCardStatus {
+  const owed = Math.max(0, -balance);
+  const availableCredit = account.creditLimit != null ? Math.max(0, account.creditLimit + balance) : null;
+
+  let statementBalance: Cents | null = null;
+  let lastStatementDate: ISODate | null = null;
+  let nextDueDate: ISODate | null = null;
+
+  if (account.statementDay) {
+    lastStatementDate = lastOccurrence(today, account.statementDay);
+    const balanceAtStatement = balanceAsOf(account, expenses, incomes, transfers, lastStatementDate);
+    statementBalance = Math.max(0, -balanceAtStatement);
+    if (account.paymentDueDay) {
+      nextDueDate = nextOccurrence(lastStatementDate, account.paymentDueDay);
+    }
+  }
+
+  return {
+    owed,
+    availableCredit,
+    creditLimit: account.creditLimit,
+    statementBalance,
+    newSinceStatement: Math.max(0, owed - (statementBalance ?? owed)),
+    lastStatementDate,
+    nextDueDate,
+  };
 }
 
 /* --------------------------------- Totals --------------------------------- */

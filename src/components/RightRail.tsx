@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import type { Account, AccountStatus, Settings } from '../types';
-import { formatBig, formatMoney, parseAmount } from '../lib/money';
-import { reorder, setInitialAmount, softDelete, updateAccount } from '../lib/store';
+import type { Account, AccountStatus, Expense, Income, Settings, Transfer } from '../types';
+import { formatBig, formatMoney, shortDate, todayISO } from '../lib/money';
+import { reorder, softDelete, updateAccount } from '../lib/store';
+import { creditCardStatus } from '../lib/selectors';
 import { accountTypeMeta, IconBadge } from '../lib/icons';
 import { EmptyRow } from './Panel';
 import { chartTooltip } from './chartTheme';
@@ -104,14 +105,21 @@ export function SpendDonut({
 /** Notion's Accounts gallery: Account name and the Balance formula result. */
 export function AccountsGallery({
   statuses,
+  expenses,
+  incomes,
+  transfers,
   settings,
   onChanged,
 }: {
   statuses: AccountStatus[];
+  expenses: Expense[];
+  incomes: Income[];
+  transfers: Transfer[];
   settings: Settings;
   onChanged: () => void;
 }) {
   const { locale } = settings;
+  const today = todayISO();
   const totalsByCurrency = new Map<string, number>();
   for (const s of statuses) {
     totalsByCurrency.set(s.account.currency, (totalsByCurrency.get(s.account.currency) ?? 0) + s.balance);
@@ -154,61 +162,69 @@ export function AccountsGallery({
           ) : (
             <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
               <SortableList ids={statuses.map((s) => s.account.id)} onReorder={handleReorder}>
-                {statuses.map((s) => (
-                  <SortableRow key={s.account.id} id={s.account.id}>
-                    {(handle) => (
-                      <div className="group bg-raised px-3.5 py-2.5">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="flex min-w-0 items-center gap-1.5">
-                            <DragHandle {...handle} />
-                            <IconBadge icon={accountTypeMeta(s.account.type).icon} color={s.account.color} size={20} />
-                            <span className="truncate text-[13.5px]">{s.account.name}</span>
-                          </span>
-                          <span className="flex shrink-0 items-center gap-2">
-                            <span className={`num text-[14px] ${s.balance < 0 ? 'text-over' : ''}`}>
-                              {formatMoney(s.balance, { currency: s.account.currency, locale })}
+                {statuses.map((s) => {
+                  const cc =
+                    s.account.type === 'credit_card'
+                      ? creditCardStatus(s.account, s.balance, expenses, incomes, transfers, today)
+                      : null;
+                  return (
+                    <SortableRow key={s.account.id} id={s.account.id}>
+                      {(handle) => (
+                        <div className="group bg-raised px-3.5 py-2.5">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <DragHandle {...handle} />
+                              <IconBadge icon={accountTypeMeta(s.account.type).icon} color={s.account.color} size={20} />
+                              <span className="truncate text-[13.5px]">{s.account.name}</span>
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => setEditing(s.account)}
-                              aria-label={`Edit ${s.account.name}`}
-                              className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
-                            >
-                              <EditIcon />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void remove(s.account.name, s.account.id)}
-                              aria-label={`Delete ${s.account.name}`}
-                              className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
-                            >
-                              ×
-                            </button>
-                          </span>
+                            <span className="flex shrink-0 items-center gap-2">
+                              <span className={`num text-[14px] ${(cc ? cc.owed > 0 : s.balance < 0) ? 'text-over' : ''}`}>
+                                {formatMoney(cc ? cc.owed : s.balance, { currency: s.account.currency, locale })}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setEditing(s.account)}
+                                aria-label={`Edit ${s.account.name}`}
+                                className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                              >
+                                <EditIcon />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void remove(s.account.name, s.account.id)}
+                                aria-label={`Delete ${s.account.name}`}
+                                className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          </div>
+                          {cc && (
+                            <div className="mt-1 text-[11.5px] text-faint">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span>available</span>
+                                <span className="num">
+                                  {cc.availableCredit != null
+                                    ? `${formatBig(cc.availableCredit, s.account.currency, locale)} of ${formatBig(cc.creditLimit ?? 0, s.account.currency, locale)}`
+                                    : 'set a limit in edit'}
+                                </span>
+                              </div>
+                              {cc.lastStatementDate && (
+                                <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                                  <span>this cycle</span>
+                                  <span className="num">
+                                    {formatBig(cc.statementBalance ?? 0, s.account.currency, locale)}
+                                    {cc.nextDueDate ? ` due ${shortDate(cc.nextDueDate, locale)}` : ''}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="mt-1 flex items-baseline gap-2 text-[11.5px] text-faint">
-                          <span>{accountTypeMeta(s.account.type).label}</span>
-                          <span className="text-rule">·</span>
-                          <span>start</span>
-                          <input
-                            defaultValue={(s.account.initialAmount / 100).toFixed(0)}
-                            onBlur={async (e) => {
-                              await setInitialAmount(s.account.id, parseAmount(e.target.value) ?? 0);
-                              onChanged();
-                            }}
-                            inputMode="decimal"
-                            aria-label={`Initial amount for ${s.account.name}`}
-                            className="num w-14 rounded border border-transparent bg-transparent px-1 text-right outline-none hover:border-rule focus:border-brand focus:text-ink"
-                          />
-                        </div>
-                        <div className="mt-0.5 text-right text-[11.5px] text-faint num">
-                          +{formatBig(s.totalIncome + s.transferIn, s.account.currency, locale)} · −
-                          {formatBig(s.totalExpenses + s.transferOut, s.account.currency, locale)}
-                        </div>
-                      </div>
-                    )}
-                  </SortableRow>
-                ))}
+                      )}
+                    </SortableRow>
+                  );
+                })}
               </SortableList>
             </div>
           )}
@@ -226,9 +242,24 @@ export function AccountsGallery({
             initialColor={editing.color}
             currencyField={{ value: editing.currency, locked: hasHistory }}
             typeField={{ value: editing.type }}
+            accountAmounts={{
+              initialAmount: editing.initialAmount,
+              creditLimit: editing.creditLimit,
+              statementDay: editing.statementDay,
+              paymentDueDay: editing.paymentDueDay,
+            }}
             onClose={() => setEditing(null)}
-            onSave={async ({ name, color, currency, type }) => {
-              await updateAccount(editing.id, { name, color, currency, type });
+            onSave={async ({ name, color, currency, type, initialAmount, creditLimit, statementDay, paymentDueDay }) => {
+              await updateAccount(editing.id, {
+                name,
+                color,
+                currency,
+                type,
+                initialAmount,
+                creditLimit,
+                statementDay,
+                paymentDueDay,
+              });
               onChanged();
             }}
           />

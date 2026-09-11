@@ -75,6 +75,12 @@ export function dayLabel(date: ISODate, locale = 'en-US'): string {
   });
 }
 
+/** Compact, no weekday/year — "Sep 25" — for inline UI like a credit card's next due date. */
+export function shortDate(date: ISODate, locale = 'en-US'): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+}
+
 /** Days elapsed and total, used to pace spending against the month. */
 export function monthProgress(month: ISOMonth): { elapsed: number; total: number } {
   const [y, m] = month.split('-').map(Number);
