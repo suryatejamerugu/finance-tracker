@@ -14,7 +14,7 @@ import { filterByCurrency, groupByPeriod, live, stackedByMonth } from '../lib/se
 import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { IconBadge, iconFor } from '../lib/icons';
-import { EmptyRow, GroupHeading, Panel } from './Panel';
+import { EmptyRow, Panel, PeriodPicker } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
 import { IncomeCategoriesModal } from './IncomeCategoriesModal';
 import { EditIcon } from './icons';
@@ -52,6 +52,8 @@ export function IncomesPanel({
   const rows = filterByCurrency(live(incomes), accounts, currency, homeCurrency);
   const chartSeries = useSeriesInteraction();
   const [managingCategories, setManagingCategories] = useState(false);
+  const [monthlyKey, setMonthlyKey] = useState<string | null>(null);
+  const [yearlyKey, setYearlyKey] = useState<string | null>(null);
 
   const Row = ({ i }: { i: Income }) => {
     const source = sourceById.get(i.sourceId ?? '');
@@ -147,22 +149,32 @@ export function IncomesPanel({
       return <div>{recent.map((i) => <Row key={i.id} i={i} />)}</div>;
     }
 
-    const period = tab === 'Monthly' ? 'month' : 'year';
-    const groups = groupByPeriod(rows, period).slice(0, period === 'month' ? 8 : 5);
-    if (groups.length === 0) return <EmptyRow>No income logged yet.</EmptyRow>;
+    // Every month/year is reachable via the dropdown rather than by
+    // scrolling past every period in between, so nothing is sliced off here.
+    if (tab === 'Monthly') {
+      return (
+        <PeriodPicker
+          groups={groupByPeriod(rows, 'month')}
+          selected={monthlyKey}
+          onSelect={setMonthlyKey}
+          labelOf={(key) => monthLabel(key, locale)}
+          totalOf={(group) => money(group.reduce((s, i) => s + i.amount, 0))}
+          renderRow={(i) => <Row key={i.id} i={i} />}
+          emptyLabel="No income logged yet."
+        />
+      );
+    }
 
     return (
-      <div>
-        {groups.map(([key, group]) => (
-          <div key={key}>
-            <GroupHeading
-              label={period === 'month' ? monthLabel(key, locale) : key}
-              total={money(group.reduce((s, i) => s + i.amount, 0))}
-            />
-            {group.map((i) => <Row key={i.id} i={i} />)}
-          </div>
-        ))}
-      </div>
+      <PeriodPicker
+        groups={groupByPeriod(rows, 'year')}
+        selected={yearlyKey}
+        onSelect={setYearlyKey}
+        labelOf={(key) => key}
+        totalOf={(group) => money(group.reduce((s, i) => s + i.amount, 0))}
+        renderRow={(i) => <Row key={i.id} i={i} />}
+        emptyLabel="No income logged yet."
+      />
     );
   };
 
