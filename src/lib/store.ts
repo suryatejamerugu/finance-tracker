@@ -171,6 +171,9 @@ export async function addAccount(input: {
     initialAmount: input.initialAmount,
     currency: input.currency,
     type: input.type,
+    creditLimit: null,
+    statementDay: null,
+    paymentDueDay: null,
     color: input.color,
     order,
     ...stamp(),
@@ -200,12 +203,6 @@ export async function setCategoryBudget(categoryId: string, currency: string, bu
   await db.categories.put({ ...existing, budgets, updatedAt: Date.now() });
 }
 
-export async function setInitialAmount(accountId: string, amount: Cents): Promise<void> {
-  const existing = await db.accounts.get(accountId);
-  if (!existing) return;
-  await db.accounts.put({ ...existing, initialAmount: amount, updatedAt: Date.now() });
-}
-
 export async function updateCategory(
   id: string,
   input: { name: string; color: string; icon?: string },
@@ -223,7 +220,16 @@ export async function updateCategory(
 
 export async function updateAccount(
   id: string,
-  input: { name: string; color: string; currency?: string; type?: AccountType },
+  input: {
+    name: string;
+    color: string;
+    currency?: string;
+    type?: AccountType;
+    initialAmount?: Cents;
+    creditLimit?: Cents | null;
+    statementDay?: number | null;
+    paymentDueDay?: number | null;
+  },
 ): Promise<void> {
   const existing = await db.accounts.get(id);
   if (!existing) return;
@@ -233,6 +239,10 @@ export async function updateAccount(
     color: input.color,
     currency: input.currency || existing.currency,
     type: input.type || existing.type,
+    initialAmount: input.initialAmount ?? existing.initialAmount,
+    creditLimit: input.creditLimit !== undefined ? input.creditLimit : existing.creditLimit,
+    statementDay: input.statementDay !== undefined ? input.statementDay : existing.statementDay,
+    paymentDueDay: input.paymentDueDay !== undefined ? input.paymentDueDay : existing.paymentDueDay,
     updatedAt: Date.now(),
   });
 }

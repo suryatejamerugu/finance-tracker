@@ -270,7 +270,14 @@ export function Dashboard({
 
         <div className="order-1 lg:order-3">
           <SpendDonut slices={slices} total={summary.spent} currency={currency} settings={settings} />
-          <AccountsGallery statuses={accountStatuses} settings={settings} onChanged={onChanged} />
+          <AccountsGallery
+            statuses={accountStatuses}
+            expenses={data.expenses}
+            incomes={data.incomes}
+            transfers={data.transfers}
+            settings={settings}
+            onChanged={onChanged}
+          />
         </div>
       </div>
 

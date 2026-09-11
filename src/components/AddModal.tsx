@@ -147,7 +147,8 @@ export function AddModal({
       } else if (kind === 'category') {
         await addCategory({ name, budget: value, color, currency, icon });
       } else {
-        await addAccount({ name, initialAmount: value, color, currency: accountCurrency, type: accountType });
+        const initialAmount = accountType === 'credit_card' ? -Math.abs(value) : value;
+        await addAccount({ name, initialAmount, color, currency: accountCurrency, type: accountType });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save that.');
@@ -160,7 +161,13 @@ export function AddModal({
 
   const title = editing ? EDIT_LABELS[kind] : ADD_LABELS[kind];
   const amountLabel =
-    kind === 'category' ? `Monthly budget (${currency})` : kind === 'account' ? 'Initial amount' : 'Amount';
+    kind === 'category'
+      ? `Monthly budget (${currency})`
+      : kind === 'account'
+        ? accountType === 'credit_card'
+          ? 'Amount already owed at the start'
+          : 'Initial amount'
+        : 'Amount';
   const dated = kind === 'expense' || kind === 'income' || kind === 'transfer';
   const amountCurrency = kind === 'account' ? accountCurrency : kind === 'category' ? currency : rowCurrency;
 
@@ -319,6 +326,12 @@ export function AddModal({
                   setAccountTypeTouched(true);
                 }}
               />
+              {accountType === 'credit_card' && (
+                <p className="mt-1.5 text-[11.5px] text-faint">
+                  Set a credit limit and billing-cycle dates after creating the card, from its edit
+                  button.
+                </p>
+              )}
             </div>
           )}
 

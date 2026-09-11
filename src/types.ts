@@ -44,10 +44,23 @@ export type AccountType = (typeof ACCOUNT_TYPES)[number];
 /** Notion: Accounts. Title property is "Account". */
 export interface Account extends Synced {
   name: string;
+  /**
+   * For every type except credit_card: the starting balance, positive.
+   * For credit_card: negative when there was already a balance owed when you
+   * started tracking it — the same sign convention the Balance formula uses
+   * for all ongoing spending, so nothing special is needed to make a credit
+   * card's balance read as "owed" once real transactions exist.
+   */
   initialAmount: Cents;
   /** ISO 4217 code (USD, INR, ...). Fixed once the account has any transaction. */
   currency: string;
   type: AccountType;
+  /** credit_card only, all nullable/unset until the user configures them. */
+  creditLimit: Cents | null;
+  /** Day of month (1-31) the statement generates. Clamped to the real last day of a shorter month. */
+  statementDay: number | null;
+  /** Day of month (1-31) payment is due, relative to the statement date. */
+  paymentDueDay: number | null;
   color: string;
   order: number;
 }
@@ -121,7 +134,7 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export interface Snapshot {
   schemaVersion: number;
