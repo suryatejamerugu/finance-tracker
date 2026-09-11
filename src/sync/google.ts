@@ -16,6 +16,8 @@
 export const DRIVE_APPDATA_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const PROFILE_SCOPE = 'openid email profile';
 const TOKEN_KEY = 'll.token';
+/** The linked account's email, kept separately from the token itself (which expires hourly) so a later token request — silent or interactive — can hint Google straight to that account instead of showing an account chooser. */
+const ACCOUNT_HINT_KEY = 'll.account';
 
 export interface StoredToken {
   accessToken: string;
@@ -43,6 +45,8 @@ declare global {
             client_id: string;
             scope: string;
             prompt?: string;
+            /** Email (or Google user id) to request the token for, so Google can skip the account chooser when it already knows which account this app is linked to. */
+            hint?: string;
             callback: (response: TokenResponse) => void;
             error_callback?: (error: { type?: string; message?: string }) => void;
           }) => TokenClient;
@@ -116,6 +120,14 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+function loadAccountHint(): string | undefined {
+  return localStorage.getItem(ACCOUNT_HINT_KEY) ?? undefined;
+}
+
+export function clearAccountHint() {
+  localStorage.removeItem(ACCOUNT_HINT_KEY);
+}
+
 async function fetchEmail(accessToken: string): Promise<string | undefined> {
   try {
     const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -142,6 +154,7 @@ export async function requestToken(interactive: boolean): Promise<StoredToken> {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: `${PROFILE_SCOPE} ${DRIVE_APPDATA_SCOPE}`,
+      hint: loadAccountHint(),
       callback: (response) => {
         if (response.error || !response.access_token) {
           reject(new Error(response.error_description || response.error || 'Sign-in was cancelled.'));
@@ -154,6 +167,7 @@ export async function requestToken(interactive: boolean): Promise<StoredToken> {
         void fetchEmail(token.accessToken).then((email) => {
           token.email = email;
           saveToken(token);
+          if (email) localStorage.setItem(ACCOUNT_HINT_KEY, email);
           resolve(token);
         });
       },
@@ -177,6 +191,7 @@ export async function getAccessToken(): Promise<string> {
 export async function signOut(): Promise<void> {
   const token = loadToken();
   clearToken();
+  clearAccountHint();
   if (token && window.google?.accounts?.oauth2) {
     await new Promise<void>((resolve) => {
       window.google!.accounts.oauth2.revoke(token.accessToken, resolve);

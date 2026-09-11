@@ -99,6 +99,25 @@ export function useSync() {
     };
   }, [token, syncNow]);
 
+  // A push scheduled by scheduleSync is just a pending setTimeout — closing
+  // or backgrounding the tab within that 2.5s window would otherwise drop it
+  // silently, leaving the most recent edit unsynced until the next visit.
+  // Flush it immediately instead, as soon as the tab is about to go away.
+  useEffect(() => {
+    const flushIfPending = () => {
+      if (document.visibilityState !== 'hidden' || !timer.current) return;
+      window.clearTimeout(timer.current);
+      timer.current = null;
+      void syncNow();
+    };
+    document.addEventListener('visibilitychange', flushIfPending);
+    window.addEventListener('pagehide', flushIfPending);
+    return () => {
+      document.removeEventListener('visibilitychange', flushIfPending);
+      window.removeEventListener('pagehide', flushIfPending);
+    };
+  }, [syncNow]);
+
   // A dead token should not leave the UI claiming it is connected.
   useEffect(() => {
     const id = window.setInterval(() => {

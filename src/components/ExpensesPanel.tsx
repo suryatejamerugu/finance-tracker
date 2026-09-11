@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -13,7 +14,7 @@ import { filterByCurrency, groupByPeriod, live, stackedByMonth } from '../lib/se
 import { resolveDistinctColors } from '../lib/colors';
 import { softDelete } from '../lib/store';
 import { accountTypeMeta, IconBadge, iconFor } from '../lib/icons';
-import { EmptyRow, GroupHeading, Panel } from './Panel';
+import { EmptyRow, GroupHeading, Panel, PeriodPicker } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
 import { EditIcon } from './icons';
 
@@ -50,6 +51,7 @@ export function ExpensesPanel({
   const acctName = new Map(accounts.map((a) => [a.id, a.name]));
   const rows = filterByCurrency(live(expenses), accounts, currency, homeCurrency);
   const chartSeries = useSeriesInteraction();
+  const [monthlyKey, setMonthlyKey] = useState<string | null>(null);
 
   const Row = ({ e, show }: { e: Expense; show: 'account' | 'category' }) => {
     const category = catById.get(e.categoryId ?? '');
@@ -156,22 +158,33 @@ export function ExpensesPanel({
       return <div>{recent.map((e) => <Row key={e.id} e={e} show="account" />)}</div>;
     }
 
-    const period = tab === 'Weekly' ? 'day' : 'month';
-    const groups = groupByPeriod(rows, period).slice(0, period === 'day' ? 10 : 8);
-    if (groups.length === 0) return <EmptyRow>Nothing logged yet.</EmptyRow>;
+    if (tab === 'Weekly') {
+      const groups = groupByPeriod(rows, 'day').slice(0, 10);
+      if (groups.length === 0) return <EmptyRow>Nothing logged yet.</EmptyRow>;
+      return (
+        <div>
+          {groups.map(([key, group]) => (
+            <div key={key}>
+              <GroupHeading label={dayLabel(key, locale)} total={money(group.reduce((s, e) => s + e.amount, 0))} />
+              {group.map((e) => <Row key={e.id} e={e} show="category" />)}
+            </div>
+          ))}
+        </div>
+      );
+    }
 
+    // Monthly: every month is reachable via the dropdown rather than by
+    // scrolling past every month in between, so nothing is sliced off here.
     return (
-      <div>
-        {groups.map(([key, group]) => (
-          <div key={key}>
-            <GroupHeading
-              label={period === 'day' ? dayLabel(key, locale) : monthLabel(key, locale)}
-              total={money(group.reduce((s, e) => s + e.amount, 0))}
-            />
-            {group.map((e) => <Row key={e.id} e={e} show="category" />)}
-          </div>
-        ))}
-      </div>
+      <PeriodPicker
+        groups={groupByPeriod(rows, 'month')}
+        selected={monthlyKey}
+        onSelect={setMonthlyKey}
+        labelOf={(key) => monthLabel(key, locale)}
+        totalOf={(group) => money(group.reduce((s, e) => s + e.amount, 0))}
+        renderRow={(e) => <Row key={e.id} e={e} show="category" />}
+        emptyLabel="Nothing logged yet."
+      />
     );
   };
 

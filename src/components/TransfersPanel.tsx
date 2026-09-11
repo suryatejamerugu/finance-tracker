@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import type { Account, Settings, Transfer } from '../types';
 import { formatMoney, monthLabel } from '../lib/money';
 import { groupByPeriod, live } from '../lib/selectors';
 import { softDelete } from '../lib/store';
 import { accountTypeMeta, IconBadge } from '../lib/icons';
-import { EmptyRow, GroupHeading, Panel } from './Panel';
+import { EmptyRow, Panel, PeriodPicker } from './Panel';
 import { EditIcon } from './icons';
 
 const TABS = ['Recent Transfers', 'Monthly'] as const;
@@ -34,6 +35,7 @@ export function TransfersPanel({
   const rows = live(transfers).filter(
     (t) => ((t.fromAccountId && accountById.get(t.fromAccountId)?.currency) || homeCurrency) === currency,
   );
+  const [monthlyKey, setMonthlyKey] = useState<string | null>(null);
 
   const Row = ({ t }: { t: Transfer }) => {
     const fromAccount = accountById.get(t.fromAccountId ?? '');
@@ -80,20 +82,18 @@ export function TransfersPanel({
       return <div>{recent.map((t) => <Row key={t.id} t={t} />)}</div>;
     }
 
+    // Every month is reachable via the dropdown rather than by scrolling
+    // past every month in between, so nothing is sliced off here.
     return (
-      <div>
-        {groupByPeriod(rows, 'month')
-          .slice(0, 6)
-          .map(([key, group]) => (
-            <div key={key}>
-              <GroupHeading
-                label={monthLabel(key, locale)}
-                total={money(group.reduce((s, t) => s + t.amount, 0))}
-              />
-              {group.map((t) => <Row key={t.id} t={t} />)}
-            </div>
-          ))}
-      </div>
+      <PeriodPicker
+        groups={groupByPeriod(rows, 'month')}
+        selected={monthlyKey}
+        onSelect={setMonthlyKey}
+        labelOf={(key) => monthLabel(key, locale)}
+        totalOf={(group) => money(group.reduce((s, t) => s + t.amount, 0))}
+        renderRow={(t) => <Row key={t.id} t={t} />}
+        emptyLabel="No transfers yet."
+      />
     );
   };
 
