@@ -37,7 +37,7 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
         type="button"
         onClick={() => void sync.connect()}
         title="Backs up to a private, hidden folder inside whichever Google account you sign in with — it can't see or touch anything else in that Drive."
-        className="rounded-full border border-rule px-3 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
+        className="rounded-lg border border-rule px-3 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
       >
         Back up to Drive
       </button>

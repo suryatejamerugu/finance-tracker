@@ -16,10 +16,13 @@ export function Footer() {
     <footer className="border-t border-rule safe-bottom">
       <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-5 px-4 py-7 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div className="text-center sm:text-left">
-          <span className="text-[14px] font-semibold tracking-tight">
-            <span className="text-brand-gradient">Finance</span> Tracker
+          <span className="pixel-notch inline-flex items-center gap-2 border border-rule bg-brand-soft px-2.5 py-1.5">
+            <span className="font-display text-[9px] leading-none text-brand" aria-hidden="true">FT</span>
+            <span className="text-[14px] font-semibold tracking-tight">
+              <span className="text-brand-gradient">Finance</span> Tracker
+            </span>
           </span>
-          <p className="mt-1 text-[11.5px] text-faint">© {new Date().getFullYear()} · All rights reserved.</p>
+          <p className="mt-2 text-[11.5px] text-faint">© {new Date().getFullYear()} · All rights reserved.</p>
         </div>
 
         <nav aria-label="Footer" className="flex flex-col items-center gap-2.5 sm:items-end">
@@ -30,7 +33,7 @@ export function Footer() {
             </a>
             <a
               href="mailto:stylishsurya35@gmail.com?subject=Finance%20Tracker%20feedback"
-              className="inline-flex items-center gap-1.5 rounded-full border border-rule px-3 py-1 text-muted transition-colors hover:border-brand hover:text-brand"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1 text-muted transition-colors hover:border-brand hover:text-brand"
             >
               <Mail size={12} strokeWidth={1.8} aria-hidden="true" />
               Found a bug or have a suggestion?

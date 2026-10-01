@@ -69,15 +69,18 @@ export function Panel<T extends string>({
     <section className="mb-7">
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="text-[15px] font-medium">{title}</h2>
-        <div className="flex flex-wrap gap-1">
-          {tabs.map((t) => (
+        {/* A bordered, divided segment cluster rather than loose pills — each
+            view is a distinct "button" in the strip, with a solid fill for
+            the one currently pressed. */}
+        <div className="flex overflow-hidden rounded-lg border border-rule">
+          {tabs.map((t, i) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
               aria-current={tab === t ? 'true' : undefined}
-              className={`rounded-md px-2 py-0.5 text-[12px] ${
-                tab === t ? 'bg-brand-soft text-brand' : 'text-faint hover:text-muted'
+              className={`px-2.5 py-1 text-[12px] font-medium transition-colors ${i > 0 ? 'border-l border-rule' : ''} ${
+                tab === t ? 'bg-brand text-white' : 'bg-raised text-faint hover:text-muted'
               }`}
             >
               {t}

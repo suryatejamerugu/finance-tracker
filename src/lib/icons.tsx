@@ -110,7 +110,7 @@ export function IconBadge({
 }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full"
+      className="inline-flex shrink-0 items-center justify-center rounded-md"
       style={{ width: size, height: size, background: `${color}26`, color }}
       aria-hidden="true"
     >

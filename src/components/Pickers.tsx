@@ -13,7 +13,7 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (key:
           aria-label={label}
           aria-pressed={value === key}
           title={label}
-          className={`flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
+          className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
             value === key
               ? 'border-brand bg-brand-soft text-brand'
               : 'border-rule text-muted hover:border-brand hover:text-brand'

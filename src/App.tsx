@@ -31,8 +31,14 @@ export default function App() {
     <div className="theme-transition flex min-h-dvh flex-col">
       <div className="mx-auto w-full max-w-[1400px] flex-1">
         <header className="flex items-center justify-between border-b border-rule px-4 py-2.5 safe-top sm:px-6">
-          <a href="/" className="text-[15px] font-semibold tracking-tight no-underline">
-            <span className="text-brand-gradient">Finance</span> Tracker
+          <a
+            href="/"
+            className="pixel-notch inline-flex items-center gap-2 border border-rule bg-brand-soft px-2.5 py-1.5 no-underline transition-colors hover:border-brand"
+          >
+            <span className="font-display text-[9px] leading-none text-brand" aria-hidden="true">FT</span>
+            <span className="text-[15px] font-semibold tracking-tight">
+              <span className="text-brand-gradient">Finance</span> Tracker
+            </span>
           </a>
           <div className="flex items-center gap-3">
             <SyncBadge sync={sync} />

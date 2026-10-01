@@ -2,18 +2,18 @@
 
 @theme {
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
-  /* Decorative only — branding and a few headings, never body copy or numbers. */
+  /* Decorative only — the wordmark and a couple of short headings, never body copy or numbers. */
   --font-display: 'Press Start 2P', ui-monospace, monospace;
 
   /* Light theme — warm paper background, a readable retro-violet/teal/amber
      accent set. Every pairing below has been checked against WCAG 2.1 AA
-     (4.5:1 for text, ~3:1 for the rule/border color as a UI boundary). */
+     (4.5:1 for text, ~3.5:1+ for the rule/frame border as a UI boundary). */
   --color-paper: #f5f0e6;
   --color-raised: #fffcf5;
   --color-ink: #202434;
   --color-muted: #4a4d5e;
   --color-faint: #5a5d6e;
-  --color-rule: #998e72;
+  --color-rule: #7a6f52;
   --color-brand: #6d4fd6;
   --color-brand-2: #0b7a70;
   --color-brand-soft: #ede6fb;
@@ -24,15 +24,32 @@
   --color-amber: #9a5b06;
   --color-amber-soft: #fdebc8;
 
-  /* Shallow "shallow shadow + light bevel" depth — never heavy 3D. */
-  --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.06), 0 3px 10px -4px rgba(40, 30, 10, 0.1),
-    0 16px 32px -16px rgba(40, 30, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.07), 0 6px 16px -4px rgba(40, 30, 10, 0.12),
-    0 26px 44px -18px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  /* The "raised button" look: a solid lower edge standing in for a 3D side face. */
-  --shadow-raised: 0 2px 0 0 color-mix(in srgb, var(--color-ink) 18%, transparent), 0 3px 6px -2px rgba(40, 30, 10, 0.18);
-  --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(40, 30, 10, 0.22);
+  /* Squarer, chunkier corners than a typical soft dashboard — console
+     panel and button chrome, not rounded cards. rounded-full is left at
+     the Tailwind default so genuine circles (icon-only buttons, color
+     swatches) are unaffected. */
+  --radius-md: 4px;
+  --radius-lg: 5px;
+  --radius-xl: 7px;
+  --radius-2xl: 9px;
+  --radius-3xl: 11px;
+
+  /* Cards/panels: shallow shadow + a visible frame border (the border
+     itself comes from --color-rule, used everywhere via border-rule). */
+  --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.08), 0 3px 10px -4px rgba(40, 30, 10, 0.12),
+    0 16px 32px -16px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.09), 0 6px 16px -4px rgba(40, 30, 10, 0.14),
+    0 26px 44px -18px rgba(40, 30, 10, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /*
+   * Buttons: a crisp, solid-color offset shadow standing in for a 3D side
+   * face — no blur, so it reads as a hard physical edge rather than a soft
+   * lift. Pressing a button sinks it down into that edge (see .press).
+   */
+  --shadow-raised: 3px 3px 0 0 rgba(32, 36, 52, 0.55);
+  --shadow-raised-hover: 4px 4px 0 0 rgba(32, 36, 52, 0.55);
+  --shadow-pressed: 1px 1px 0 0 rgba(32, 36, 52, 0.55);
 
   --duration-fast: 100ms;
   --duration-base: 160ms;
@@ -52,7 +69,7 @@
       --color-ink: #f4f1e8;
       --color-muted: #a9adc4;
       --color-faint: #8085a0;
-      --color-rule: #585f85;
+      --color-rule: #6a7299;
       --color-brand: #a78bfa;
       --color-brand-2: #2dd4bf;
       --color-brand-soft: #241f3d;
@@ -68,8 +85,9 @@
       --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.5),
         0 28px 52px -18px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
       --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      --shadow-raised: 0 2px 0 0 rgba(0, 0, 0, 0.45), 0 3px 6px -2px rgba(0, 0, 0, 0.4);
-      --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(0, 0, 0, 0.5);
+      --shadow-raised: 3px 3px 0 0 rgba(0, 0, 0, 0.6);
+      --shadow-raised-hover: 4px 4px 0 0 rgba(0, 0, 0, 0.6);
+      --shadow-pressed: 1px 1px 0 0 rgba(0, 0, 0, 0.6);
     }
   }
 
@@ -80,7 +98,7 @@
     --color-ink: #f4f1e8;
     --color-muted: #a9adc4;
     --color-faint: #8085a0;
-    --color-rule: #585f85;
+    --color-rule: #6a7299;
     --color-brand: #a78bfa;
     --color-brand-2: #2dd4bf;
     --color-brand-soft: #241f3d;
@@ -96,8 +114,9 @@
     --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.5),
       0 28px 52px -18px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
     --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    --shadow-raised: 0 2px 0 0 rgba(0, 0, 0, 0.45), 0 3px 6px -2px rgba(0, 0, 0, 0.4);
-    --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-raised: 3px 3px 0 0 rgba(0, 0, 0, 0.6);
+    --shadow-raised-hover: 4px 4px 0 0 rgba(0, 0, 0, 0.6);
+    --shadow-pressed: 1px 1px 0 0 rgba(0, 0, 0, 0.6);
   }
 
   :root[data-theme='light'] {
@@ -106,7 +125,7 @@
     --color-ink: #202434;
     --color-muted: #4a4d5e;
     --color-faint: #5a5d6e;
-    --color-rule: #998e72;
+    --color-rule: #7a6f52;
     --color-brand: #6d4fd6;
     --color-brand-2: #0b7a70;
     --color-brand-soft: #ede6fb;
@@ -117,13 +136,14 @@
     --color-amber: #9a5b06;
     --color-amber-soft: #fdebc8;
 
-    --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.06), 0 3px 10px -4px rgba(40, 30, 10, 0.1),
-      0 16px 32px -16px rgba(40, 30, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.07), 0 6px 16px -4px rgba(40, 30, 10, 0.12),
-      0 26px 44px -18px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    --shadow-raised: 0 2px 0 0 color-mix(in srgb, var(--color-ink) 18%, transparent), 0 3px 6px -2px rgba(40, 30, 10, 0.18);
-    --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(40, 30, 10, 0.22);
+    --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.08), 0 3px 10px -4px rgba(40, 30, 10, 0.12),
+      0 16px 32px -16px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.09), 0 6px 16px -4px rgba(40, 30, 10, 0.14),
+      0 26px 44px -18px rgba(40, 30, 10, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --shadow-raised: 3px 3px 0 0 rgba(32, 36, 52, 0.55);
+    --shadow-raised-hover: 4px 4px 0 0 rgba(32, 36, 52, 0.55);
+    --shadow-pressed: 1px 1px 0 0 rgba(32, 36, 52, 0.55);
   }
 
   html {
@@ -232,12 +252,12 @@
   }
 
   /*
-   * Tactile raised-button-and-press feedback — the app's "3D" signature,
-   * kept shallow on purpose. A solid lower edge reads as a button's side
-   * face; pressing it flattens that edge and dents the surface instead,
-   * like a physical key bottoming out rather than a card lifting off the
-   * page. Applied widely (every existing `.press` button picks this up
-   * automatically), so it never needs the retro treatment have bolted on
+   * Tactile raised-button-and-press feedback — the app's "3D" signature. A
+   * crisp, solid offset shadow (no blur) stands in for a button's side
+   * face; pressing it slides the button down and right into that edge
+   * until the shadow nearly disappears, like a physical key bottoming
+   * out. Applied widely (every existing `.press` button picks this up
+   * automatically), so the retro treatment never needs bolting on
    * per-component.
    */
   .press {
@@ -248,13 +268,14 @@
       filter var(--duration-fast) ease;
   }
   .press:hover {
-    transform: translateY(-1px);
+    transform: translate(-1px, -1px);
+    box-shadow: var(--shadow-raised-hover);
     filter: brightness(1.04);
   }
   .press:active {
-    transform: translateY(2px);
+    transform: translate(2px, 2px);
     box-shadow: var(--shadow-pressed);
-    filter: brightness(0.97);
+    filter: brightness(0.96);
   }
 
   /* A budget/usage bar made of small notched segments instead of one solid

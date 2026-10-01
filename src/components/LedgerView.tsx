@@ -354,7 +354,7 @@ export function LedgerView({
                 <div key={`${e.type}-${e.id}`} className="group flex items-center gap-3 px-5 py-2.5">
                   <IconBadge icon={e.icon} color={e.color} size={22} />
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium ${TYPE_BADGE[e.type]}`}
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-[10.5px] font-medium ${TYPE_BADGE[e.type]}`}
                   >
                     {TYPE_LABEL[e.type]}
                   </span>
