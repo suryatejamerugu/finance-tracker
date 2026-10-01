@@ -8,7 +8,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { Account, Category, Expense, ISOMonth, Settings } from '../types';
-import { shortMonthLabel } from '../lib/money';
+import { HIDDEN_AMOUNT, shortMonthLabel } from '../lib/money';
 import { filterByCurrency, live, stackedByMonth } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { EmptyRow } from './Panel';
@@ -29,6 +29,7 @@ export function SpendingTrend({
   homeCurrency,
   month,
   settings,
+  hideBalances,
 }: {
   expenses: Expense[];
   categories: Category[];
@@ -38,6 +39,7 @@ export function SpendingTrend({
   homeCurrency: string;
   month: ISOMonth;
   settings: Settings;
+  hideBalances?: boolean;
 }) {
   const { locale } = settings;
   const catName = new Map(categories.map((c) => [c.id, c.name]));
@@ -69,8 +71,14 @@ export function SpendingTrend({
                   tickLine={false}
                   tickFormatter={(m: string) => shortMonthLabel(m, locale)}
                 />
-                <YAxis tick={AXIS} axisLine={false} tickLine={false} width={46} />
-                <Tooltip {...chartTooltip(currency, locale)} />
+                <YAxis
+                  tick={AXIS}
+                  axisLine={false}
+                  tickLine={false}
+                  width={46}
+                  tickFormatter={hideBalances ? () => HIDDEN_AMOUNT : undefined}
+                />
+                <Tooltip {...chartTooltip(currency, locale, hideBalances)} />
                 {series
                   .filter((name) => !hidden.has(name))
                   .map((name) => (

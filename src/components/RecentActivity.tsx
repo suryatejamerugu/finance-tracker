@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Account, Category, Expense, Income, IncomeCategory, Settings, Transfer } from '../types';
 import { buildLedger, type LedgerEntry, type LedgerEntryType } from '../lib/ledger';
-import { dayLabel, formatMoney } from '../lib/money';
+import { dayLabel, formatMoney, HIDDEN_AMOUNT } from '../lib/money';
 import { softDelete } from '../lib/store';
 import { IconBadge } from '../lib/icons';
 import { EmptyRow } from './Panel';
@@ -53,6 +53,7 @@ export function RecentActivity({
   onChanged,
   onEdit,
   onViewAll,
+  hideBalances,
 }: {
   expenses: Expense[];
   incomes: Income[];
@@ -67,6 +68,7 @@ export function RecentActivity({
   onChanged: () => void;
   onEdit: (kind: AddKind, row: EditingRow) => void;
   onViewAll: () => void;
+  hideBalances?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>('All');
   const { locale } = settings;
@@ -150,7 +152,7 @@ export function RecentActivity({
                     e.amount < 0 ? 'text-over' : e.type === 'income' ? 'text-under' : ''
                   }`}
                 >
-                  {formatMoney(e.amount, { currency: e.currency, locale, signed: true })}
+                  {hideBalances ? HIDDEN_AMOUNT : formatMoney(e.amount, { currency: e.currency, locale, signed: true })}
                 </span>
                 <button
                   type="button"

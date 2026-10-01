@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { seedIfEmpty } from './lib/seed'
 import { useSync } from './hooks/useSync'
 import { useTheme } from './hooks/useTheme'
+import { useHideBalances } from './hooks/useHideBalances'
 import { SyncBadge } from './components/SyncBadge'
 import { ThemeToggle } from './components/ThemeToggle'
+import { HideBalancesToggle } from './components/HideBalancesToggle'
 import { DataMenuModal } from './components/DataMenuModal'
 import { UndoToast } from './components/UndoToast'
 import { Footer } from './components/Footer'
@@ -20,6 +22,7 @@ export default function App() {
   const [dataOpen, setDataOpen] = useState(false)
   const sync = useSync()
   const { theme, toggle: toggleTheme } = useTheme()
+  const { hidden: hideBalances, toggle: toggleHideBalances } = useHideBalances()
   const isAbout = window.location.pathname.replace(/\/+$/, '') === '/about'
 
   useEffect(() => {
@@ -68,6 +71,7 @@ export default function App() {
                 <path d="M5 11.5v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6" />
               </svg>
             </button>
+            <HideBalancesToggle hidden={hideBalances} onToggle={toggleHideBalances} />
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
         </header>
@@ -78,7 +82,11 @@ export default function App() {
           </p>
         )}
 
-        {isAbout ? <About /> : <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} />}
+        {isAbout ? (
+          <About />
+        ) : (
+          <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} hideBalances={hideBalances} />
+        )}
       </div>
 
       {dataOpen && <DataMenuModal onChanged={sync.scheduleSync} onClose={() => setDataOpen(false)} />}

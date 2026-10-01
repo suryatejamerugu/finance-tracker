@@ -19,7 +19,7 @@ import {
   monthSummary as computeMonthSummary,
   type MonthSummary,
 } from '../lib/selectors';
-import { formatMoney, monthLabel, parseAmount, todayISO } from '../lib/money';
+import { formatMoney, HIDDEN_AMOUNT, monthLabel, parseAmount, todayISO } from '../lib/money';
 import { softDelete } from '../lib/store';
 import { IconBadge } from '../lib/icons';
 import { EmptyRow } from './Panel';
@@ -63,6 +63,7 @@ export function LedgerView({
   onChanged,
   onClose,
   onEdit,
+  hideBalances,
 }: {
   expenses: Expense[];
   incomes: Income[];
@@ -81,6 +82,8 @@ export function LedgerView({
   onChanged: () => void;
   onClose: () => void;
   onEdit: (kind: AddKind, row: EditingRow) => void;
+  /** Masks only the on-screen row amounts — CSV/PDF export is a deliberate action and always contains real figures. */
+  hideBalances?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState<'all' | LedgerEntryType>('all');
@@ -499,7 +502,7 @@ export function LedgerView({
                       e.amount < 0 ? 'text-over' : e.type === 'income' ? 'text-under' : ''
                     }`}
                   >
-                    {money(e)}
+                    {hideBalances ? HIDDEN_AMOUNT : money(e)}
                   </span>
                   <button
                     type="button"

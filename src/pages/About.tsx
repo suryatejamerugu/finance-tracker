@@ -273,6 +273,17 @@ export function About() {
         </p>
       </Section>
 
+      <Section title="Hide balances">
+        <p>
+          The eye icon in the header blanks out every dollar figure on the dashboard and in Full
+          history — summary cards, the budget list, recent activity, the donut, account balances —
+          for when someone's looking over your shoulder. It's a glance-level toggle, not a lock:
+          clicking edit on any row still shows that row's real amount, since you're opening it on
+          purpose, and CSV/PDF exports are never masked either. The setting is remembered on this
+          device.
+        </p>
+      </Section>
+
       <p className="mt-8 text-center text-[12.5px] text-faint">
         Still stuck, or something looks wrong?{' '}
         <a

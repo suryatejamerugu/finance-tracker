@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Category, CategoryStatus, Settings } from '../types';
-import { formatMoney, parseAmount } from '../lib/money';
+import { formatMoney, HIDDEN_AMOUNT, parseAmount } from '../lib/money';
 import { reorder, setCategoryBudget, softDelete, updateCategory } from '../lib/store';
 import { IconBadge, iconFor } from '../lib/icons';
 import { EmptyRow, Panel } from './Panel';
@@ -30,12 +30,15 @@ export function CategoryGallery({
   onChanged,
   limit,
   onViewAll,
+  hideBalances,
 }: {
   statuses: CategoryStatus[];
   /** The dashboard's current currency lens — statuses are already scoped to it. */
   currency: string;
   settings: Settings;
   onChanged: () => void;
+  /** When true, spent/budget figures are masked and the inline budget field becomes read-only (editing a value you can't see risks blurring it blank). */
+  hideBalances?: boolean;
   /**
    * Dashboard-overview mode: show only the first `limit` categories with no
    * internal scrollbar, plus a "View all" link — instead of every category
@@ -118,22 +121,28 @@ export function CategoryGallery({
           </div>
 
           <div className="mt-1.5 flex items-baseline justify-between gap-2">
-            <span className="num text-[12px] text-muted">{money(spent)}</span>
+            <span className="num text-[12px] text-muted">{hideBalances ? HIDDEN_AMOUNT : money(spent)}</span>
             {isThis ? (
-              <input
-                key={currency}
-                defaultValue={budget > 0 ? (budget / 100).toFixed(2) : ''}
-                onBlur={async (e) => {
-                  await setCategoryBudget(s.category.id, currency, parseAmount(e.target.value) ?? 0);
-                  onChanged();
-                }}
-                inputMode="decimal"
-                placeholder="budget"
-                aria-label={`Monthly ${currency} budget for ${s.category.name}`}
-                className="num w-20 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-[12px] text-faint outline-none hover:border-rule focus:border-brand focus:text-ink"
-              />
+              hideBalances ? (
+                <span className="num text-[12px] text-faint">{HIDDEN_AMOUNT}</span>
+              ) : (
+                <input
+                  key={currency}
+                  defaultValue={budget > 0 ? (budget / 100).toFixed(2) : ''}
+                  onBlur={async (e) => {
+                    await setCategoryBudget(s.category.id, currency, parseAmount(e.target.value) ?? 0);
+                    onChanged();
+                  }}
+                  inputMode="decimal"
+                  placeholder="budget"
+                  aria-label={`Monthly ${currency} budget for ${s.category.name}`}
+                  className="num w-20 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-[12px] text-faint outline-none hover:border-rule focus:border-brand focus:text-ink"
+                />
+              )
             ) : (
-              <span className="num text-[12px] text-faint">of {money(budget)}</span>
+              <span className="num text-[12px] text-faint">
+                of {hideBalances ? HIDDEN_AMOUNT : money(budget)}
+              </span>
             )}
           </div>
         </div>

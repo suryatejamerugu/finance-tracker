@@ -9,7 +9,7 @@ import {
   live,
   monthSummary,
 } from '../lib/selectors';
-import { currentMonth, formatBig, formatMoney, monthLabel, shiftMonth } from '../lib/money';
+import { currentMonth, formatBig, formatMoney, HIDDEN_AMOUNT, monthLabel, shiftMonth } from '../lib/money';
 import { ADD_LABELS, AddModal, type AddKind, type EditingRow } from '../components/AddModal';
 import { CategoryGallery } from '../components/CategoryGallery';
 import { RecentActivity } from '../components/RecentActivity';
@@ -62,9 +62,11 @@ function SummaryCard({
 export function Dashboard({
   onChanged,
   userLabel,
+  hideBalances,
 }: {
   onChanged: () => void;
   userLabel: string | null;
+  hideBalances: boolean;
 }) {
   const [month, setMonth] = useState(currentMonth());
   const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
@@ -226,16 +228,29 @@ export function Dashboard({
 
       {/* This month's headline numbers, as a HUD-style readout row. */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <SummaryCard label="Income" value={formatBig(summary.income, currency, locale)} tone="under" />
-        <SummaryCard label="Spending" value={formatBig(summary.spent, currency, locale)} />
+        <SummaryCard
+          label="Income"
+          value={hideBalances ? HIDDEN_AMOUNT : formatBig(summary.income, currency, locale)}
+          tone="under"
+        />
+        <SummaryCard
+          label="Spending"
+          value={hideBalances ? HIDDEN_AMOUNT : formatBig(summary.spent, currency, locale)}
+        />
         <SummaryCard
           label="Net cash flow"
-          value={formatMoney(summary.net, { currency, locale, signed: true })}
+          value={hideBalances ? HIDDEN_AMOUNT : formatMoney(summary.net, { currency, locale, signed: true })}
           tone={summary.net < 0 ? 'over' : 'under'}
         />
         <SummaryCard
           label="Budget status"
-          value={summary.budgeted > 0 ? formatBig(Math.abs(summary.left), currency, locale) : 'No budget set'}
+          value={
+            summary.budgeted === 0
+              ? 'No budget set'
+              : hideBalances
+                ? HIDDEN_AMOUNT
+                : formatBig(Math.abs(summary.left), currency, locale)
+          }
           sublabel={summary.budgeted > 0 ? (summary.left < 0 ? 'over budget' : 'left to spend') : undefined}
           tone={summary.budgeted === 0 ? 'faint' : summary.left < 0 ? 'over' : 'ink'}
         />
@@ -350,6 +365,7 @@ export function Dashboard({
             onChanged={onChanged}
             limit={6}
             onViewAll={() => setBudgetsOpen(true)}
+            hideBalances={hideBalances}
           />
         </div>
 
@@ -368,6 +384,7 @@ export function Dashboard({
               onChanged={onChanged}
               onEdit={(kind, row) => setModal({ kind, editing: row })}
               onViewAll={() => setHistoryOpen(true)}
+              hideBalances={hideBalances}
             />
           </div>
           <div ref={reportsRef} className="scroll-mt-4">
@@ -379,6 +396,7 @@ export function Dashboard({
               homeCurrency={settings.currency}
               month={month}
               settings={settings}
+              hideBalances={hideBalances}
             />
             <IncomeTrend
               incomes={data.incomes}
@@ -389,12 +407,19 @@ export function Dashboard({
               month={month}
               settings={settings}
               onChanged={onChanged}
+              hideBalances={hideBalances}
             />
           </div>
         </div>
 
         <div ref={accountsRef} className="order-1 lg:order-3 scroll-mt-4">
-          <SpendDonut slices={slices} total={summary.spent} currency={currency} settings={settings} />
+          <SpendDonut
+            slices={slices}
+            total={summary.spent}
+            currency={currency}
+            settings={settings}
+            hideBalances={hideBalances}
+          />
           <AccountsGallery
             statuses={accountStatuses}
             expenses={data.expenses}
@@ -404,6 +429,7 @@ export function Dashboard({
             onChanged={onChanged}
             limit={6}
             onViewAll={() => setAccountsOpen(true)}
+            hideBalances={hideBalances}
           />
         </div>
       </div>
@@ -439,12 +465,19 @@ export function Dashboard({
           onChanged={onChanged}
           onClose={() => setHistoryOpen(false)}
           onEdit={(kind, row) => setModal({ kind, editing: row })}
+          hideBalances={hideBalances}
         />
       )}
 
       {budgetsOpen && (
         <Overlay onClose={() => setBudgetsOpen(false)}>
-          <CategoryGallery statuses={categoryStatuses} currency={currency} settings={settings} onChanged={onChanged} />
+          <CategoryGallery
+            statuses={categoryStatuses}
+            currency={currency}
+            settings={settings}
+            onChanged={onChanged}
+            hideBalances={hideBalances}
+          />
         </Overlay>
       )}
 
@@ -457,6 +490,7 @@ export function Dashboard({
             transfers={data.transfers}
             settings={settings}
             onChanged={onChanged}
+            hideBalances={hideBalances}
           />
         </Overlay>
       )}

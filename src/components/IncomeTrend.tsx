@@ -9,7 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { Account, Income, IncomeCategory, ISOMonth, Settings } from '../types';
-import { shortMonthLabel } from '../lib/money';
+import { HIDDEN_AMOUNT, shortMonthLabel } from '../lib/money';
 import { filterByCurrency, live, stackedByMonth } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { EmptyRow } from './Panel';
@@ -33,6 +33,7 @@ export function IncomeTrend({
   month,
   settings,
   onChanged,
+  hideBalances,
 }: {
   incomes: Income[];
   accounts: Account[];
@@ -43,6 +44,7 @@ export function IncomeTrend({
   month: ISOMonth;
   settings: Settings;
   onChanged: () => void;
+  hideBalances?: boolean;
 }) {
   const { locale } = settings;
   const sourceName = new Map(incomeCategories.map((c) => [c.id, c.name]));
@@ -85,8 +87,14 @@ export function IncomeTrend({
                     tickLine={false}
                     tickFormatter={(m: string) => shortMonthLabel(m, locale)}
                   />
-                  <YAxis tick={AXIS} axisLine={false} tickLine={false} width={46} />
-                  <Tooltip {...chartTooltip(currency, locale)} />
+                  <YAxis
+                    tick={AXIS}
+                    axisLine={false}
+                    tickLine={false}
+                    width={46}
+                    tickFormatter={hideBalances ? () => HIDDEN_AMOUNT : undefined}
+                  />
+                  <Tooltip {...chartTooltip(currency, locale, hideBalances)} />
                   {series
                     .filter((name) => !hidden.has(name))
                     .map((name) => (

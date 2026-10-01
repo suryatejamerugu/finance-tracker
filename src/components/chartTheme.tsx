@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { formatMoney } from '../lib/money';
+import { formatMoney, HIDDEN_AMOUNT } from '../lib/money';
 
 export const AXIS = { fontSize: 11, fill: 'var(--color-faint)' } as const;
 
@@ -79,9 +79,10 @@ export function InteractiveLegend({
  */
 type TooltipValue = number | string | readonly (number | string)[] | undefined;
 
-export function chartTooltip(currency: string, locale: string) {
+export function chartTooltip(currency: string, locale: string, hideBalances?: boolean) {
   return {
     formatter: (value: TooltipValue): string => {
+      if (hideBalances) return HIDDEN_AMOUNT;
       const n = Array.isArray(value) ? Number(value[0]) : Number(value);
       if (!Number.isFinite(n)) return '—';
       return formatMoney(n * 100, { currency, locale });
