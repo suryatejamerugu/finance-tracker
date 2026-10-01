@@ -9,25 +9,30 @@ export function parseAmount(input: string): Cents | null {
   return Math.round(value * 100);
 }
 
+/**
+ * Always shows exact cents — this is money, and a user comparing a figure
+ * here against their bank or card statement needs it to match to the cent,
+ * never a rounded approximation.
+ */
 export function formatMoney(
   cents: Cents,
-  opts: { currency?: string; locale?: string; showCents?: boolean; signed?: boolean } = {},
+  opts: { currency?: string; locale?: string; signed?: boolean } = {},
 ): string {
-  const { currency = 'USD', locale = 'en-US', showCents = true, signed = false } = opts;
+  const { currency = 'USD', locale = 'en-US', signed = false } = opts;
   const formatted = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
-    minimumFractionDigits: showCents ? 2 : 0,
-    maximumFractionDigits: showCents ? 2 : 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(Math.abs(cents) / 100);
   if (signed && cents > 0) return `+${formatted}`;
   if (cents < 0) return `-${formatted}`;
   return formatted;
 }
 
-/** Compact form for headline figures: $1,247 rather than $1,247.00. */
+/** Historically a compact, cents-dropped form for headline figures; now just formatMoney under another name, kept so call sites don't all need renaming. Money is never rounded for display. */
 export function formatBig(cents: Cents, currency = 'USD', locale = 'en-US'): string {
-  return formatMoney(cents, { currency, locale, showCents: false });
+  return formatMoney(cents, { currency, locale });
 }
 
 export function todayISO(): ISODate {

@@ -91,10 +91,10 @@ export function EditNameColorModal({
   const [type, setType] = useState<AccountType>(typeField?.value ?? 'other');
   const [icon, setIcon] = useState(iconField?.value ?? '');
   const [amountInput, setAmountInput] = useState(() =>
-    accountAmounts ? (Math.abs(accountAmounts.initialAmount) / 100).toFixed(0) : '',
+    accountAmounts ? (Math.abs(accountAmounts.initialAmount) / 100).toFixed(2) : '',
   );
   const [creditLimitInput, setCreditLimitInput] = useState(() =>
-    accountAmounts?.creditLimit != null ? (accountAmounts.creditLimit / 100).toFixed(0) : '',
+    accountAmounts?.creditLimit != null ? (accountAmounts.creditLimit / 100).toFixed(2) : '',
   );
   const [statementDayInput, setStatementDayInput] = useState(
     accountAmounts?.statementDay != null ? String(accountAmounts.statementDay) : '',
