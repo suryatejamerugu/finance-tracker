@@ -212,9 +212,11 @@ function nextOccurrence(fromDate: ISODate, day: number): ISODate {
 export interface CreditCardStatus {
   /** What you currently owe, right now, across the whole account lifetime. */
   owed: Cents;
-  /** Credit limit minus what's owed, or null if no limit is set. */
+  /** Credit limit minus what's owed, or null if no limit is set. Never exceeds creditLimit — a credit on the card (see creditBalance) isn't "extra" available credit. */
   availableCredit: Cents | null;
   creditLimit: Cents | null;
+  /** Money ahead of what's owed, e.g. from overpaying a statement. 0 for an account that owes something or is exactly settled. Shown separately rather than folded into availableCredit, which would otherwise read as more purchasing power than the card's actual limit. */
+  creditBalance: Cents;
   /** What was owed as of the most recent statement date — due by the next payment date. Null until a statement day is configured. */
   statementBalance: Cents | null;
   /** Spending (net of payments) since that statement — not yet billed, not yet due. */
@@ -244,7 +246,10 @@ export function creditCardStatus(
   today: ISODate,
 ): CreditCardStatus {
   const owed = Math.max(0, -balance);
-  const availableCredit = account.creditLimit != null ? Math.max(0, account.creditLimit + balance) : null;
+  const creditBalance = Math.max(0, balance);
+  // Derived from owed (already clamped to ≥0) rather than creditLimit + balance directly,
+  // so a credit on the card can never read as more available credit than the actual limit.
+  const availableCredit = account.creditLimit != null ? Math.max(0, account.creditLimit - owed) : null;
 
   let statementBalance: Cents | null = null;
   let lastStatementDate: ISODate | null = null;
@@ -263,6 +268,7 @@ export function creditCardStatus(
     owed,
     availableCredit,
     creditLimit: account.creditLimit,
+    creditBalance,
     statementBalance,
     newSinceStatement: Math.max(0, owed - (statementBalance ?? owed)),
     lastStatementDate,

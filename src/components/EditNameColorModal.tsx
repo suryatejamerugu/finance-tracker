@@ -59,13 +59,28 @@ export function EditNameColorModal({
    * transaction, unlike currency). When the account's type is credit_card
    * (reactive to the picker above, not just the value this was opened with),
    * it's relabeled "amount already owed" and sign-flipped, and a credit
-   * limit / statement day / payment due day section appears alongside it.
+   * limit / statement day / payment due day section appears alongside it, plus
+   * a way to correct it by today's real balance instead (see currentBalance).
    */
   accountAmounts?: {
     initialAmount: Cents;
     creditLimit: Cents | null;
     statementDay: number | null;
     paymentDueDay: number | null;
+    /**
+     * This account's live balance today, lifetime-formula result (same one
+     * the dashboard shows) — not editable itself, just the other half of the
+     * "what do you actually owe right now" correction below: knowing it plus
+     * the account's real-world current balance lets us back-solve the
+     * initialAmount that makes them match, without touching any individual
+     * past transaction. Exists because a credit card's initialAmount is easy
+     * to get wrong once (e.g. an account created before this field had
+     * credit-card-aware sign handling) and, being a single lifetime baseline,
+     * silently throws off every owed/available/cycle figure forever after —
+     * not something a user can "notice and fix" by eyeballing a list of
+     * transactions.
+     */
+    currentBalance: Cents;
   } | null;
   onSave: (result: EditNameColorResult) => Promise<void>;
   onClose: () => void;
@@ -87,6 +102,8 @@ export function EditNameColorModal({
   const [paymentDueDayInput, setPaymentDueDayInput] = useState(
     accountAmounts?.paymentDueDay != null ? String(accountAmounts.paymentDueDay) : '',
   );
+  const [fixingBalance, setFixingBalance] = useState(false);
+  const [currentOwedInput, setCurrentOwedInput] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -103,8 +120,18 @@ export function EditNameColorModal({
     try {
       const result: EditNameColorResult = { name: name.trim(), color, currency, type, icon };
       if (accountAmounts) {
-        const amt = Math.abs(parseAmount(amountInput) ?? 0);
-        result.initialAmount = isCreditCard ? -amt : amt;
+        if (isCreditCard && fixingBalance && currentOwedInput.trim()) {
+          // Back-solve initialAmount so today's balance equals what the user says
+          // they actually owe right now, instead of asking them to reconstruct
+          // what the "starting" amount should have been.
+          const targetOwed = Math.abs(parseAmount(currentOwedInput) ?? 0);
+          const targetBalance = -targetOwed;
+          const netSinceStart = accountAmounts.currentBalance - accountAmounts.initialAmount;
+          result.initialAmount = targetBalance - netSinceStart;
+        } else {
+          const amt = Math.abs(parseAmount(amountInput) ?? 0);
+          result.initialAmount = isCreditCard ? -amt : amt;
+        }
         result.creditLimit = creditLimitInput.trim() ? (parseAmount(creditLimitInput) ?? null) : null;
         result.statementDay = parseDay(statementDayInput);
         result.paymentDueDay = parseDay(paymentDueDayInput);
@@ -179,7 +206,11 @@ export function EditNameColorModal({
               <span className="mb-1.5 block text-[12px] text-faint">
                 {isCreditCard ? 'Amount already owed at the start' : 'Starting balance'}
               </span>
-              <div className="flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2">
+              <div
+                className={`flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2 ${
+                  fixingBalance ? 'pointer-events-none opacity-40' : ''
+                }`}
+              >
                 <span className="text-[15px] text-faint">{currencySymbol(currency)}</span>
                 <input
                   value={amountInput}
@@ -187,9 +218,45 @@ export function EditNameColorModal({
                   inputMode="decimal"
                   placeholder="0.00"
                   aria-label={isCreditCard ? 'Amount already owed at the start' : 'Starting balance'}
+                  disabled={fixingBalance}
                   className="num w-full bg-transparent text-[15px] outline-none placeholder:text-faint"
                 />
               </div>
+
+              {isCreditCard && (
+                <button
+                  type="button"
+                  onClick={() => setFixingBalance((v) => !v)}
+                  className="mt-1.5 text-[11.5px] text-brand hover:underline"
+                >
+                  {fixingBalance
+                    ? 'Use the starting amount instead'
+                    : "Owed/available not matching your card? Set what you owe right now"}
+                </button>
+              )}
+
+              {isCreditCard && fixingBalance && (
+                <div className="mt-2">
+                  <div className="flex items-baseline gap-2 rounded-lg border border-brand bg-paper px-3 py-2">
+                    <span className="text-[15px] text-faint">{currencySymbol(currency)}</span>
+                    <input
+                      value={currentOwedInput}
+                      onChange={(e) => setCurrentOwedInput(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      autoFocus
+                      aria-label="What you currently owe on this card, right now"
+                      className="num w-full bg-transparent text-[15px] outline-none placeholder:text-faint"
+                    />
+                    <span className="shrink-0 text-[12px] text-faint">owed right now</span>
+                  </div>
+                  <p className="mt-1.5 text-[11.5px] text-faint">
+                    Check your card's real balance (your bank's app or statement) and enter it
+                    here — the app corrects its starting point to match. Nothing about your past
+                    expenses, income, or transfers changes.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
