@@ -209,6 +209,12 @@ export function AccountsGallery({
                                     : 'set a limit in edit'}
                                 </span>
                               </div>
+                              {cc.creditBalance > 0 && (
+                                <div className="mt-0.5 flex items-baseline justify-between gap-2 text-under">
+                                  <span>card credit</span>
+                                  <span className="num">{formatBig(cc.creditBalance, s.account.currency, locale)}</span>
+                                </div>
+                              )}
                               {cc.lastStatementDate && (
                                 <div className="mt-0.5 flex items-baseline justify-between gap-2">
                                   <span>this cycle</span>
@@ -233,8 +239,9 @@ export function AccountsGallery({
 
       {editing && (() => {
         const status = statuses.find((s) => s.account.id === editing.id);
-        const hasHistory = !!status &&
-          (status.totalIncome > 0 || status.totalExpenses > 0 || status.transferIn > 0 || status.transferOut > 0);
+        if (!status) return null;
+        const hasHistory =
+          status.totalIncome > 0 || status.totalExpenses > 0 || status.transferIn > 0 || status.transferOut > 0;
         return (
           <EditNameColorModal
             title="Edit account"
@@ -247,6 +254,7 @@ export function AccountsGallery({
               creditLimit: editing.creditLimit,
               statementDay: editing.statementDay,
               paymentDueDay: editing.paymentDueDay,
+              currentBalance: status.balance,
             }}
             onClose={() => setEditing(null)}
             onSave={async ({ name, color, currency, type, initialAmount, creditLimit, statementDay, paymentDueDay }) => {

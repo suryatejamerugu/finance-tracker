@@ -138,7 +138,8 @@ eq('credit card balance reflects spend minus payment', preBalance, 0 - 40000 + 1
 
 const status = sel.creditCardStatus(card, preBalance, cardExpenses, [], [cardPayment], '2026-09-10');
 eq('owed = -balance when balance negative', status.owed, 25000);
-eq('availableCredit = limit + balance', status.availableCredit, 75000);
+eq('availableCredit = limit - owed', status.availableCredit, 75000);
+eq('no credit on a card that currently owes money', status.creditBalance, 0);
 eq('lastStatementDate clamps day 31 into the adjacent shorter month', status.lastStatementDate, '2026-08-31');
 eq('statementBalance replays the ledger as of the last statement', status.statementBalance, 30000);
 eq('nextDueDate rolls the due day into the following month', status.nextDueDate, '2026-09-15');
@@ -155,8 +156,14 @@ eq('owed is unaffected by a limit change', sel.creditCardStatus(lowered, preBala
 const noLimitCard = { ...card, creditLimit: null };
 eq('no credit limit means availableCredit is null', sel.creditCardStatus(noLimitCard, preBalance, cardExpenses, [], [cardPayment], '2026-09-10').availableCredit, null);
 
-// overpayment (balance goes positive) -> owed clamps to 0, never negative
-eq('overpayment clamps owed to 0', sel.creditCardStatus(card, 5000, [], [], [], '2026-09-10').owed, 0);
+// overpayment (balance goes positive) -> owed clamps to 0, never negative, and
+// the surplus shows as its own creditBalance rather than inflating availableCredit
+// past the actual limit (a bug caught from a real user's screenshot: "available
+// $3,587 of $2,600" — more purchasing power than the card's own limit).
+const overpaid = sel.creditCardStatus(card, 5000, [], [], [], '2026-09-10');
+eq('overpayment clamps owed to 0', overpaid.owed, 0);
+eq('overpayment never inflates available credit past the limit', overpaid.availableCredit, 100000);
+eq('overpayment surfaces as its own credit balance', overpaid.creditBalance, 5000);
 
 // no statement day configured -> no cycle figures at all
 const noCycleCard = { ...card, statementDay: null };
