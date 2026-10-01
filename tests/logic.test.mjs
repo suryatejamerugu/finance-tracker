@@ -27,7 +27,9 @@ const eq = (n, got, want) => {
 eq('parseAmount "$1,234.56"', money.parseAmount('$1,234.56'), 123456);
 eq('no float drift', money.parseAmount('0.1') + money.parseAmount('0.2'), 30);
 eq('parseAmount garbage', money.parseAmount('abc'), null);
-eq('formatBig', money.formatBig(124700), '$1,247');
+eq('formatBig', money.formatBig(124700), '$1,247.00');
+eq('money is never rounded away, even for a "big" headline figure', money.formatBig(1298), '$12.98');
+eq('formatMoney never drops cents', money.formatMoney(1298), '$12.98');
 eq('shiftMonth across year', money.shiftMonth('2026-01', -1), '2025-12');
 
 const row = (o) => ({ updatedAt: 0, deleted: false, ...o });

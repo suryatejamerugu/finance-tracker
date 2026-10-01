@@ -164,7 +164,7 @@ export function Dashboard({
           <div className="flex items-baseline gap-1.5">
             <dt className="text-[12px] text-faint">Net</dt>
             <dd className={`num text-[15px] ${summary.net < 0 ? 'text-over' : ''}`}>
-              {formatMoney(summary.net, { currency, locale, showCents: false, signed: true })}
+              {formatMoney(summary.net, { currency, locale, signed: true })}
             </dd>
           </div>
           {summary.budgeted > 0 && (

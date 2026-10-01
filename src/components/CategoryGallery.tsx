@@ -36,7 +36,7 @@ export function CategoryGallery({
   onChanged: () => void;
 }) {
   const { locale } = settings;
-  const money = (c: number) => formatMoney(c, { currency, locale, showCents: false });
+  const money = (c: number) => formatMoney(c, { currency, locale });
   const [editing, setEditing] = useState<Category | null>(null);
 
   async function remove(name: string, id: string) {
@@ -115,7 +115,7 @@ export function CategoryGallery({
                       {isThis ? (
                         <input
                           key={currency}
-                          defaultValue={budget > 0 ? (budget / 100).toFixed(0) : ''}
+                          defaultValue={budget > 0 ? (budget / 100).toFixed(2) : ''}
                           onBlur={async (e) => {
                             await setCategoryBudget(s.category.id, currency, parseAmount(e.target.value) ?? 0);
                             onChanged();
@@ -123,7 +123,7 @@ export function CategoryGallery({
                           inputMode="decimal"
                           placeholder="budget"
                           aria-label={`Monthly ${currency} budget for ${s.category.name}`}
-                          className="num w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-[12px] text-faint outline-none hover:border-rule focus:border-brand focus:text-ink"
+                          className="num w-20 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-[12px] text-faint outline-none hover:border-rule focus:border-brand focus:text-ink"
                         />
                       ) : (
                         <span className="num text-[12px] text-faint">of {money(budget)}</span>

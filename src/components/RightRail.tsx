@@ -150,7 +150,7 @@ export function AccountsGallery({
           <span className="num flex flex-wrap justify-end gap-x-2 text-[13px] text-muted">
             {[...totalsByCurrency.entries()].map(([cur, sum]) => (
               <span key={cur} className={sum < 0 ? 'text-over' : ''}>
-                {formatMoney(sum, { currency: cur, locale, showCents: false })}
+                {formatMoney(sum, { currency: cur, locale })}
               </span>
             ))}
           </span>
