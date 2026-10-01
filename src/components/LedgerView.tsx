@@ -13,7 +13,6 @@ import type {
 } from '../types';
 import { buildLedger, type LedgerEntry, type LedgerEntryType } from '../lib/ledger';
 import { downloadFile, ledgerToCsv } from '../lib/exportCsv';
-import { exportLedgerPdf, exportMonthPdf } from '../lib/exportPdf';
 import {
   availableCurrencies,
   buildCategoryStatuses,
@@ -173,7 +172,7 @@ export function LedgerView({
     downloadFile(`finance-tracker-history-${todayISO()}.csv`, ledgerToCsv(filtered), 'text/csv;charset=utf-8');
   }
 
-  function exportPickedMonthReport() {
+  async function exportPickedMonthReport() {
     const sameAsDashboard = pdfMonth === month && pdfCurrency === currency;
     const statuses = sameAsDashboard
       ? categoryStatuses
@@ -181,6 +180,11 @@ export function LedgerView({
     const summary = sameAsDashboard
       ? monthSummary
       : computeMonthSummary(statuses, expenses, incomes, accounts, pdfMonth, pdfCurrency, homeCurrency);
+    // jsPDF/jspdf-autotable are a meaningful chunk of weight (plus the
+    // html2canvas they pull in transitively) that nobody needs just to open
+    // the app — deferred here so only someone who actually exports a PDF
+    // pays for loading it.
+    const { exportMonthPdf } = await import('../lib/exportPdf');
     exportMonthPdf({
       month: pdfMonth,
       currency: pdfCurrency,
@@ -226,9 +230,10 @@ export function LedgerView({
     setVisible(PAGE);
   }
 
-  function exportAllPdf() {
+  async function exportAllPdf() {
     const criteria = describeCriteria();
     const title = criteria ? `Finance Tracker — Full history (filtered)` : 'Finance Tracker — Full history';
+    const { exportLedgerPdf } = await import('../lib/exportPdf');
     exportLedgerPdf({ title, locale, entries: filtered, userLabel, criteria });
   }
 
@@ -388,7 +393,7 @@ export function LedgerView({
             )}
             <button
               type="button"
-              onClick={exportPickedMonthReport}
+              onClick={() => void exportPickedMonthReport()}
               title="A one-page report for the selected month: budget breakdown plus that month's transactions."
               className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
             >
@@ -396,7 +401,7 @@ export function LedgerView({
             </button>
             <button
               type="button"
-              onClick={exportAllPdf}
+              onClick={() => void exportAllPdf()}
               title="Every row currently shown below (respects every active filter)."
               className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
             >

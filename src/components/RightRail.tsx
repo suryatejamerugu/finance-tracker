@@ -113,6 +113,7 @@ export function AccountsGallery({
   incomes,
   transfers,
   settings,
+  goalsByAccount,
   onChanged,
   limit,
   onViewAll,
@@ -123,6 +124,8 @@ export function AccountsGallery({
   incomes: Income[];
   transfers: Transfer[];
   settings: Settings;
+  /** Cents of this account's balance already claimed by its linked savings goals — see goalAllocations()/allocatedByAccount() in selectors.ts. */
+  goalsByAccount?: Map<string, number>;
   onChanged: () => void;
   /** Dashboard-overview mode: see CategoryGallery's identical prop for why. Omit both for the full, drag-to-reorder-capable view. */
   limit?: number;
@@ -181,6 +184,7 @@ export function AccountsGallery({
                   s.account.type === 'credit_card'
                     ? creditCardStatus(s.account, s.balance, expenses, incomes, transfers, today)
                     : null;
+                const allocated = goalsByAccount?.get(s.account.id) ?? 0;
                 return (
                   <div className="group bg-raised px-3.5 py-2.5">
                     <div className="flex items-baseline justify-between gap-2">
@@ -255,6 +259,12 @@ export function AccountsGallery({
                             </div>
                           );
                         })()}
+                      </div>
+                    )}
+                    {!cc && allocated > 0 && (
+                      <div className="mt-1 flex items-baseline justify-between gap-2 text-[11.5px] text-faint">
+                        <span>allocated to goals</span>
+                        <span className="num">{hideBalances ? HIDDEN_AMOUNT : formatBig(allocated, s.account.currency, locale)}</span>
                       </div>
                     )}
                   </div>

@@ -118,6 +118,11 @@ eq('allocations across one account never exceed its balance', twoAlloc.get('firs
 
 eq('negative balance allocates nothing (not a negative amount)', sel.goalAllocations([goal('g2', 'sav2', 10000, 0)], [acctStatus('sav2', -5000)]).get('g2'), 0);
 
+// --- allocatedByAccount (what an Accounts card shows as "claimed" by goals)
+const rolledUp = sel.allocatedByAccount(twoGoals, twoAlloc);
+eq('allocatedByAccount sums both goals onto their shared account', rolledUp.get('sav1'), 30000);
+eq('an account with no linked goals is absent, not zero', sel.allocatedByAccount([goal('g3', null, 5000, 0)], new Map()).has('sav1'), false);
+
 // --- Reports range bucketing (trendBuckets)
 const dayRows = [
   row({ id: 'd1', date: '2026-09-10', amount: 500, categoryId: 'c1' }),

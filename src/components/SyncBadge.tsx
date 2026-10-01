@@ -30,7 +30,7 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
   }, [open]);
 
   if (!sync.configured) {
-    return <span className="text-[12px] text-faint">Saved on this device</span>;
+    return <span className="max-w-[9.5rem] truncate text-[12px] text-faint sm:max-w-none">Saved on this device</span>;
   }
 
   if (!sync.connected) {
@@ -39,7 +39,7 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
         type="button"
         onClick={() => void sync.connect()}
         title="Backs up to a private, hidden folder inside whichever Google account you sign in with — it can't see or touch anything else in that Drive."
-        className="rounded-lg border border-rule px-3 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
+        className="max-w-[9.5rem] truncate rounded-lg border border-rule px-3 py-1 text-[12px] text-muted hover:border-brand hover:text-brand sm:max-w-none"
       >
         Back up to Drive
       </button>
@@ -63,7 +63,7 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className={`text-[12px] ${sync.state === 'error' ? 'text-over' : 'text-faint'} hover:text-muted`}
+        className={`block max-w-[9.5rem] truncate text-[12px] sm:max-w-none ${sync.state === 'error' ? 'text-over' : 'text-faint'} hover:text-muted`}
       >
         {label}
       </button>
