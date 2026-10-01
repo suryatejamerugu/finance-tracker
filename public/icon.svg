@@ -1,6 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#14161A"/>
-  <rect x="96" y="150" width="320" height="26" rx="13" fill="#FAFAFA"/>
-  <rect x="96" y="243" width="212" height="26" rx="13" fill="#3B37C4"/>
-  <rect x="96" y="336" width="128" height="26" rx="13" fill="#6E7178"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+  <!-- Solid, opaque background (squared radius matching the app's --radius tokens) so this reads correctly as a favicon, an apple-touch-icon, and a maskable PWA icon alike — no transparent corners to show through inconsistently at any of those sizes. -->
+  <rect width="512" height="512" rx="96" fill="#10121b"/>
+  <rect x="16" y="16" width="480" height="480" rx="84" fill="none" stroke="url(#g)" stroke-width="10"/>
+  <!-- A small ascending bar-chart mark, in the brand gradient — "Finance Tracker" at a glance. -->
+  <rect x="140" y="288" width="64" height="128" rx="10" fill="url(#g)"/>
+  <rect x="224" y="224" width="64" height="192" rx="10" fill="url(#g)"/>
+  <rect x="308" y="150" width="64" height="266" rx="10" fill="url(#g)"/>
 </svg>

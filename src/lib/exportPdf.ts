@@ -6,26 +6,44 @@ import type { MonthSummary } from './selectors';
 import { formatMoney, monthLabel } from './money';
 
 const BRAND: [number, number, number] = [91, 79, 232];
+const BRAND_2: [number, number, number] = [11, 122, 112];
+
+/** The header's "FT" badge mark, redrawn in jsPDF's vector primitives rather than embedded as an image — crisp at any zoom, no asset to keep in sync with the in-app wordmark's own colors. */
+function drawLogo(doc: jsPDF, x: number, y: number): void {
+  doc.setFillColor(...BRAND);
+  doc.roundedRect(x, y, 14, 14, 2.5, 2.5, 'F');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('FT', x + 7, y + 9.2, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+}
 
 type DocWithTable = jsPDF & { lastAutoTable?: { finalY: number } };
 
-/** Draws the shared masthead (title + generated/prepared-for line) and returns the Y to start the next block at. */
+/** Draws the shared masthead (logo + title + generated/prepared-for line) and returns the Y to start the next block at. */
 function drawHeader(doc: DocWithTable, title: string, userLabel?: string | null, subtitle?: string | null): number {
+  drawLogo(doc, 14, 10);
+  const textX = 32;
+
   doc.setFontSize(16);
   doc.setTextColor(20);
-  doc.text(title, 14, 18);
+  doc.text(title, textX, 18);
+  doc.setDrawColor(...BRAND_2);
+  doc.setLineWidth(0.6);
+  doc.line(textX, 20, textX + doc.getTextWidth(title), 20);
 
   doc.setFontSize(9);
   doc.setTextColor(140);
   const generated = `Generated ${new Date().toLocaleDateString()}`;
-  doc.text(userLabel ? `${generated}  ·  Prepared for ${userLabel}` : generated, 14, 24);
+  doc.text(userLabel ? `${generated}  ·  Prepared for ${userLabel}` : generated, textX, 26);
 
-  let y = 24;
+  let y = 26;
   if (subtitle) {
-    y = 29;
+    y = 31;
     doc.setFontSize(9);
     doc.setTextColor(110);
-    doc.text(subtitle, 14, y);
+    doc.text(subtitle, textX, y);
   }
   return y + 7;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { seedIfEmpty } from './lib/seed'
 import { useSync } from './hooks/useSync'
 import { useTheme } from './hooks/useTheme'
@@ -9,9 +9,15 @@ import { HideBalancesToggle } from './components/HideBalancesToggle'
 import { DataMenuModal } from './components/DataMenuModal'
 import { UndoToast } from './components/UndoToast'
 import { Footer } from './components/Footer'
-import { Dashboard } from './pages/Dashboard'
-import { About } from './pages/About'
-import { Reports } from './pages/Reports'
+
+// Each page is its own chunk: every navigation between them (Dashboard,
+// Reports, Guide) is already a hard <a> reload, not client-side routing (see
+// below), so a visit to one never needs to fetch the JS the other two pull
+// in — Reports' chart code or About's static text don't weigh down the
+// dashboard most people land on, and vice versa.
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })))
+const About = lazy(() => import('./pages/About').then((m) => ({ default: m.About })))
+const Reports = lazy(() => import('./pages/Reports').then((m) => ({ default: m.Reports })))
 
 /**
  * Three pages (dashboard, reports, guide), picked by plain pathname — not
@@ -38,7 +44,7 @@ export default function App() {
   return (
     <div className="theme-transition flex min-h-dvh flex-col">
       <div className="mx-auto w-full max-w-[1400px] flex-1">
-        <header className="flex items-center justify-between border-b border-rule px-4 py-2.5 safe-top sm:px-6">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-rule px-4 py-2.5 safe-top sm:px-6">
           <a
             href="/"
             className="pixel-notch inline-flex items-center gap-2 border border-rule bg-brand-soft px-2.5 py-1.5 no-underline transition-colors hover:border-brand"
@@ -48,7 +54,7 @@ export default function App() {
               <span className="text-brand-gradient">Finance</span> Tracker
             </span>
           </a>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <SyncBadge sync={sync} />
             <a
               href="/reports"
@@ -97,13 +103,15 @@ export default function App() {
             </p>
           )}
 
-          {isAbout ? (
-            <About />
-          ) : isReports ? (
-            <Reports onChanged={sync.scheduleSync} />
-          ) : (
-            <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} hideBalances={hideBalances} />
-          )}
+          <Suspense fallback={<div className="p-6 text-muted">Loading…</div>}>
+            {isAbout ? (
+              <About />
+            ) : isReports ? (
+              <Reports onChanged={sync.scheduleSync} />
+            ) : (
+              <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} hideBalances={hideBalances} />
+            )}
+          </Suspense>
         </main>
       </div>
 

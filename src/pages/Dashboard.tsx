@@ -2,6 +2,7 @@ import { useRef, useState, type RefObject } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DEFAULT_SETTINGS } from '../lib/db';
 import {
+  allocatedByAccount,
   availableCurrencies,
   buildAccountStatuses,
   buildCategoryStatuses,
@@ -180,6 +181,7 @@ export function Dashboard({
 
   const isEmpty = data.expenses.length === 0 && data.incomes.length === 0 && data.transfers.length === 0;
   const allocations = goalAllocations(liveSavingsGoals, accountStatuses);
+  const goalsByAccount = allocatedByAccount(liveSavingsGoals, allocations);
 
   const NAV_ITEMS: Array<{ label: string; action: () => void } | { label: string; href: string }> = [
     { label: 'Overview', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
@@ -471,6 +473,7 @@ export function Dashboard({
             incomes={data.incomes}
             transfers={data.transfers}
             settings={settings}
+            goalsByAccount={goalsByAccount}
             onChanged={onChanged}
             limit={6}
             onViewAll={() => setAccountsOpen(true)}
@@ -546,6 +549,7 @@ export function Dashboard({
             incomes={data.incomes}
             transfers={data.transfers}
             settings={settings}
+            goalsByAccount={goalsByAccount}
             onChanged={onChanged}
             hideBalances={hideBalances}
           />

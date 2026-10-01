@@ -545,6 +545,18 @@ export function goalAllocations(goals: SavingsGoal[], accountStatuses: AccountSt
   return allocated;
 }
 
+/** Rolls goalAllocations() up per account — what an Accounts card shows as "already spoken for" by that account's linked goals. */
+export function allocatedByAccount(goals: SavingsGoal[], allocations: Map<string, Cents>): Map<string, Cents> {
+  const byAccount = new Map<string, Cents>();
+  for (const goal of live(goals)) {
+    if (!goal.accountId) continue;
+    const take = allocations.get(goal.id) ?? 0;
+    if (take <= 0) continue;
+    byAccount.set(goal.accountId, (byAccount.get(goal.accountId) ?? 0) + take);
+  }
+  return byAccount;
+}
+
 /** Group rows into buckets keyed by day, month, or year, newest bucket first. */
 export function groupByPeriod<T extends { date: string }>(
   rows: T[],
