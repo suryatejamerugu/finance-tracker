@@ -5,6 +5,7 @@ import { useTheme } from './hooks/useTheme'
 import { SyncBadge } from './components/SyncBadge'
 import { ThemeToggle } from './components/ThemeToggle'
 import { DataMenuModal } from './components/DataMenuModal'
+import { UndoToast } from './components/UndoToast'
 import { Footer } from './components/Footer'
 import { Dashboard } from './pages/Dashboard'
 import { About } from './pages/About'
@@ -81,6 +82,8 @@ export default function App() {
       </div>
 
       {dataOpen && <DataMenuModal onChanged={sync.scheduleSync} onClose={() => setDataOpen(false)} />}
+
+      <UndoToast onChanged={sync.scheduleSync} />
 
       <Footer />
     </div>

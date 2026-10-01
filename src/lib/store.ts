@@ -1,5 +1,6 @@
 import { db } from './db';
 import { uid } from './money';
+import { recordUndo, type Soft } from './undo';
 import type { Account, AccountType, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
 
 /**
@@ -42,6 +43,7 @@ export async function updateExpense(
 ): Promise<void> {
   const existing = await db.expenses.get(id);
   if (!existing) return;
+  recordUndo('expenses', id, existing, 'edit');
   await db.expenses.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -78,6 +80,7 @@ export async function updateIncome(
 ): Promise<void> {
   const existing = await db.incomes.get(id);
   if (!existing) return;
+  recordUndo('incomes', id, existing, 'edit');
   await db.incomes.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -127,6 +130,7 @@ export async function updateTransfer(
   if (!(await sameCurrency(input.fromAccountId, input.toAccountId))) {
     throw new Error('Transfers need both accounts in the same currency.');
   }
+  recordUndo('transfers', id, existing, 'edit');
   await db.transfers.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -209,6 +213,7 @@ export async function updateCategory(
 ): Promise<void> {
   const existing = await db.categories.get(id);
   if (!existing) return;
+  recordUndo('categories', id, existing, 'edit');
   await db.categories.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -233,6 +238,7 @@ export async function updateAccount(
 ): Promise<void> {
   const existing = await db.accounts.get(id);
   if (!existing) return;
+  recordUndo('accounts', id, existing, 'edit');
   await db.accounts.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -253,6 +259,7 @@ export async function updateIncomeCategory(
 ): Promise<void> {
   const existing = await db.incomeCategories.get(id);
   if (!existing) return;
+  recordUndo('incomeCategories', id, existing, 'edit');
   await db.incomeCategories.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -262,13 +269,12 @@ export async function updateIncomeCategory(
   });
 }
 
-type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts' | 'incomeCategories';
-
 export async function softDelete(table: Soft, id: string): Promise<void> {
   const existing = await (db[table] as unknown as {
     get: (id: string) => Promise<Expense | Income | Transfer | Category | Account | IncomeCategory | undefined>;
   }).get(id);
   if (!existing) return;
+  recordUndo(table, id, existing, 'delete');
   await (db[table] as unknown as { put: (row: unknown) => Promise<unknown> }).put({
     ...existing,
     deleted: true,
