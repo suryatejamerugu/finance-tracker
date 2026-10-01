@@ -12,9 +12,9 @@ import {
 import { currentMonth, formatBig, formatMoney, monthLabel, shiftMonth } from '../lib/money';
 import { ADD_LABELS, AddModal, type AddKind, type EditingRow } from '../components/AddModal';
 import { CategoryGallery } from '../components/CategoryGallery';
-import { ExpensesPanel } from '../components/ExpensesPanel';
-import { IncomesPanel } from '../components/IncomesPanel';
-import { TransfersPanel } from '../components/TransfersPanel';
+import { RecentActivity } from '../components/RecentActivity';
+import { SpendingTrend } from '../components/SpendingTrend';
+import { IncomeTrend } from '../components/IncomeTrend';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
 import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
@@ -313,7 +313,21 @@ export function Dashboard({
         </div>
 
         <div className="order-3 lg:order-2">
-          <ExpensesPanel
+          <RecentActivity
+            expenses={data.expenses}
+            incomes={data.incomes}
+            transfers={data.transfers}
+            categories={liveCategories}
+            accounts={liveAccounts}
+            incomeCategories={liveIncomeCategories}
+            currency={currency}
+            homeCurrency={settings.currency}
+            settings={settings}
+            onChanged={onChanged}
+            onEdit={(kind, row) => setModal({ kind, editing: row })}
+            onViewAll={() => setHistoryOpen(true)}
+          />
+          <SpendingTrend
             expenses={data.expenses}
             categories={liveCategories}
             accounts={liveAccounts}
@@ -321,10 +335,8 @@ export function Dashboard({
             homeCurrency={settings.currency}
             month={month}
             settings={settings}
-            onChanged={onChanged}
-            onEdit={(expense) => setModal({ kind: 'expense', editing: expense })}
           />
-          <IncomesPanel
+          <IncomeTrend
             incomes={data.incomes}
             accounts={liveAccounts}
             incomeCategories={liveIncomeCategories}
@@ -333,16 +345,6 @@ export function Dashboard({
             month={month}
             settings={settings}
             onChanged={onChanged}
-            onEdit={(income) => setModal({ kind: 'income', editing: income })}
-          />
-          <TransfersPanel
-            transfers={data.transfers}
-            accounts={liveAccounts}
-            currency={currency}
-            homeCurrency={settings.currency}
-            settings={settings}
-            onChanged={onChanged}
-            onEdit={(transfer) => setModal({ kind: 'transfer', editing: transfer })}
           />
         </div>
 
