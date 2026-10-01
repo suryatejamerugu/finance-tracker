@@ -217,9 +217,14 @@ export interface CreditCardStatus {
   creditLimit: Cents | null;
   /** Money ahead of what's owed, e.g. from overpaying a statement. 0 for an account that owes something or is exactly settled. Shown separately rather than folded into availableCredit, which would otherwise read as more purchasing power than the card's actual limit. */
   creditBalance: Cents;
-  /** What was owed as of the most recent statement date — due by the next payment date. Null until a statement day is configured. */
+  /**
+   * What's still owed from the most recent statement — due by the next
+   * payment date. Starts at what was billed on the statement date, then
+   * drops as payments land afterward (even though they're dated after that
+   * cutoff), down to a floor of 0. Null until a statement day is configured.
+   */
   statementBalance: Cents | null;
-  /** Spending (net of payments) since that statement — not yet billed, not yet due. */
+  /** New charges (net of any income/refund) since that statement — not yet billed, not yet due. Payments made since the statement go toward statementBalance instead, not here. */
   newSinceStatement: Cents;
   lastStatementDate: ISODate | null;
   nextDueDate: ISODate | null;
@@ -232,10 +237,14 @@ export interface CreditCardStatus {
  * partial/minimum payment needs no special-case handling here: each is
  * already just a different number in the same ledger this already reads.
  *
- * The one genuinely new piece is the statement-cycle balance, which replays
- * that same formula capped to the last statement date — what's actually due
- * by the next payment date, as opposed to everything owed right now (which
- * may include newer, not-yet-billed spending).
+ * The statement-cycle balance is trickier: it has to split activity at the
+ * statement date into "what was billed" vs. "what's happened since," and
+ * those two sides behave differently. A payment made after the statement
+ * date (the normal case — you pay sometime between the statement and the
+ * due date) still pays down *that* statement, so it's subtracted from what
+ * was billed rather than lumped in with new spending; a new purchase after
+ * the statement date isn't due yet, so it only ever shows up as
+ * newSinceStatement, never inflating what's currently due.
  */
 export function creditCardStatus(
   account: Account,
@@ -252,13 +261,27 @@ export function creditCardStatus(
   const availableCredit = account.creditLimit != null ? Math.max(0, account.creditLimit - owed) : null;
 
   let statementBalance: Cents | null = null;
+  let newSinceStatement = 0;
   let lastStatementDate: ISODate | null = null;
   let nextDueDate: ISODate | null = null;
 
   if (account.statementDay) {
     lastStatementDate = lastOccurrence(today, account.statementDay);
+    const cutoff = lastStatementDate;
+    const since = <T extends { date: string }>(rows: T[]) => rows.filter((r) => r.date > cutoff);
+
     const balanceAtStatement = balanceAsOf(account, expenses, incomes, transfers, lastStatementDate);
-    statementBalance = Math.max(0, -balanceAtStatement);
+    const billedAtStatement = Math.max(0, -balanceAtStatement);
+    const paidSinceStatement =
+      sum(since(live(transfers).filter((t) => t.toAccountId === account.id)), (t) => t.amount) -
+      sum(since(live(transfers).filter((t) => t.fromAccountId === account.id)), (t) => t.amount);
+    statementBalance = Math.max(0, billedAtStatement - Math.max(0, paidSinceStatement));
+
+    const newCharges =
+      sum(since(live(expenses).filter((e) => e.accountId === account.id)), (e) => e.amount) -
+      sum(since(live(incomes).filter((i) => i.accountId === account.id)), (i) => i.amount);
+    newSinceStatement = Math.max(0, newCharges);
+
     if (account.paymentDueDay) {
       nextDueDate = nextOccurrence(lastStatementDate, account.paymentDueDay);
     }
@@ -270,7 +293,7 @@ export function creditCardStatus(
     creditLimit: account.creditLimit,
     creditBalance,
     statementBalance,
-    newSinceStatement: Math.max(0, owed - (statementBalance ?? owed)),
+    newSinceStatement,
     lastStatementDate,
     nextDueDate,
   };

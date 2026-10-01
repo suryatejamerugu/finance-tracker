@@ -141,9 +141,9 @@ eq('owed = -balance when balance negative', status.owed, 25000);
 eq('availableCredit = limit - owed', status.availableCredit, 75000);
 eq('no credit on a card that currently owes money', status.creditBalance, 0);
 eq('lastStatementDate clamps day 31 into the adjacent shorter month', status.lastStatementDate, '2026-08-31');
-eq('statementBalance replays the ledger as of the last statement', status.statementBalance, 30000);
+eq('statementBalance is billed amount minus the payment that landed after it', status.statementBalance, 15000);
 eq('nextDueDate rolls the due day into the following month', status.nextDueDate, '2026-09-15');
-eq('newSinceStatement clamps to 0 when a payment exceeds new spend', status.newSinceStatement, 0);
+eq('newSinceStatement reflects new charges, not touched by a payment toward the old statement', status.newSinceStatement, 10000);
 
 // credit limit increase/decrease should move availableCredit only, never owed
 const raised = { ...card, creditLimit: 150000 };
@@ -174,8 +174,26 @@ eq('no statement day means no due date', noCycleStatus.nextDueDate, null);
 // statement day set but no payment due day -> statement balance still computed, but no due date
 const noDueDayCard = { ...card, paymentDueDay: null };
 const noDueStatus = sel.creditCardStatus(noDueDayCard, preBalance, cardExpenses, [], [cardPayment], '2026-09-10');
-eq('statement balance still computed without a due day', noDueStatus.statementBalance, 30000);
+eq('statement balance still computed without a due day', noDueStatus.statementBalance, 15000);
 eq('no due day configured means no next due date', noDueStatus.nextDueDate, null);
+
+// --- the exact bug reported: "this cycle" must reflect a payment made after
+// the statement date (the normal way to pay a credit card bill), not sit
+// frozen at the pre-payment amount until some later recompute.
+const amex = cc('amex1', 'AMEX', 0, 650000, 5, 27, 4);
+const amexExpenses = [exp('ae1', '2026-08-15', 24700, null, 'amex1')]; // billed on the Sep 5 statement
+
+const amexFullPayment = trf('at1', '2026-09-20', 24700, 'a1', 'amex1'); // paid in full, before the Sep 27 due date
+const amexFullBalance = sel.buildAccountStatuses([amex], amexExpenses, [], [amexFullPayment]).find(a => a.account.id === 'amex1').balance;
+const amexFullStatus = sel.creditCardStatus(amex, amexFullBalance, amexExpenses, [], [amexFullPayment], '2026-10-01');
+eq('a full payment made after the statement date zeroes out what is due', amexFullStatus.statementBalance, 0);
+eq('nextDueDate still reports the statement cycle it belongs to', amexFullStatus.nextDueDate, '2026-09-27');
+eq('fully paying the last statement leaves nothing owed overall', amexFullStatus.owed, 0);
+
+const amexPartialPayment = trf('at2', '2026-09-20', 10000, 'a1', 'amex1'); // only part of the $247 bill
+const amexPartialBalance = sel.buildAccountStatuses([amex], amexExpenses, [], [amexPartialPayment]).find(a => a.account.id === 'amex1').balance;
+const amexPartialStatus = sel.creditCardStatus(amex, amexPartialBalance, amexExpenses, [], [amexPartialPayment], '2026-10-01');
+eq('a partial payment only partly pays down what is due', amexPartialStatus.statementBalance, 14700);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
