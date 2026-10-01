@@ -48,7 +48,9 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
     sync.state === 'syncing'
       ? 'Saving…'
       : sync.state === 'error'
-        ? 'Sync problem'
+        ? sync.lastSync
+          ? `Sync problem · saved ${ago(sync.lastSync)}`
+          : 'Sync problem'
         : sync.lastSync
           ? `Saved ${ago(sync.lastSync)}`
           : 'Connected';
@@ -79,7 +81,15 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
               Backed up to a private, hidden folder inside this Google account's Drive — not a
               folder you pick, and not visible in that account's normal Drive file list.
             </p>
-            {sync.error && <p className="mt-2 text-[12px] text-over">{sync.error}</p>}
+            {sync.error && (
+              <>
+                <p className="mt-2 text-[12px] text-over">{sync.error}</p>
+                <p className="mt-1 text-[11.5px] text-faint">
+                  Retrying automatically for a bit — nothing on this device is lost either way.
+                  Tap Sync now to try immediately.
+                </p>
+              </>
+            )}
             <div className="mt-3 flex gap-2">
               <button
                 type="button"

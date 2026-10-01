@@ -13,6 +13,20 @@ async function authHeaders(): Promise<HeadersInit> {
   return { Authorization: `Bearer ${token}` };
 }
 
+/**
+ * `fetch()` itself throws (not a non-ok Response) when the request never
+ * made it out at all — offline, DNS, a blocked connection. Left unwrapped
+ * that surfaces as a bare "Failed to fetch", which is accurate but not
+ * something a non-technical user can act on.
+ */
+async function request(url: string, init: RequestInit, what: string): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new Error(`Couldn't reach Google Drive while ${what}. Check your connection and try again.`);
+  }
+}
+
 async function ok(res: Response, what: string): Promise<Response> {
   if (res.ok) return res;
   const body = await res.text().catch(() => '');
@@ -33,7 +47,10 @@ export async function findFileId(): Promise<string | null> {
     fields: 'files(id, modifiedTime)',
     pageSize: '1',
   });
-  const res = await ok(await fetch(`${FILES}?${params}`, { headers: await authHeaders() }), 'looking for your data');
+  const res = await ok(
+    await request(`${FILES}?${params}`, { headers: await authHeaders() }, 'looking for your data'),
+    'looking for your data',
+  );
   const data = (await res.json()) as { files?: Array<{ id: string }> };
   const id = data.files?.[0]?.id ?? null;
   if (id) localStorage.setItem(CACHED_ID_KEY, id);
@@ -44,7 +61,7 @@ export async function pull(): Promise<Snapshot | null> {
   const id = await findFileId();
   if (!id) return null;
 
-  const res = await fetch(`${FILES}/${id}?alt=media`, { headers: await authHeaders() });
+  const res = await request(`${FILES}/${id}?alt=media`, { headers: await authHeaders() }, 'downloading your data');
   if (res.status === 404) {
     localStorage.removeItem(CACHED_ID_KEY);
     return null;
@@ -64,11 +81,15 @@ export async function push(snapshot: Snapshot): Promise<void> {
 
   if (id) {
     await ok(
-      await fetch(`${UPLOAD}/${id}?uploadType=media`, {
-        method: 'PATCH',
-        headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
-        body,
-      }),
+      await request(
+        `${UPLOAD}/${id}?uploadType=media`,
+        {
+          method: 'PATCH',
+          headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+          body,
+        },
+        'saving your data',
+      ),
       'saving your data',
     );
     return;
@@ -83,11 +104,15 @@ export async function push(snapshot: Snapshot): Promise<void> {
     `--${boundary}--`;
 
   const res = await ok(
-    await fetch(`${UPLOAD}?uploadType=multipart&fields=id`, {
-      method: 'POST',
-      headers: { ...(await authHeaders()), 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body: multipart,
-    }),
+    await request(
+      `${UPLOAD}?uploadType=multipart&fields=id`,
+      {
+        method: 'POST',
+        headers: { ...(await authHeaders()), 'Content-Type': `multipart/related; boundary=${boundary}` },
+        body: multipart,
+      },
+      'creating your backup',
+    ),
     'creating your backup',
   );
   const created = (await res.json()) as { id: string };

@@ -245,7 +245,12 @@ export function About() {
           side. Changes save automatically a couple of seconds after you make them — the badge in
           the header shows "Saving…" while that's in progress and "Saved just now" (or how long ago)
           once it's done, so you can tell at a glance whether the last thing you typed actually went
-          up.
+          up. If a save genuinely fails — no connection, a Drive hiccup — the badge says "Sync
+          problem" instead of quietly pretending it worked, and keeps showing the time of your last
+          real save next to it. The app retries a few times on its own before giving up; click the
+          badge for the specific error and a "Sync now" button to try again immediately. Either way
+          nothing on this device is lost — a failed backup just means this device and Drive are
+          temporarily out of step, not that anything was deleted.
         </p>
         <p>
           This app is early — if signing in shows an "unverified app" warning, that's Google
