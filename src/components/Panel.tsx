@@ -117,7 +117,7 @@ export function Panel<T extends string>({
   const [tab, setTab] = useState<T>(tabs[0]);
 
   return (
-    <section className="mb-7">
+    <section className="mb-5">
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="text-[15px] font-medium">{title}</h2>
         {/* A bordered, divided segment cluster rather than loose pills — each

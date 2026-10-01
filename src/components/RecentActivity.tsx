@@ -97,7 +97,7 @@ export function RecentActivity({
   }
 
   return (
-    <section className="mb-7">
+    <section className="mb-5">
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="text-[15px] font-medium">Recent activity</h2>
         <div className="flex overflow-hidden rounded-lg border border-rule">
@@ -130,7 +130,7 @@ export function RecentActivity({
             {tab === 'All' ? 'Nothing logged yet. Use New expense above.' : `No ${tab.toLowerCase()} logged yet.`}
           </EmptyRow>
         ) : (
-          <div className="divide-y divide-rule">
+          <div className="max-h-[360px] divide-y divide-rule overflow-y-auto">
             {rows.map((e) => (
               <div key={`${e.type}-${e.id}`} className="group flex items-center gap-3 px-4 py-2.5">
                 <IconBadge icon={e.icon} color={e.color} size={26} />

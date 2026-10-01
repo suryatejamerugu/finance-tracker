@@ -9,9 +9,10 @@ import type {
   Income,
   ISOMonth,
   RecurringEntry,
+  SavingsGoal,
   Transfer,
 } from '../types';
-import { monthOf, shiftMonth } from './money';
+import { monthOf, shiftMonth, toISODate } from './money';
 import { resolveDistinctColors } from './colors';
 
 export const live = <T extends { deleted: boolean }>(rows: T[]): T[] => rows.filter((r) => !r.deleted);
@@ -381,6 +382,59 @@ export function stackedByMonth<T extends { date: string; amount: Cents; deleted:
   return { data, series: names };
 }
 
+export type ReportRange = 'week' | 'month' | '6m' | '12m' | 'year';
+
+export const REPORT_RANGES: Array<{ key: ReportRange; label: string }> = [
+  { key: 'week', label: 'Week' },
+  { key: 'month', label: 'Month' },
+  { key: '6m', label: '6 months' },
+  { key: '12m', label: '12 months' },
+  { key: 'year', label: 'Year' },
+];
+
+/**
+ * Same stacked-series shape as stackedByMonth, but for the Reports page's
+ * range picker: week/month bucket by day (the month view runs from the 1st
+ * to today, not a trailing 30 days, so "this month" means what it says),
+ * while 6/12-months and year fall back to stackedByMonth's existing
+ * month-bucketing — year specifically means "this calendar year to date"
+ * (Jan through the current month), not a trailing 12 months.
+ */
+export function trendBuckets<T extends { date: string; amount: Cents; deleted: boolean }>(
+  rows: T[],
+  range: ReportRange,
+  today: ISODate,
+  seriesKey: (row: T) => string | null,
+): { data: Array<Record<string, string | number>>; series: string[]; granularity: 'day' | 'month' } {
+  if (range === 'week' || range === 'month') {
+    const [y, m, d] = today.split('-').map(Number);
+    const daysBack = range === 'week' ? 6 : d - 1;
+    const wanted: ISODate[] = [];
+    for (let i = daysBack; i >= 0; i--) wanted.push(toISODate(new Date(y, m - 1, d - i)));
+    const index = new Map(wanted.map((date, i) => [date, i]));
+
+    const data: Array<Record<string, string | number>> = wanted.map((date) => ({ date }));
+    const series = new Set<string>();
+    for (const row of live(rows)) {
+      const slot = index.get(row.date);
+      if (slot === undefined) continue;
+      const key = seriesKey(row) ?? 'Uncategorised';
+      series.add(key);
+      const bucket = data[slot];
+      bucket[key] = ((bucket[key] as number) ?? 0) + row.amount / 100;
+    }
+    const names = [...series].sort();
+    for (const bucket of data) for (const name of names) if (!(name in bucket)) bucket[name] = 0;
+    return { data, series: names, granularity: 'day' };
+  }
+
+  const endMonth = monthOf(today);
+  const months =
+    range === '6m' ? 6 : range === '12m' ? 12 : Number(endMonth.split('-')[1]);
+  const { data, series } = stackedByMonth(rows, endMonth, months, seriesKey);
+  return { data, series, granularity: 'month' };
+}
+
 /** Donut slices: this month's expenses grouped by category, largest first. */
 export function donutByCategory(
   categories: Category[],
@@ -451,6 +505,44 @@ export function upcomingBills(
 export function goalProgress(savedAmount: Cents, targetAmount: Cents): number {
   if (targetAmount <= 0) return 0;
   return Math.max(0, Math.min(100, (savedAmount / targetAmount) * 100));
+}
+
+/**
+ * How much of each account-linked goal counts as "saved", derived from the
+ * linked account's real balance rather than typed in by hand.
+ *
+ * The rule: within one account, its linked goals are funded in list order —
+ * first the goal higher up the list, then the next, and so on — each up to
+ * its own target, out of that account's current balance. This is what keeps
+ * two goals sharing one account from both claiming the same dollar: the
+ * account's balance is only ever handed out once, split across its goals
+ * top to bottom, so the total allocated can never exceed what's actually
+ * sitting in the account.
+ *
+ * Because this reads the account's live balance (itself built from every
+ * expense, income, and transfer against it), it already accounts for a
+ * pre-existing balance the moment a goal is linked (it counts right away,
+ * same as the user expected), and for a withdrawal or any other spending
+ * from that account (the allocation drops automatically, with no special
+ * case needed — it's just a lower balance to divide up). A negative balance
+ * allocates nothing rather than a negative amount.
+ */
+export function goalAllocations(goals: SavingsGoal[], accountStatuses: AccountStatus[]): Map<string, Cents> {
+  const balanceByAccount = new Map(accountStatuses.map((s) => [s.account.id, s.balance]));
+  const remainingByAccount = new Map<string, Cents>();
+  const allocated = new Map<string, Cents>();
+
+  for (const goal of live(goals)) {
+    if (!goal.accountId) continue;
+    const remaining = remainingByAccount.has(goal.accountId)
+      ? (remainingByAccount.get(goal.accountId) as Cents)
+      : Math.max(0, balanceByAccount.get(goal.accountId) ?? 0);
+    const take = Math.min(remaining, goal.targetAmount);
+    allocated.set(goal.id, take);
+    remainingByAccount.set(goal.accountId, remaining - take);
+  }
+
+  return allocated;
 }
 
 /** Group rows into buckets keyed by day, month, or year, newest bucket first. */

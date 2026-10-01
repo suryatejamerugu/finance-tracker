@@ -82,7 +82,8 @@ export function About() {
         </Steps>
         <p>
           Income sources are their own editable list — rename, recolor, or delete one from the{' '}
-          <strong className="text-ink">Categories</strong> link above the Income trend chart.
+          <strong className="text-ink">Categories</strong> link above the Income trend chart on the{' '}
+          <strong className="text-ink">Reports</strong> page.
         </p>
       </Section>
 
@@ -124,15 +125,15 @@ export function About() {
         </p>
         <p>
           A category with no budget set shows <span className="text-faint">no budget</span>{' '}
-          instead of a percentage — spending still shows up on the dashboard and in charts, it's
-          just not measured against a limit until you give it one.
+          instead of a percentage — spending still shows up on the dashboard and on the Reports
+          page's charts, it's just not measured against a limit until you give it one.
         </p>
         <p>
-          New categories (and income sources, from the Categories link above the Income trend
-          chart) get a color from a 16-color palette and an icon guessed from the name you type —
-          pick a different one from the icon picker if you'd rather. Two categories never end up
-          visually indistinguishable in a chart even if they somehow share a stored color; the
-          charts resolve that automatically. A budget is per currency, too: the same "Dining Out"
+          New categories (and income sources, from the Categories link on the Reports page) get a
+          color from a 16-color palette and an icon guessed from the name you type — pick a
+          different one from the icon picker if you'd rather. Two categories never end up visually
+          indistinguishable in a chart even if they somehow share a stored color; the charts
+          resolve that automatically. A budget is per currency, too: the same "Dining Out"
           category can carry a separate number for each currency you spend in.
         </p>
       </Section>
@@ -202,6 +203,22 @@ export function About() {
         <p>
           There's no automatic exchange-rate conversion anywhere — every number stays exactly what
           you entered, in the currency you entered it in.
+        </p>
+      </Section>
+
+      <Section title="View reports">
+        <p>
+          Click the bar-chart icon in the header (next to the sync badge) for the{' '}
+          <strong className="text-ink">Reports</strong> page — spending-by-category and
+          income-by-source charts, moved off the dashboard so they get a proper page of their own.
+        </p>
+        <p>
+          Pick a range at the top — <strong className="text-ink">Week</strong>,{' '}
+          <strong className="text-ink">Month</strong>, <strong className="text-ink">6 months</strong>,{' '}
+          <strong className="text-ink">12 months</strong>, or <strong className="text-ink">Year</strong>{' '}
+          (this calendar year to date) — and both charts update to match. Week and Month bucket by
+          day; the others bucket by month. Hover a bar, or click a name in the legend below each
+          chart, to isolate one category/source at a time.
         </p>
       </Section>
 
@@ -292,17 +309,28 @@ export function About() {
 
       <Section title="Track a savings goal">
         <p>
-          Click <Kbd>New goal</Kbd> below the Accounts card, give it a name, a target amount, and
-          a currency. It gets its own progress bar — "saved so far" is a plain number you type in
-          yourself, the same way you'd type in a category's budget.
+          Click <Kbd>New goal</Kbd> below the Accounts card, give it a name and a target amount.
+          From there you have two ways to track progress.
         </p>
         <p>
-          This is deliberately disconnected from your real accounts and transactions — it doesn't
-          move money, lock anything away, or affect any balance. It's just a target to track
-          against, so as you set money aside (into a savings account, an envelope, wherever),
-          update the number here to match. Reaching 100% marks the goal "reached" instead of just
-          showing a percentage.
+          <strong className="text-ink">Unlinked</strong> (the default): "saved so far" is a plain
+          number you type in yourself, the same way you'd type in a category's budget. Nothing
+          here moves money or affects any balance — it's just a target to update by hand as you
+          set money aside elsewhere.
         </p>
+        <p>
+          <strong className="text-ink">Linked to an account</strong>: pick an account in the
+          goal's edit pencil and progress is derived automatically from that account's real
+          balance, instead of typed in. A pre-existing balance counts right away, and any
+          transaction you log against that account — a deposit, a transfer in, a withdrawal —
+          updates the goal's progress the next time you look, with no extra step. If more than one
+          goal is linked to the same account, they're funded in list order: the goal higher up the
+          list claims money toward its target first, then the next one gets what's left, so the
+          same dollar is never counted toward two goals at once. The goal card names which account
+          it's linked to, right under the numbers, so it's never a mystery where the figure comes
+          from.
+        </p>
+        <p>Either way, reaching 100% marks the goal "reached" instead of just showing a percentage.</p>
       </Section>
 
       <Section title="Hide balances">
