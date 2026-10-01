@@ -2,26 +2,41 @@
 
 @theme {
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  /* Decorative only — branding and a few headings, never body copy or numbers. */
+  --font-display: 'Press Start 2P', ui-monospace, monospace;
 
-  --color-paper: #f6f6fb;
-  --color-raised: #ffffff;
-  --color-ink: #15161c;
-  --color-muted: #63646f;
-  --color-faint: #6a6b75;
-  --color-rule: #e7e7f0;
-  --color-brand: #5b4fe8;
-  --color-brand-2: #0d7d6e;
-  --color-brand-soft: #edebfe;
+  /* Light theme — warm paper background, a readable retro-violet/teal/amber
+     accent set. Every pairing below has been checked against WCAG 2.1 AA
+     (4.5:1 for text, ~3:1 for the rule/border color as a UI boundary). */
+  --color-paper: #f5f0e6;
+  --color-raised: #fffcf5;
+  --color-ink: #202434;
+  --color-muted: #4a4d5e;
+  --color-faint: #5a5d6e;
+  --color-rule: #998e72;
+  --color-brand: #6d4fd6;
+  --color-brand-2: #0b7a70;
+  --color-brand-soft: #ede6fb;
   --color-under: #0f7a37;
-  --color-under-soft: #e7f7ec;
-  --color-over: #d91a45;
-  --color-over-soft: #fdecef;
+  --color-under-soft: #e6f6ec;
+  --color-over: #c2273f;
+  --color-over-soft: #fbeaee;
+  --color-amber: #9a5b06;
+  --color-amber-soft: #fdebc8;
 
-  --shadow-card: 0 1px 2px rgba(30, 24, 90, 0.05), 0 3px 10px -4px rgba(30, 24, 90, 0.12),
-    0 18px 36px -16px rgba(30, 24, 90, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --shadow-card-hover: 0 2px 4px rgba(30, 24, 90, 0.06), 0 6px 16px -4px rgba(30, 24, 90, 0.14),
-    0 28px 48px -18px rgba(30, 24, 90, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  --shadow-pop: 0 24px 60px -12px rgba(20, 15, 60, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  /* Shallow "shallow shadow + light bevel" depth — never heavy 3D. */
+  --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.06), 0 3px 10px -4px rgba(40, 30, 10, 0.1),
+    0 16px 32px -16px rgba(40, 30, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.07), 0 6px 16px -4px rgba(40, 30, 10, 0.12),
+    0 26px 44px -18px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  /* The "raised button" look: a solid lower edge standing in for a 3D side face. */
+  --shadow-raised: 0 2px 0 0 color-mix(in srgb, var(--color-ink) 18%, transparent), 0 3px 6px -2px rgba(40, 30, 10, 0.18);
+  --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(40, 30, 10, 0.22);
+
+  --duration-fast: 100ms;
+  --duration-base: 160ms;
+  --duration-slow: 280ms;
 }
 
 @layer base {
@@ -32,71 +47,83 @@
   /* System preference, only when the user hasn't chosen explicitly. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
-      --color-paper: #0a0d14;
-      --color-raised: #141826;
-      --color-ink: #f3f4f8;
-      --color-muted: #9a9dae;
-      --color-faint: #767a8c;
-      --color-rule: #242a3d;
-      --color-brand: #8b7bf3;
-      --color-brand-2: #0d7d6e;
-      --color-brand-soft: #221f3f;
+      --color-paper: #10121b;
+      --color-raised: #1b1f2e;
+      --color-ink: #f4f1e8;
+      --color-muted: #a9adc4;
+      --color-faint: #8085a0;
+      --color-rule: #585f85;
+      --color-brand: #a78bfa;
+      --color-brand-2: #2dd4bf;
+      --color-brand-soft: #241f3d;
       --color-under: #34d399;
       --color-under-soft: #12261f;
       --color-over: #fb7185;
       --color-over-soft: #341721;
+      --color-amber: #fbbf24;
+      --color-amber-soft: #3d2e0f;
 
       --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 3px 10px -4px rgba(0, 0, 0, 0.35),
-        0 20px 40px -16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 18px 36px -16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
       --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.5),
-        0 30px 56px -18px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        0 28px 52px -18px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      --shadow-raised: 0 2px 0 0 rgba(0, 0, 0, 0.45), 0 3px 6px -2px rgba(0, 0, 0, 0.4);
+      --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(0, 0, 0, 0.5);
     }
   }
 
   /* Explicit user choice always wins over system preference. */
   :root[data-theme='dark'] {
-    --color-paper: #0a0d14;
-    --color-raised: #141826;
-    --color-ink: #f3f4f8;
-    --color-muted: #9a9dae;
-    --color-faint: #767a8c;
-    --color-rule: #242a3d;
-    --color-brand: #8b7bf3;
-    --color-brand-2: #0d7d6e;
-    --color-brand-soft: #221f3f;
+    --color-paper: #10121b;
+    --color-raised: #1b1f2e;
+    --color-ink: #f4f1e8;
+    --color-muted: #a9adc4;
+    --color-faint: #8085a0;
+    --color-rule: #585f85;
+    --color-brand: #a78bfa;
+    --color-brand-2: #2dd4bf;
+    --color-brand-soft: #241f3d;
     --color-under: #34d399;
     --color-under-soft: #12261f;
     --color-over: #fb7185;
     --color-over-soft: #341721;
+    --color-amber: #fbbf24;
+    --color-amber-soft: #3d2e0f;
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 3px 10px -4px rgba(0, 0, 0, 0.35),
-      0 20px 40px -16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      0 18px 36px -16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.5),
-      0 30px 56px -18px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      0 28px 52px -18px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --shadow-raised: 0 2px 0 0 rgba(0, 0, 0, 0.45), 0 3px 6px -2px rgba(0, 0, 0, 0.4);
+    --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(0, 0, 0, 0.5);
   }
 
   :root[data-theme='light'] {
-    --color-paper: #f6f6fb;
-    --color-raised: #ffffff;
-    --color-ink: #15161c;
-    --color-muted: #63646f;
-    --color-faint: #6a6b75;
-    --color-rule: #e7e7f0;
-    --color-brand: #5b4fe8;
-    --color-brand-2: #0d7d6e;
-    --color-brand-soft: #edebfe;
+    --color-paper: #f5f0e6;
+    --color-raised: #fffcf5;
+    --color-ink: #202434;
+    --color-muted: #4a4d5e;
+    --color-faint: #5a5d6e;
+    --color-rule: #998e72;
+    --color-brand: #6d4fd6;
+    --color-brand-2: #0b7a70;
+    --color-brand-soft: #ede6fb;
     --color-under: #0f7a37;
-    --color-under-soft: #e7f7ec;
-    --color-over: #d91a45;
-    --color-over-soft: #fdecef;
+    --color-under-soft: #e6f6ec;
+    --color-over: #c2273f;
+    --color-over-soft: #fbeaee;
+    --color-amber: #9a5b06;
+    --color-amber-soft: #fdebc8;
 
-    --shadow-card: 0 1px 2px rgba(30, 24, 90, 0.05), 0 3px 10px -4px rgba(30, 24, 90, 0.12),
-      0 18px 36px -16px rgba(30, 24, 90, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    --shadow-card-hover: 0 2px 4px rgba(30, 24, 90, 0.06), 0 6px 16px -4px rgba(30, 24, 90, 0.14),
-      0 28px 48px -18px rgba(30, 24, 90, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    --shadow-pop: 0 24px 60px -12px rgba(20, 15, 60, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.06), 0 3px 10px -4px rgba(40, 30, 10, 0.1),
+      0 16px 32px -16px rgba(40, 30, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.07), 0 6px 16px -4px rgba(40, 30, 10, 0.12),
+      0 26px 44px -18px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --shadow-raised: 0 2px 0 0 color-mix(in srgb, var(--color-ink) 18%, transparent), 0 3px 6px -2px rgba(40, 30, 10, 0.18);
+    --shadow-pressed: 0 0 0 0 transparent, inset 0 1px 3px rgba(40, 30, 10, 0.22);
   }
 
   html {
@@ -185,41 +212,84 @@
     -webkit-background-clip: text;
     color: transparent;
   }
+
+  /* Decorative pixel-style branding font — headings/eyebrow labels only. */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
+
   .card-hover {
     box-shadow: var(--shadow-card);
     transition:
-      transform 180ms cubic-bezier(0.2, 0.7, 0.3, 1),
-      box-shadow 180ms cubic-bezier(0.2, 0.7, 0.3, 1),
-      border-color 180ms ease;
+      transform var(--duration-base) cubic-bezier(0.2, 0.7, 0.3, 1),
+      box-shadow var(--duration-base) cubic-bezier(0.2, 0.7, 0.3, 1),
+      border-color var(--duration-base) ease;
   }
   .card-hover:hover {
     box-shadow: var(--shadow-card-hover);
     border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-rule));
   }
 
-  /* Tactile lift-and-press feedback for buttons — the "3D" part, kept subtle. */
+  /*
+   * Tactile raised-button-and-press feedback — the app's "3D" signature,
+   * kept shallow on purpose. A solid lower edge reads as a button's side
+   * face; pressing it flattens that edge and dents the surface instead,
+   * like a physical key bottoming out rather than a card lifting off the
+   * page. Applied widely (every existing `.press` button picks this up
+   * automatically), so it never needs the retro treatment have bolted on
+   * per-component.
+   */
   .press {
+    box-shadow: var(--shadow-raised);
     transition:
-      transform 120ms cubic-bezier(0.2, 0.7, 0.3, 1),
-      box-shadow 120ms cubic-bezier(0.2, 0.7, 0.3, 1),
-      filter 120ms ease;
+      transform var(--duration-fast) cubic-bezier(0.2, 0.7, 0.3, 1),
+      box-shadow var(--duration-fast) cubic-bezier(0.2, 0.7, 0.3, 1),
+      filter var(--duration-fast) ease;
   }
   .press:hover {
     transform: translateY(-1px);
     filter: brightness(1.04);
   }
   .press:active {
-    transform: translateY(0);
+    transform: translateY(2px);
+    box-shadow: var(--shadow-pressed);
     filter: brightness(0.97);
+  }
+
+  /* A budget/usage bar made of small notched segments instead of one solid
+     fill — a restrained nod to retro meter UI, still fully legible as a
+     percentage-of-total at a glance. */
+  .bar-segmented {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(100% / 14 - 2px),
+      var(--color-paper) calc(100% / 14 - 2px),
+      var(--color-paper) calc(100% / 14)
+    );
+    background-size: 100% 100%;
+  }
+
+  /* A small stepped-corner notch for the one or two spots that should read
+     as distinctly "retro cartridge" chrome (the brand mark) — deliberately
+     not used on every card, per "restrained retro accents." */
+  .pixel-notch {
+    clip-path: polygon(
+      0 6px, 6px 6px, 6px 0,
+      calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
+      100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%,
+      6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)
+    );
   }
 
   .theme-transition,
   .theme-transition * {
     transition:
-      background-color 180ms ease,
-      border-color 180ms ease,
-      color 180ms ease,
-      box-shadow 180ms ease;
+      background-color var(--duration-base) ease,
+      border-color var(--duration-base) ease,
+      color var(--duration-base) ease,
+      box-shadow var(--duration-base) ease;
   }
 }
 
@@ -229,5 +299,9 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  .press:hover,
+  .press:active {
+    transform: none;
   }
 }
