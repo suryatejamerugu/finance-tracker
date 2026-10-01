@@ -34,7 +34,7 @@ export function SpendDonut({
   const [active, setActive] = useState<number | null>(null);
 
   return (
-    <section className="mb-7">
+    <section className="mb-5">
       <h2 className="mb-2 text-[15px] font-medium">This month</h2>
       <div className="rounded-xl border border-rule bg-raised shadow-card card-hover">
         {slices.length === 0 ? (
@@ -155,7 +155,7 @@ export function AccountsGallery({
 
   return (
     <>
-      <section className="mb-7">
+      <section className="mb-5">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-[15px] font-medium">Accounts</h2>
           <span className="num flex flex-wrap justify-end gap-x-2 text-[13px] text-muted">

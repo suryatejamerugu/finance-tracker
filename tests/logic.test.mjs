@@ -100,6 +100,39 @@ eq('goalProgress clamps at 100 when overshot', sel.goalProgress(15000, 10000), 1
 eq('goalProgress is 0 for a target of 0 (no divide-by-zero)', sel.goalProgress(500, 0), 0);
 eq('goalProgress is 0 when nothing saved yet', sel.goalProgress(0, 10000), 0);
 
+// --- account-linked savings goals (goalAllocations)
+const goal = (id, accountId, targetAmount, order) => row({ id, accountId, targetAmount, savedAmount: 0, currency: 'USD', icon: 'tag', color: '#000', order });
+const acctStatus = (id, balance) => ({ account: { id, name: id, currency: 'USD', color: '#000', order: 0 }, balance, totalIncome: 0, totalExpenses: 0, transferIn: 0, transferOut: 0 });
+
+const oneGoalStatuses = [acctStatus('sav1', 30000)];
+eq('unlinked goal gets no allocation', sel.goalAllocations([goal('g0', null, 10000, 0)], oneGoalStatuses).has('g0'), false);
+eq('linked goal under balance gets its full target', sel.goalAllocations([goal('g1', 'sav1', 10000, 0)], oneGoalStatuses).get('g1'), 10000);
+eq('linked goal above balance is capped at the balance', sel.goalAllocations([goal('g1', 'sav1', 50000, 0)], oneGoalStatuses).get('g1'), 30000);
+
+// Two goals sharing one account split it in list order, never both claiming the same money.
+const twoGoals = [goal('first', 'sav1', 20000, 0), goal('second', 'sav1', 20000, 1)];
+const twoAlloc = sel.goalAllocations(twoGoals, oneGoalStatuses);
+eq('first-listed goal is funded first', twoAlloc.get('first'), 20000);
+eq('second goal only gets what is left over', twoAlloc.get('second'), 10000);
+eq('allocations across one account never exceed its balance', twoAlloc.get('first') + twoAlloc.get('second'), 30000);
+
+eq('negative balance allocates nothing (not a negative amount)', sel.goalAllocations([goal('g2', 'sav2', 10000, 0)], [acctStatus('sav2', -5000)]).get('g2'), 0);
+
+// --- Reports range bucketing (trendBuckets)
+const dayRows = [
+  row({ id: 'd1', date: '2026-09-10', amount: 500, categoryId: 'c1' }),
+  row({ id: 'd2', date: '2026-09-15', amount: 700, categoryId: 'c1' }),
+  row({ id: 'd3', date: '2026-08-01', amount: 999, categoryId: 'c1' }), // outside a 'week' window ending 09-15
+];
+const week = sel.trendBuckets(dayRows, 'week', '2026-09-15', (r) => r.categoryId);
+eq('week range buckets by day, 7 buckets', week.data.length, 7);
+eq('week granularity is day', week.granularity, 'day');
+eq('week range excludes a row from outside its 7-day window', week.data.reduce((s, d) => s + (d.c1 || 0), 0), 12);
+
+const yearRange = sel.trendBuckets(dayRows, 'year', '2026-09-15', (r) => r.categoryId);
+eq('year range buckets by month, Jan..current month', yearRange.data.length, 9);
+eq('year granularity is month', yearRange.granularity, 'month');
+
 // --- recurring entries / upcoming bills
 const rec = (id, name, type, amount, day, order) =>
   row({ id, name, type, amount, accountId: 'a1', categoryId: type === 'expense' ? 'c1' : null, dayOfMonth: day, icon: 'tag', color: '#000', order });

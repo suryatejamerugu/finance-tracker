@@ -190,6 +190,18 @@ class LedgerDB extends Dexie {
     // field, so existing rows simply read back without it (equivalent to
     // null everywhere it's checked) — no upgrade() needed for them.
     this.version(8).stores({ recurringEntries: 'id, order' });
+
+    // v9: savings goals can link to an account for auto-updating progress.
+    // Every existing goal gets accountId: null, i.e. stays exactly as
+    // manually-tracked as it already was.
+    this.version(9).upgrade(async (tx) => {
+      await tx
+        .table('savingsGoals')
+        .toCollection()
+        .modify((row: { accountId?: string | null }) => {
+          if (row.accountId === undefined) row.accountId = null;
+        });
+    });
   }
 }
 
@@ -352,6 +364,13 @@ function normalizeIncomeCategories(categories: unknown[]): IncomeCategory[] {
   }));
 }
 
+function normalizeSavingsGoals(goals: unknown[]): SavingsGoal[] {
+  return (goals as Array<SavingsGoal & { accountId?: string | null }>).map((g) => ({
+    ...g,
+    accountId: g.accountId ?? null,
+  }));
+}
+
 const TABLES = [
   'accounts',
   'categories',
@@ -386,7 +405,9 @@ export async function mergeSnapshot(remote: Snapshot): Promise<void> {
     await db.expenses.bulkPut(mergeRows(local.expenses, remote.expenses ?? []));
     await db.incomes.bulkPut(mergeRows(local.incomes, remoteIncomes));
     await db.transfers.bulkPut(mergeRows(local.transfers, remote.transfers ?? []));
-    await db.savingsGoals.bulkPut(mergeRows(local.savingsGoals, remote.savingsGoals ?? []));
+    await db.savingsGoals.bulkPut(
+      mergeRows(local.savingsGoals, normalizeSavingsGoals(remote.savingsGoals ?? [])),
+    );
     await db.recurringEntries.bulkPut(mergeRows(local.recurringEntries, remote.recurringEntries ?? []));
     if (remote.settings && remote.settings.updatedAt > local.settings.updatedAt) {
       await db.settings.put(remote.settings);
@@ -409,7 +430,7 @@ export async function replaceWithSnapshot(snap: Snapshot): Promise<void> {
     await db.expenses.bulkPut(snap.expenses ?? []);
     await db.incomes.bulkPut(incomes);
     await db.transfers.bulkPut(snap.transfers ?? []);
-    await db.savingsGoals.bulkPut(snap.savingsGoals ?? []);
+    await db.savingsGoals.bulkPut(normalizeSavingsGoals(snap.savingsGoals ?? []));
     await db.recurringEntries.bulkPut(snap.recurringEntries ?? []);
     await db.settings.put(snap.settings ?? DEFAULT_SETTINGS);
   });

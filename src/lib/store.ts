@@ -326,6 +326,7 @@ export async function addSavingsGoal(input: {
   currency: string;
   color: string;
   icon: string;
+  accountId?: string | null;
 }): Promise<void> {
   const order = await db.savingsGoals.count();
   await db.savingsGoals.put({
@@ -337,13 +338,14 @@ export async function addSavingsGoal(input: {
     icon: input.icon,
     color: input.color,
     order,
+    accountId: input.accountId ?? null,
     ...stamp(),
   });
 }
 
 export async function updateSavingsGoal(
   id: string,
-  input: { name: string; targetAmount: Cents; currency: string; color: string; icon: string },
+  input: { name: string; targetAmount: Cents; currency: string; color: string; icon: string; accountId?: string | null },
 ): Promise<void> {
   const existing = await db.savingsGoals.get(id);
   if (!existing) return;
@@ -355,6 +357,7 @@ export async function updateSavingsGoal(
     currency: input.currency,
     color: input.color,
     icon: input.icon,
+    accountId: input.accountId !== undefined ? input.accountId : existing.accountId,
     updatedAt: Date.now(),
   });
 }

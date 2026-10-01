@@ -187,6 +187,29 @@
     font-size: 16px;
   }
 
+  /*
+   * Native <select> popups draw with the OS's own chrome, ignoring an
+   * inherited/transparent background — so without this, every dropdown
+   * (Category, Account, Currency, ...) opened a plain white OS popup over
+   * the dark theme, unreadable against light text. Setting a real
+   * background/color directly on select/option (not just color-scheme)
+   * makes the popup itself follow the theme in Chromium and Firefox alike.
+   */
+  select {
+    background-color: var(--color-raised);
+    color: var(--color-ink);
+  }
+  select option {
+    background-color: var(--color-raised);
+    color: var(--color-ink);
+  }
+  select option:checked,
+  select option:hover,
+  select option:focus {
+    background-color: var(--color-brand-soft);
+    color: var(--color-ink);
+  }
+
   /* Themed scrollbars everywhere, instead of the raw OS default clashing with the palette. */
   * {
     scrollbar-width: thin;

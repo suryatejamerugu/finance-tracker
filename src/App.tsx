@@ -11,11 +11,13 @@ import { UndoToast } from './components/UndoToast'
 import { Footer } from './components/Footer'
 import { Dashboard } from './pages/Dashboard'
 import { About } from './pages/About'
+import { Reports } from './pages/Reports'
 
 /**
- * Two pages (dashboard, guide), picked by plain pathname — not worth a router
- * dependency. Links are real <a> tags (a full navigation, not client-side),
- * which netlify.toml's SPA redirect makes work correctly either way.
+ * Three pages (dashboard, reports, guide), picked by plain pathname — not
+ * worth a router dependency. Links are real <a> tags (a full navigation, not
+ * client-side), which netlify.toml's SPA redirect makes work correctly
+ * either way.
  */
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -23,7 +25,9 @@ export default function App() {
   const sync = useSync()
   const { theme, toggle: toggleTheme } = useTheme()
   const { hidden: hideBalances, toggle: toggleHideBalances } = useHideBalances()
-  const isAbout = window.location.pathname.replace(/\/+$/, '') === '/about'
+  const path = window.location.pathname.replace(/\/+$/, '')
+  const isAbout = path === '/about'
+  const isReports = path === '/reports'
 
   useEffect(() => {
     void seedIfEmpty().finally(() => setReady(true))
@@ -46,6 +50,16 @@ export default function App() {
           </a>
           <div className="flex items-center gap-3">
             <SyncBadge sync={sync} />
+            <a
+              href="/reports"
+              aria-label="Reports: spending and income charts"
+              title="Reports: spending and income charts"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-rule text-muted transition-colors hover:border-brand hover:text-brand"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 20V10M12 20V4M20 20v-7" />
+              </svg>
+            </a>
             <a
               href="/about"
               aria-label="Guide: how to use this app"
@@ -85,6 +99,8 @@ export default function App() {
 
           {isAbout ? (
             <About />
+          ) : isReports ? (
+            <Reports onChanged={sync.scheduleSync} />
           ) : (
             <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} hideBalances={hideBalances} />
           )}

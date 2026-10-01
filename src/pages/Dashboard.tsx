@@ -6,6 +6,7 @@ import {
   buildAccountStatuses,
   buildCategoryStatuses,
   donutByCategory,
+  goalAllocations,
   live,
   monthSummary,
   upcomingBills,
@@ -14,8 +15,6 @@ import { currentMonth, formatBig, formatMoney, HIDDEN_AMOUNT, monthLabel, shiftM
 import { ADD_LABELS, AddModal, type AddKind, type EditingRow } from '../components/AddModal';
 import { CategoryGallery } from '../components/CategoryGallery';
 import { RecentActivity } from '../components/RecentActivity';
-import { SpendingTrend } from '../components/SpendingTrend';
-import { IncomeTrend } from '../components/IncomeTrend';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
 import { SavingsGoals } from '../components/SavingsGoals';
 import { UpcomingBills } from '../components/UpcomingBills';
@@ -89,13 +88,11 @@ export function Dashboard({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [budgetsOpen, setBudgetsOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
-  const [goalsOpen, setGoalsOpen] = useState(false);
   const [dismissedOverspent, setDismissedOverspent] = useState<string | null>(null);
   const [dismissedUnbudgeted, setDismissedUnbudgeted] = useState<string | null>(null);
   const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
   const budgetRef = useRef<HTMLDivElement>(null);
   const activityRef = useRef<HTMLDivElement>(null);
-  const reportsRef = useRef<HTMLDivElement>(null);
   const accountsRef = useRef<HTMLDivElement>(null);
   const goalsRef = useRef<HTMLDivElement>(null);
   const billsRef = useRef<HTMLDivElement>(null);
@@ -182,13 +179,14 @@ export function Dashboard({
   const slices = donutByCategory(data.categories, data.expenses, data.accounts, month, currency, settings.currency);
 
   const isEmpty = data.expenses.length === 0 && data.incomes.length === 0 && data.transfers.length === 0;
+  const allocations = goalAllocations(liveSavingsGoals, accountStatuses);
 
-  const NAV_ITEMS: Array<{ label: string; action: () => void }> = [
+  const NAV_ITEMS: Array<{ label: string; action: () => void } | { label: string; href: string }> = [
     { label: 'Overview', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
     { label: 'Budget', action: () => scrollTo(budgetRef) },
-    { label: 'Bills', action: () => scrollTo(billsRef) },
     { label: 'Transactions', action: () => scrollTo(activityRef) },
-    { label: 'Reports', action: () => scrollTo(reportsRef) },
+    { label: 'Bills', action: () => scrollTo(billsRef) },
+    { label: 'Reports', href: '/reports' },
     { label: 'Accounts', action: () => scrollTo(accountsRef) },
     { label: 'Goals', action: () => scrollTo(goalsRef) },
   ];
@@ -204,16 +202,26 @@ export function Dashboard({
           to find it — the app is one page, so this isn't a router, just
           anchors into the page's own sections. */}
       <nav aria-label="Dashboard sections" className="-mx-1 flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b border-rule py-2">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={item.action}
-            className="rounded-md px-2.5 py-1 text-[12.5px] text-faint transition-colors hover:bg-brand-soft hover:text-brand"
-          >
-            {item.label}
-          </button>
-        ))}
+        {NAV_ITEMS.map((item) =>
+          'href' in item ? (
+            <a
+              key={item.label}
+              href={item.href}
+              className="rounded-md px-2.5 py-1 text-[12.5px] text-faint no-underline transition-colors hover:bg-brand-soft hover:text-brand"
+            >
+              {item.label}
+            </a>
+          ) : (
+            <button
+              key={item.label}
+              type="button"
+              onClick={item.action}
+              className="rounded-md px-2.5 py-1 text-[12.5px] text-faint transition-colors hover:bg-brand-soft hover:text-brand"
+            >
+              {item.label}
+            </button>
+          ),
+        )}
       </nav>
 
       {isEmpty && (
@@ -228,7 +236,7 @@ export function Dashboard({
       )}
 
       {/* Month bar and currency lens */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -303,7 +311,7 @@ export function Dashboard({
       {/* Add expense stays the one unmissable action; income/transfer sit right
           beside it since they're used almost as often. Category/account are
           one-time setup, so they're visually set apart rather than hidden. */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {ADD_ORDER.slice(0, PRIMARY_ADD_COUNT).map((kind) => (
           <button
             key={kind}
@@ -418,17 +426,6 @@ export function Dashboard({
         </div>
 
         <div className="order-3 min-w-0 lg:order-2">
-          <div ref={billsRef} className="scroll-mt-4">
-            <UpcomingBills
-              bills={bills}
-              categories={liveCategories}
-              accounts={liveAccounts}
-              incomeCategories={liveIncomeCategories}
-              settings={settings}
-              onChanged={onChanged}
-              hideBalances={hideBalances}
-            />
-          </div>
           <div ref={activityRef} className="scroll-mt-4">
             <RecentActivity
               expenses={data.expenses}
@@ -446,26 +443,15 @@ export function Dashboard({
               hideBalances={hideBalances}
             />
           </div>
-          <div ref={reportsRef} className="scroll-mt-4">
-            <SpendingTrend
-              expenses={data.expenses}
+          <div ref={billsRef} className="scroll-mt-4">
+            <UpcomingBills
+              bills={bills}
               categories={liveCategories}
               accounts={liveAccounts}
-              currency={currency}
-              homeCurrency={settings.currency}
-              month={month}
-              settings={settings}
-              hideBalances={hideBalances}
-            />
-            <IncomeTrend
-              incomes={data.incomes}
-              accounts={liveAccounts}
               incomeCategories={liveIncomeCategories}
-              currency={currency}
-              homeCurrency={settings.currency}
-              month={month}
               settings={settings}
               onChanged={onChanged}
+              compact
               hideBalances={hideBalances}
             />
           </div>
@@ -495,9 +481,10 @@ export function Dashboard({
               goals={liveSavingsGoals}
               settings={settings}
               defaultCurrency={currency}
+              accounts={liveAccounts}
+              allocations={allocations}
               onChanged={onChanged}
-              limit={6}
-              onViewAll={() => setGoalsOpen(true)}
+              compact
               hideBalances={hideBalances}
             />
           </div>
@@ -565,17 +552,6 @@ export function Dashboard({
         </Overlay>
       )}
 
-      {goalsOpen && (
-        <Overlay title="All savings goals" onClose={() => setGoalsOpen(false)}>
-          <SavingsGoals
-            goals={liveSavingsGoals}
-            settings={settings}
-            defaultCurrency={currency}
-            onChanged={onChanged}
-            hideBalances={hideBalances}
-          />
-        </Overlay>
-      )}
     </div>
   );
 }

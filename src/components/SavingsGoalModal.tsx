@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SavingsGoal } from '../types';
+import type { Account, SavingsGoal } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
@@ -9,16 +9,17 @@ import { addSavingsGoal, updateSavingsGoal } from '../lib/store';
 import { IconPicker } from './Pickers';
 
 /**
- * Create or edit a goal — name, target amount, currency, icon, color. Kept
- * separate from AddModal (which already covers five other kinds) since a
- * goal has no account/category link, no date, and its own "target amount"
- * field; bolting it on there would mean yet another kind-specific branch
- * threaded through an already-long component.
+ * Create or edit a goal — name, target amount, currency, icon, color, and
+ * (optionally) a linked account. Kept separate from AddModal (which already
+ * covers five other kinds) since a goal has no category link, no date, and
+ * its own "target amount" field; bolting it on there would mean yet another
+ * kind-specific branch threaded through an already-long component.
  */
 export function SavingsGoalModal({
   editing,
   existingCount,
   defaultCurrency,
+  accounts,
   onChanged,
   onClose,
 }: {
@@ -26,6 +27,7 @@ export function SavingsGoalModal({
   /** Used only for a new goal's default color, so it doesn't repeat an existing one. */
   existingCount: number;
   defaultCurrency: string;
+  accounts: Account[];
   onChanged: () => void;
   onClose: () => void;
 }) {
@@ -34,6 +36,7 @@ export function SavingsGoalModal({
     editing ? (editing.targetAmount / 100).toFixed(2) : '',
   );
   const [currency, setCurrency] = useState(editing?.currency ?? defaultCurrency);
+  const [accountId, setAccountId] = useState(editing?.accountId ?? '');
   const [color, setColor] = useState(editing?.color ?? suggestedColor(existingCount));
   const [icon, setIcon] = useState(editing?.icon ?? 'piggy-bank');
   const [iconTouched, setIconTouched] = useState(Boolean(editing));
@@ -51,10 +54,26 @@ export function SavingsGoalModal({
     setSaving(true);
     try {
       const targetAmount = parseAmount(amountInput) ?? 0;
+      const linkedAccount = accounts.find((a) => a.id === accountId);
+      const effectiveCurrency = linkedAccount?.currency ?? currency;
       if (editing) {
-        await updateSavingsGoal(editing.id, { name, targetAmount, currency, color, icon });
+        await updateSavingsGoal(editing.id, {
+          name,
+          targetAmount,
+          currency: effectiveCurrency,
+          color,
+          icon,
+          accountId: accountId || null,
+        });
       } else {
-        await addSavingsGoal({ name, targetAmount, currency, color, icon });
+        await addSavingsGoal({
+          name,
+          targetAmount,
+          currency: effectiveCurrency,
+          color,
+          icon,
+          accountId: accountId || null,
+        });
       }
       onChanged();
       onClose();
@@ -114,12 +133,33 @@ export function SavingsGoalModal({
           </div>
 
           <div>
+            <span className="mb-1.5 block text-[12px] text-faint">Link to an account</span>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              aria-label="Link to an account"
+              className="w-full rounded-lg border border-rule bg-transparent px-3 py-2.5 text-[15px] outline-none focus:border-brand"
+            >
+              <option value="">No account — track manually</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
+              {accountId
+                ? "Progress is derived from this account's balance, not typed in — see the goal's card for how."
+                : "Leave unlinked to track progress by typing in a number yourself, like a budget."}
+            </p>
+          </div>
+
+          <div>
             <span className="mb-1.5 block text-[12px] text-faint">Currency</span>
             <select
-              value={currency}
+              value={accountId ? (accounts.find((a) => a.id === accountId)?.currency ?? currency) : currency}
               onChange={(e) => setCurrency(e.target.value)}
+              disabled={Boolean(accountId)}
               aria-label="Currency"
-              className="w-full rounded-lg border border-rule bg-transparent px-3 py-2.5 text-[15px] outline-none focus:border-brand"
+              className="w-full rounded-lg border border-rule bg-transparent px-3 py-2.5 text-[15px] outline-none focus:border-brand disabled:opacity-60"
             >
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>{c.code} — {c.name}</option>

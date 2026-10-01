@@ -155,11 +155,13 @@ export interface Transfer extends Synced {
 }
 
 /**
- * A standalone, manually-tracked target — "saved so far" is a number the
- * user updates themselves as they set money aside, not something derived
- * from any account balance or transaction. Deliberately disconnected from
- * real money movement: linking it to an account would make "contributing"
- * to a goal look like it moves money, when it doesn't.
+ * A target, trackable two ways. Unlinked (`accountId: null`): "saved so
+ * far" is a plain number you type in yourself, same as a category's budget.
+ * Linked to an account: progress is derived instead, from that account's
+ * real balance — see `goalAllocations()` in selectors.ts for exactly how
+ * (including what happens when more than one goal shares an account, so
+ * money is never counted toward two goals at once). `savedAmount` is kept
+ * for unlinked goals and as the last-known value if you unlink one.
  */
 export interface SavingsGoal extends Synced {
   name: string;
@@ -169,6 +171,8 @@ export interface SavingsGoal extends Synced {
   icon: string;
   color: string;
   order: number;
+  /** The account this goal's progress is derived from, or null for a manually-tracked goal. */
+  accountId: string | null;
 }
 
 export interface Settings {
@@ -178,7 +182,7 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export interface Snapshot {
   schemaVersion: number;

@@ -8,21 +8,19 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { Account, Income, IncomeCategory, ISOMonth, Settings } from '../types';
-import { HIDDEN_AMOUNT, shortMonthLabel } from '../lib/money';
-import { filterByCurrency, live, stackedByMonth } from '../lib/selectors';
+import type { Account, Income, IncomeCategory, Settings } from '../types';
+import { HIDDEN_AMOUNT, shortDate, shortMonthLabel, todayISO } from '../lib/money';
+import { filterByCurrency, live, REPORT_RANGES, trendBuckets, type ReportRange } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { EmptyRow } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
 import { IncomeCategoriesModal } from './IncomeCategoriesModal';
 
 /**
- * 12-month income-by-source trend — split out from what used to be
- * IncomesPanel's "Chart" tab. The Recent/Monthly/Yearly list views moved
- * into RecentActivity (recent, merged with expenses/transfers) and Full
- * History (everything else, with search and export); "Categories" (managing
- * income sources) stays here since this is still the one place income's own
- * settings live.
+ * Income-by-source trend over a selectable range — split out from what used
+ * to be IncomesPanel's "Chart" tab, and later moved off the dashboard onto
+ * the Reports page. "Categories" (managing income sources) stays here since
+ * this is still the one place income's own settings live.
  */
 export function IncomeTrend({
   incomes,
@@ -30,7 +28,7 @@ export function IncomeTrend({
   incomeCategories,
   currency,
   homeCurrency,
-  month,
+  range,
   settings,
   onChanged,
   hideBalances,
@@ -41,7 +39,7 @@ export function IncomeTrend({
   /** The dashboard's current currency lens. */
   currency: string;
   homeCurrency: string;
-  month: ISOMonth;
+  range: ReportRange;
   settings: Settings;
   onChanged: () => void;
   hideBalances?: boolean;
@@ -52,7 +50,10 @@ export function IncomeTrend({
   const chartSeries = useSeriesInteraction();
   const [managingCategories, setManagingCategories] = useState(false);
 
-  const { data, series } = stackedByMonth(rows, month, 12, (i) => sourceName.get(i.sourceId ?? '') ?? null);
+  const { data, series, granularity } = trendBuckets(rows, range, todayISO(), (i) => sourceName.get(i.sourceId ?? '') ?? null);
+  const dateKey = granularity === 'day' ? 'date' : 'month';
+  const tickFormatter = (v: string) => (granularity === 'day' ? shortDate(v, locale) : shortMonthLabel(v, locale));
+  const rangeLabel = REPORT_RANGES.find((r) => r.key === range)?.label.toLowerCase() ?? range;
   const rawColorOf = new Map(incomeCategories.map((c) => [c.name, c.color]));
   const resolved = resolveDistinctColors(series.map((name) => ({ name, color: rawColorOf.get(name) ?? '#9A9DA3' })));
   const colorOf = new Map(resolved.map((r) => [r.name, r.color]));
@@ -74,18 +75,18 @@ export function IncomeTrend({
         </div>
         <div className="rounded-xl border border-rule bg-raised shadow-card card-hover">
           {series.length === 0 ? (
-            <EmptyRow>No income in the last 12 months.</EmptyRow>
+            <EmptyRow>No income in the selected {rangeLabel}.</EmptyRow>
           ) : (
             <div className="p-3">
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={data} margin={{ left: 0, right: 8, top: 8 }}>
                   <CartesianGrid stroke="var(--color-rule)" vertical={false} />
                   <XAxis
-                    dataKey="month"
+                    dataKey={dateKey}
                     tick={AXIS}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(m: string) => shortMonthLabel(m, locale)}
+                    tickFormatter={tickFormatter}
                   />
                   <YAxis
                     tick={AXIS}
