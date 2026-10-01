@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import type {
   Account,
   Category,
@@ -98,6 +99,7 @@ export function LedgerView({
   const [visible, setVisible] = useState(PAGE);
   const [pdfMonth, setPdfMonth] = useState(month);
   const [pdfCurrency, setPdfCurrency] = useState(currency);
+  const trapRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -236,6 +238,7 @@ export function LedgerView({
       onClick={onClose}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label="Full history"
@@ -248,7 +251,7 @@ export function LedgerView({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="px-1 text-[16px] text-muted hover:text-ink"
+            className="p-2 -m-2 text-[16px] text-muted hover:text-ink"
           >
             ✕
           </button>
@@ -508,7 +511,7 @@ export function LedgerView({
                     type="button"
                     onClick={() => edit(e)}
                     aria-label={`Edit ${e.name}`}
-                    className="shrink-0 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                    className="shrink-0 p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
                   >
                     <EditIcon />
                   </button>
@@ -516,7 +519,7 @@ export function LedgerView({
                     type="button"
                     onClick={() => void remove(e)}
                     aria-label={`Delete ${e.name}`}
-                    className="shrink-0 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                    className="shrink-0 p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
                   >
                     ×
                   </button>

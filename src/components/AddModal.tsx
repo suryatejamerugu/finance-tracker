@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { Account, AccountType, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
 import { parseAmount, todayISO } from '../lib/money';
 import {
@@ -60,6 +61,7 @@ export function AddModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const trapRef = useFocusTrap<HTMLDivElement>();
   const [name, setName] = useState(editing?.name ?? '');
   const [amount, setAmount] = useState(editing ? (editing.amount / 100).toFixed(2) : '');
   const [date, setDate] = useState(editing && 'date' in editing ? editing.date : todayISO());
@@ -174,6 +176,7 @@ export function AddModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}

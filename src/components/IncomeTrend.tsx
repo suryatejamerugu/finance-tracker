@@ -67,7 +67,7 @@ export function IncomeTrend({
           <button
             type="button"
             onClick={() => setManagingCategories(true)}
-            className="rounded-md px-2 py-0.5 text-[12px] text-faint hover:text-brand"
+            className="rounded-md px-2 py-1.5 -my-1 text-[12px] text-faint hover:text-brand"
           >
             Categories
           </button>

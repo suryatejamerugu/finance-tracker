@@ -71,7 +71,7 @@ export function SavingsGoals({
               type="button"
               onClick={() => setEditing(g)}
               aria-label={`Edit ${g.name}`}
-              className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+              className="p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
             >
               <EditIcon />
             </button>
@@ -79,7 +79,7 @@ export function SavingsGoals({
               type="button"
               onClick={() => void remove(g.name, g.id)}
               aria-label={`Delete ${g.name}`}
-              className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+              className="p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
             >
               ×
             </button>
@@ -120,7 +120,7 @@ export function SavingsGoals({
       <section className="mb-7">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-[15px] font-medium">Savings goals</h2>
-          <button type="button" onClick={() => setCreating(true)} className="text-[12.5px] text-muted hover:text-brand">
+          <button type="button" onClick={() => setCreating(true)} className="py-1 -my-1 text-[12.5px] text-muted hover:text-brand">
             New goal
           </button>
         </div>

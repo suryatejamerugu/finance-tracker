@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 /**
  * A generic "see the full thing" overlay for a dashboard-overview preview —
@@ -6,7 +7,17 @@ import { useEffect, useState, type ReactNode } from 'react';
  * the full, drag-to-reorder-capable gallery gets its own scrollable space
  * instead of competing with the rest of the page's scroll.
  */
-export function Overlay({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+export function Overlay({
+  title,
+  onClose,
+  children,
+}: {
+  /** The dialog's accessible name — the content inside has its own visible heading too, but screen readers need the dialog itself to announce what it is the moment it opens. */
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const trapRef = useFocusTrap<HTMLDivElement>();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -19,8 +30,10 @@ export function Overlay({ onClose, children }: { onClose: () => void; children: 
       onClick={onClose}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
         className="relative max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-2xl bg-raised p-5 shadow-pop"
       >
@@ -28,7 +41,7 @@ export function Overlay({ onClose, children }: { onClose: () => void; children: 
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 text-[16px] text-muted hover:text-ink"
+          className="absolute right-4 top-4 p-2 text-[16px] text-muted hover:text-ink"
         >
           ✕
         </button>
@@ -118,7 +131,7 @@ export function Panel<T extends string>({
               onClick={() => setTab(t)}
               aria-current={tab === t ? 'true' : undefined}
               className={`px-2.5 py-1 text-[12px] font-medium transition-colors ${i > 0 ? 'border-l border-rule' : ''} ${
-                tab === t ? 'bg-brand text-white' : 'bg-raised text-faint hover:text-muted'
+                tab === t ? 'bg-brand text-paper' : 'bg-raised text-faint hover:text-muted'
               }`}
             >
               {t}

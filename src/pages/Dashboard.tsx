@@ -195,6 +195,11 @@ export function Dashboard({
 
   return (
     <div className="px-4 pb-16 sm:px-6">
+      {/* The header's own brand mark is a logo, not a page heading, so the
+          page had no level-one heading at all — this one is visually
+          hidden since the summary cards right below it already make
+          "you're looking at your dashboard" obvious at a glance. */}
+      <h1 className="sr-only">Dashboard</h1>
       {/* A slim, always-available way to jump to a section instead of scrolling
           to find it — the app is one page, so this isn't a router, just
           anchors into the page's own sections. */}
@@ -229,7 +234,7 @@ export function Dashboard({
             type="button"
             onClick={() => setMonth(shiftMonth(month, -1))}
             aria-label="Previous month"
-            className="px-2 py-1 text-muted hover:text-ink"
+            className="px-2.5 py-1 text-muted hover:text-ink"
           >
             ‹
           </button>
@@ -238,7 +243,7 @@ export function Dashboard({
             type="button"
             onClick={() => setMonth(shiftMonth(month, 1))}
             aria-label="Next month"
-            className="px-2 py-1 text-muted hover:text-ink"
+            className="px-2.5 py-1 text-muted hover:text-ink"
           >
             ›
           </button>
@@ -253,7 +258,7 @@ export function Dashboard({
                 onClick={() => setLens(c)}
                 aria-current={currency === c ? 'true' : undefined}
                 className={`rounded-md px-2 py-1 text-[12.5px] ${
-                  currency === c ? 'bg-brand text-white' : 'text-faint hover:text-muted'
+                  currency === c ? 'bg-brand text-paper' : 'text-faint hover:text-muted'
                 }`}
               >
                 {c}
@@ -351,14 +356,14 @@ export function Dashboard({
               month.
             </span>
             <span className="flex shrink-0 items-center gap-3">
-              <button type="button" onClick={reviewBudgets} className="font-medium underline-offset-2 hover:underline">
+              <button type="button" onClick={reviewBudgets} className="p-1 -m-1 font-medium underline-offset-2 hover:underline">
                 Review budgets
               </button>
               <button
                 type="button"
                 onClick={() => setDismissedOverspent(key)}
                 aria-label="Dismiss"
-                className="text-[14px] leading-none hover:text-ink"
+                className="p-2 -m-2 text-[14px] leading-none hover:text-ink"
               >
                 ×
               </button>
@@ -377,14 +382,14 @@ export function Dashboard({
               budget set.
             </span>
             <span className="flex shrink-0 items-center gap-3">
-              <button type="button" onClick={reviewBudgets} className="font-medium underline-offset-2 hover:underline">
+              <button type="button" onClick={reviewBudgets} className="p-1 -m-1 font-medium underline-offset-2 hover:underline">
                 Review budgets
               </button>
               <button
                 type="button"
                 onClick={() => setDismissedUnbudgeted(key)}
                 aria-label="Dismiss"
-                className="text-[14px] leading-none hover:text-ink"
+                className="p-2 -m-2 text-[14px] leading-none hover:text-ink"
               >
                 ×
               </button>
@@ -395,8 +400,12 @@ export function Dashboard({
       </div>
 
       {/* 21 / 54 / 25 on desktop, matching the Notion column ratios */}
-      <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-[21fr_54fr_25fr]">
-        <div ref={budgetRef} className="order-2 lg:order-1 scroll-mt-4">
+      {/* minmax(0, Nfr) rather than plain Nfr — a plain fr track won't shrink
+          below its content's natural width, which at in-between widths like
+          1024px was blowing the third column (and the whole grid) past the
+          viewport instead of letting its own text/legend truncate. */}
+      <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-[minmax(0,21fr)_minmax(0,54fr)_minmax(0,25fr)]">
+        <div ref={budgetRef} className="order-2 min-w-0 lg:order-1 scroll-mt-4">
           <CategoryGallery
             statuses={categoryStatuses}
             currency={currency}
@@ -408,7 +417,7 @@ export function Dashboard({
           />
         </div>
 
-        <div className="order-3 lg:order-2">
+        <div className="order-3 min-w-0 lg:order-2">
           <div ref={billsRef} className="scroll-mt-4">
             <UpcomingBills
               bills={bills}
@@ -462,7 +471,7 @@ export function Dashboard({
           </div>
         </div>
 
-        <div ref={accountsRef} className="order-1 lg:order-3 scroll-mt-4">
+        <div ref={accountsRef} className="order-1 min-w-0 lg:order-3 scroll-mt-4">
           <SpendDonut
             slices={slices}
             total={summary.spent}
@@ -531,7 +540,7 @@ export function Dashboard({
       )}
 
       {budgetsOpen && (
-        <Overlay onClose={() => setBudgetsOpen(false)}>
+        <Overlay title="All budgets" onClose={() => setBudgetsOpen(false)}>
           <CategoryGallery
             statuses={categoryStatuses}
             currency={currency}
@@ -543,7 +552,7 @@ export function Dashboard({
       )}
 
       {accountsOpen && (
-        <Overlay onClose={() => setAccountsOpen(false)}>
+        <Overlay title="All accounts" onClose={() => setAccountsOpen(false)}>
           <AccountsGallery
             statuses={accountStatuses}
             expenses={data.expenses}
@@ -557,7 +566,7 @@ export function Dashboard({
       )}
 
       {goalsOpen && (
-        <Overlay onClose={() => setGoalsOpen(false)}>
+        <Overlay title="All savings goals" onClose={() => setGoalsOpen(false)}>
           <SavingsGoals
             goals={liveSavingsGoals}
             settings={settings}

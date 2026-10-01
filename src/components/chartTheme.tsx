@@ -54,7 +54,7 @@ export function InteractiveLegend({
               onMouseLeave={() => onHover(null)}
               aria-pressed={!isHidden}
               title={isHidden ? `Show ${name}` : `Hide ${name}`}
-              className="flex items-center gap-1.5 rounded px-1 py-0.5 transition-opacity"
+              className="flex items-center gap-1.5 rounded px-1 py-1.5 -my-1 transition-opacity"
               style={{ opacity: isHidden ? 0.35 : dimmed ? 0.55 : 1 }}
             >
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorOf(name) }} aria-hidden="true" />

@@ -76,17 +76,19 @@ export default function App() {
           </div>
         </header>
 
-        {sync.state === 'error' && sync.error && (
-          <p role="alert" className="border-b border-rule bg-over-soft px-4 py-2 text-[13px] text-over sm:px-6">
-            {sync.error}
-          </p>
-        )}
+        <main>
+          {sync.state === 'error' && sync.error && (
+            <p role="alert" className="border-b border-rule bg-over-soft px-4 py-2 text-[13px] text-over sm:px-6">
+              {sync.error}
+            </p>
+          )}
 
-        {isAbout ? (
-          <About />
-        ) : (
-          <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} hideBalances={hideBalances} />
-        )}
+          {isAbout ? (
+            <About />
+          ) : (
+            <Dashboard onChanged={sync.scheduleSync} userLabel={sync.email ?? null} hideBalances={hideBalances} />
+          )}
+        </main>
       </div>
 
       {dataOpen && <DataMenuModal onChanged={sync.scheduleSync} onClose={() => setDataOpen(false)} />}

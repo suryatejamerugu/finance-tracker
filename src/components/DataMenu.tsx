@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { buildSnapshot, isSnapshot, replaceWithSnapshot } from '../lib/db';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { Snapshot } from '../types';
 
 /**
@@ -15,6 +16,14 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const trapRef = useFocusTrap<HTMLDivElement>(Boolean(pending));
+
+  useEffect(() => {
+    if (!pending) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPending(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pending]);
 
   async function save() {
     const snapshot = await buildSnapshot();
@@ -89,6 +98,7 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
       {pending && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
           <div
+            ref={trapRef}
             role="dialog"
             aria-modal="true"
             aria-label="Confirm restore"

@@ -108,7 +108,7 @@ export function RecentActivity({
               onClick={() => setTab(t)}
               aria-current={tab === t ? 'true' : undefined}
               className={`px-2.5 py-1 text-[12px] font-medium transition-colors ${i > 0 ? 'border-l border-rule' : ''} ${
-                tab === t ? 'bg-brand text-white' : 'bg-raised text-faint hover:text-muted'
+                tab === t ? 'bg-brand text-paper' : 'bg-raised text-faint hover:text-muted'
               }`}
             >
               {t}
@@ -118,7 +118,7 @@ export function RecentActivity({
         <button
           type="button"
           onClick={onViewAll}
-          className="ml-auto text-[12.5px] text-muted hover:text-brand"
+          className="ml-auto py-1 -my-1 text-[12.5px] text-muted hover:text-brand"
         >
           View all transactions
         </button>
@@ -158,7 +158,7 @@ export function RecentActivity({
                   type="button"
                   onClick={() => edit(e)}
                   aria-label={`Edit ${e.name}`}
-                  className="shrink-0 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                  className="shrink-0 p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
                 >
                   <EditIcon />
                 </button>
@@ -166,7 +166,7 @@ export function RecentActivity({
                   type="button"
                   onClick={() => void remove(e)}
                   aria-label={`Delete ${e.name}`}
-                  className="shrink-0 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                  className="shrink-0 p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
                 >
                   ×
                 </button>

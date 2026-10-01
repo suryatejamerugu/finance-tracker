@@ -199,7 +199,7 @@ export function AccountsGallery({
                           type="button"
                           onClick={() => setEditing(s.account)}
                           aria-label={`Edit ${s.account.name}`}
-                          className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                          className="p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
                         >
                           <EditIcon />
                         </button>
@@ -207,7 +207,7 @@ export function AccountsGallery({
                           type="button"
                           onClick={() => void remove(s.account.name, s.account.id)}
                           aria-label={`Delete ${s.account.name}`}
-                          className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                          className="p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
                         >
                           ×
                         </button>

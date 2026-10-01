@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AccountType, Cents } from '../types';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { PALETTE } from '../lib/colors';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
 import { parseAmount } from '../lib/money';
@@ -85,6 +86,7 @@ export function EditNameColorModal({
   onSave: (result: EditNameColorResult) => Promise<void>;
   onClose: () => void;
 }) {
+  const trapRef = useFocusTrap<HTMLDivElement>();
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
   const [currency, setCurrency] = useState(currencyField?.value ?? '');
@@ -149,6 +151,7 @@ export function EditNameColorModal({
       onClick={onClose}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}

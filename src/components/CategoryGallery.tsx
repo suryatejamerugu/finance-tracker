@@ -98,7 +98,7 @@ export function CategoryGallery({
                 type="button"
                 onClick={() => setEditing(s.category)}
                 aria-label={`Edit ${s.category.name}`}
-                className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                className="p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
               >
                 <EditIcon />
               </button>
@@ -106,7 +106,7 @@ export function CategoryGallery({
                 type="button"
                 onClick={() => void remove(s.category.name, s.category.id)}
                 aria-label={`Delete ${s.category.name}`}
-                className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                className="p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
               >
                 ×
               </button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { useSync } from '../hooks/useSync';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 function ago(ts: number): string {
   const mins = Math.floor((Date.now() - ts) / 60_000);
@@ -19,6 +20,7 @@ function ago(ts: number): string {
  */
 export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
   const [open, setOpen] = useState(false);
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +72,7 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
+            ref={trapRef}
             role="dialog"
             aria-modal="true"
             aria-label="Backup account"

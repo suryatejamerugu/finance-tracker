@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Account, Category, IncomeCategory, RecurringEntry } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { currencySymbol } from '../lib/currency';
 import { parseAmount } from '../lib/money';
 import { guessCategoryIcon, guessIncomeIcon } from '../lib/iconGuess';
@@ -42,6 +43,7 @@ export function RecurringEntryModal({
   const [saving, setSaving] = useState(false);
 
   const accountCurrency = accounts.find((a) => a.id === accountId)?.currency ?? '';
+  const trapRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -83,6 +85,7 @@ export function RecurringEntryModal({
       onClick={onClose}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label={editing ? 'Edit recurring entry' : 'New recurring entry'}
@@ -108,7 +111,7 @@ export function RecurringEntryModal({
                 }}
                 aria-pressed={type === t}
                 className={`flex-1 py-1.5 text-[13px] font-medium ${i > 0 ? 'border-l border-rule' : ''} ${
-                  type === t ? 'bg-brand text-white' : 'bg-raised text-faint hover:text-muted'
+                  type === t ? 'bg-brand text-paper' : 'bg-raised text-faint hover:text-muted'
                 }`}
               >
                 {t === 'expense' ? 'Bill / expense' : 'Income'}

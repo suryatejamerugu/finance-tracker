@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SavingsGoal } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
 import { parseAmount } from '../lib/money';
 import { guessCategoryIcon } from '../lib/iconGuess';
@@ -37,6 +38,7 @@ export function SavingsGoalModal({
   const [icon, setIcon] = useState(editing?.icon ?? 'piggy-bank');
   const [iconTouched, setIconTouched] = useState(Boolean(editing));
   const [saving, setSaving] = useState(false);
+  const trapRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -67,6 +69,7 @@ export function SavingsGoalModal({
       onClick={onClose}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label={editing ? 'Edit goal' : 'New goal'}

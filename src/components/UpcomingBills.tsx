@@ -61,7 +61,7 @@ export function UpcomingBills({
       <section className="mb-7">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-[15px] font-medium">Upcoming bills</h2>
-          <button type="button" onClick={() => setCreating(true)} className="text-[12.5px] text-muted hover:text-brand">
+          <button type="button" onClick={() => setCreating(true)} className="py-1 -my-1 text-[12.5px] text-muted hover:text-brand">
             New recurring entry
           </button>
         </div>
@@ -98,7 +98,7 @@ export function UpcomingBills({
                       type="button"
                       onClick={() => setEditing(entry)}
                       aria-label={`Edit ${entry.name}`}
-                      className="shrink-0 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                      className="shrink-0 p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
                     >
                       <EditIcon />
                     </button>
@@ -106,7 +106,7 @@ export function UpcomingBills({
                       type="button"
                       onClick={() => void remove(entry.name, entry.id)}
                       aria-label={`Delete ${entry.name}`}
-                      className="shrink-0 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                      className="shrink-0 p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
                     >
                       ×
                     </button>
