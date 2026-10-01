@@ -19,7 +19,7 @@ import {
   monthSummary as computeMonthSummary,
   type MonthSummary,
 } from '../lib/selectors';
-import { formatMoney, monthLabel, todayISO } from '../lib/money';
+import { formatMoney, monthLabel, parseAmount, todayISO } from '../lib/money';
 import { softDelete } from '../lib/store';
 import { IconBadge } from '../lib/icons';
 import { EmptyRow } from './Panel';
@@ -87,6 +87,11 @@ export function LedgerView({
   const [ledgerCurrency, setLedgerCurrency] = useState<'all' | string>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [accountFilter, setAccountFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [visible, setVisible] = useState(PAGE);
   const [pdfMonth, setPdfMonth] = useState(month);
   const [pdfCurrency, setPdfCurrency] = useState(currency);
@@ -104,11 +109,22 @@ export function LedgerView({
 
   const currencies = useMemo(() => availableCurrencies(accounts, homeCurrency), [accounts, homeCurrency]);
 
+  const categoryOptions = useMemo(
+    () => [
+      ...categories.map((c) => ({ id: c.id, label: c.name })),
+      ...incomeCategories.map((c) => ({ id: c.id, label: c.name })),
+    ],
+    [categories, incomeCategories],
+  );
+
   const availableMonths = useMemo(() => {
     const set = new Set(all.map((e) => e.date.slice(0, 7)));
     if (set.size === 0) set.add(month);
     return [...set].sort().reverse();
   }, [all, month]);
+
+  const minCents = useMemo(() => (minAmount.trim() ? parseAmount(minAmount) : null), [minAmount]);
+  const maxCents = useMemo(() => (maxAmount.trim() ? parseAmount(maxAmount) : null), [maxAmount]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -117,10 +133,15 @@ export function LedgerView({
       if (ledgerCurrency !== 'all' && e.currency !== ledgerCurrency) return false;
       if (fromDate && e.date < fromDate) return false;
       if (toDate && e.date > toDate) return false;
+      if (accountFilter !== 'all' && e.accountId !== accountFilter && e.toAccountId !== accountFilter) return false;
+      if (categoryFilter !== 'all' && e.categoryId !== categoryFilter) return false;
+      const abs = Math.abs(e.amount);
+      if (minCents != null && abs < minCents) return false;
+      if (maxCents != null && abs > maxCents) return false;
       if (!q) return true;
       return [e.name, e.detail, e.account, e.note].filter(Boolean).some((v) => v!.toLowerCase().includes(q));
     });
-  }, [all, query, type, ledgerCurrency, fromDate, toDate]);
+  }, [all, query, type, ledgerCurrency, fromDate, toDate, accountFilter, categoryFilter, minCents, maxCents]);
 
   const shown = filtered.slice(0, visible);
   const { locale } = settings;
@@ -172,7 +193,32 @@ export function LedgerView({
     if (ledgerCurrency !== 'all') parts.push(ledgerCurrency);
     if (query.trim()) parts.push(`search "${query.trim()}"`);
     if (fromDate || toDate) parts.push(`${fromDate || 'earliest'} → ${toDate || 'latest'}`);
+    if (accountFilter !== 'all') {
+      const name = accounts.find((a) => a.id === accountFilter)?.name;
+      if (name) parts.push(name);
+    }
+    if (categoryFilter !== 'all') {
+      const name = categoryOptions.find((c) => c.id === categoryFilter)?.label;
+      if (name) parts.push(name);
+    }
+    if (minCents != null || maxCents != null) {
+      parts.push(
+        `${minCents != null ? formatMoney(minCents, { currency: ledgerCurrency !== 'all' ? ledgerCurrency : homeCurrency, locale }) : 'any'} – ${
+          maxCents != null ? formatMoney(maxCents, { currency: ledgerCurrency !== 'all' ? ledgerCurrency : homeCurrency, locale }) : 'any'
+        }`,
+      );
+    }
     return parts.length ? parts.join(', ') : null;
+  }
+
+  const moreFiltersActive = accountFilter !== 'all' || categoryFilter !== 'all' || minAmount.trim() !== '' || maxAmount.trim() !== '';
+
+  function clearMoreFilters() {
+    setAccountFilter('all');
+    setCategoryFilter('all');
+    setMinAmount('');
+    setMaxAmount('');
+    setVisible(PAGE);
   }
 
   function exportAllPdf() {
@@ -295,6 +341,14 @@ export function LedgerView({
               Clear dates
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setMoreFiltersOpen((v) => !v)}
+            aria-expanded={moreFiltersOpen}
+            className={`text-[12px] ${moreFiltersActive ? 'text-brand' : 'text-faint hover:text-brand'}`}
+          >
+            {moreFiltersOpen ? 'Fewer filters' : moreFiltersActive ? 'More filters (active)' : 'More filters'}
+          </button>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <button
@@ -337,13 +391,87 @@ export function LedgerView({
             <button
               type="button"
               onClick={exportAllPdf}
-              title="Every row currently shown below (respects search, type and date filters)."
+              title="Every row currently shown below (respects every active filter)."
               className="rounded-md border border-rule px-2.5 py-1 text-[12px] text-muted hover:border-brand hover:text-brand"
             >
               PDF: filtered ({filtered.length})
             </button>
           </div>
         </div>
+
+        {moreFiltersOpen && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-rule bg-paper px-5 py-2.5">
+            <label className="flex items-center gap-1.5 text-[12px] text-faint">
+              Account
+              <select
+                value={accountFilter}
+                onChange={(e) => {
+                  setAccountFilter(e.target.value);
+                  setVisible(PAGE);
+                }}
+                aria-label="Filter by account"
+                className="rounded-md border border-rule bg-raised px-2 py-1 text-[12.5px] outline-none focus:border-brand"
+              >
+                <option value="all">All accounts</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-faint">
+              Category
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setVisible(PAGE);
+                }}
+                aria-label="Filter by category or income source"
+                className="rounded-md border border-rule bg-raised px-2 py-1 text-[12.5px] outline-none focus:border-brand"
+              >
+                <option value="all">All categories</option>
+                {categoryOptions.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-faint">
+              Min
+              <input
+                type="text"
+                inputMode="decimal"
+                value={minAmount}
+                onChange={(e) => {
+                  setMinAmount(e.target.value);
+                  setVisible(PAGE);
+                }}
+                placeholder="0.00"
+                aria-label="Minimum amount"
+                className="w-20 rounded-md border border-rule bg-raised px-2 py-1 text-[12.5px] outline-none focus:border-brand"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-[12px] text-faint">
+              Max
+              <input
+                type="text"
+                inputMode="decimal"
+                value={maxAmount}
+                onChange={(e) => {
+                  setMaxAmount(e.target.value);
+                  setVisible(PAGE);
+                }}
+                placeholder="Any"
+                aria-label="Maximum amount"
+                className="w-20 rounded-md border border-rule bg-raised px-2 py-1 text-[12.5px] outline-none focus:border-brand"
+              />
+            </label>
+            {moreFiltersActive && (
+              <button type="button" onClick={clearMoreFilters} className="text-[12px] text-faint hover:text-brand">
+                Clear
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto">
           {shown.length === 0 ? (

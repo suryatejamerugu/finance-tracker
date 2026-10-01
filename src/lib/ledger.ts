@@ -21,6 +21,12 @@ export interface LedgerEntry {
   detail: string | null;
   /** Account name, or "From → To" for a transfer. */
   account: string | null;
+  /** The expense's category id or the income's source id — null for a transfer. */
+  categoryId: string | null;
+  /** The account id (a transfer's "from" side). */
+  accountId: string | null;
+  /** A transfer's "to" side — null for everything else. */
+  toAccountId: string | null;
   note: string;
   /** The account's currency (a transfer's "from" side, since both sides always match), or the home currency when unlinked. */
   currency: string;
@@ -58,6 +64,9 @@ export function buildLedger(
       amount: -e.amount,
       detail: catName.get(e.categoryId ?? '') ?? 'Uncategorised',
       account: acctName.get(e.accountId ?? '') ?? null,
+      categoryId: e.categoryId ?? null,
+      accountId: e.accountId ?? null,
+      toAccountId: null,
       note: e.text,
       currency: currencyOf(e.accountId),
       icon: iconFor(category?.icon ?? 'tag'),
@@ -75,6 +84,9 @@ export function buildLedger(
       amount: i.amount,
       detail: sourceName.get(i.sourceId ?? '') ?? 'Uncategorised',
       account: acctName.get(i.accountId ?? '') ?? null,
+      categoryId: i.sourceId ?? null,
+      accountId: i.accountId ?? null,
+      toAccountId: null,
       note: '',
       currency: currencyOf(i.accountId),
       icon: iconFor(source?.icon ?? 'tag'),
@@ -92,6 +104,9 @@ export function buildLedger(
       amount: t.amount,
       detail: null,
       account: `${acctName.get(t.fromAccountId ?? '') ?? '—'} → ${acctName.get(t.toAccountId ?? '') ?? '—'}`,
+      categoryId: null,
+      accountId: t.fromAccountId ?? null,
+      toAccountId: t.toAccountId ?? null,
       note: '',
       currency: currencyOf(t.fromAccountId),
       icon: fromAccount ? accountTypeMeta(fromAccount.type).icon : iconFor('tag'),

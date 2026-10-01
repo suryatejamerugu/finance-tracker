@@ -211,6 +211,8 @@ export function About() {
           For anything further back, click <Kbd>Full history</Kbd> (or "View all transactions").
           It opens every expense, income, and transfer merged into one chronological table — search
           by name, category, or account, filter by type, and narrow to a date range.
+          <strong className="text-ink"> More filters</strong> adds account, category, and a min/max
+          amount range on top of that, for when you're hunting a specific charge in a long history.
         </p>
         <p>
           From there you can export what you're looking at:{' '}
