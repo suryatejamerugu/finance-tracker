@@ -1,8 +1,15 @@
 import { db } from './db';
-import type { Account, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
+import type { Account, Category, Expense, Income, IncomeCategory, SavingsGoal, Transfer } from '../types';
 
-export type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts' | 'incomeCategories';
-type Row = Expense | Income | Transfer | Category | Account | IncomeCategory;
+export type Soft =
+  | 'expenses'
+  | 'incomes'
+  | 'transfers'
+  | 'categories'
+  | 'accounts'
+  | 'incomeCategories'
+  | 'savingsGoals';
+type Row = Expense | Income | Transfer | Category | Account | IncomeCategory | SavingsGoal;
 
 const TABLE_LABEL: Record<Soft, string> = {
   expenses: 'expense',
@@ -11,6 +18,7 @@ const TABLE_LABEL: Record<Soft, string> = {
   categories: 'category',
   accounts: 'account',
   incomeCategories: 'income source',
+  savingsGoals: 'savings goal',
 };
 
 export interface UndoState {

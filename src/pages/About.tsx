@@ -273,6 +273,21 @@ export function About() {
         </p>
       </Section>
 
+      <Section title="Track a savings goal">
+        <p>
+          Click <Kbd>New goal</Kbd> below the Accounts card, give it a name, a target amount, and
+          a currency. It gets its own progress bar — "saved so far" is a plain number you type in
+          yourself, the same way you'd type in a category's budget.
+        </p>
+        <p>
+          This is deliberately disconnected from your real accounts and transactions — it doesn't
+          move money, lock anything away, or affect any balance. It's just a target to track
+          against, so as you set money aside (into a savings account, an envelope, wherever),
+          update the number here to match. Reaching 100% marks the goal "reached" instead of just
+          showing a percentage.
+        </p>
+      </Section>
+
       <Section title="Hide balances">
         <p>
           The eye icon in the header blanks out every dollar figure on the dashboard and in Full

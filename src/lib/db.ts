@@ -8,6 +8,7 @@ import {
   type Expense,
   type Income,
   type IncomeCategory,
+  type SavingsGoal,
   type Settings,
   type Snapshot,
   type Transfer,
@@ -41,6 +42,7 @@ class LedgerDB extends Dexie {
   expenses!: EntityTable<Expense, 'id'>;
   incomes!: EntityTable<Income, 'id'>;
   transfers!: EntityTable<Transfer, 'id'>;
+  savingsGoals!: EntityTable<SavingsGoal, 'id'>;
   settings!: EntityTable<Settings, 'id'>;
 
   constructor() {
@@ -177,6 +179,9 @@ class LedgerDB extends Dexie {
           if (row.paymentDueDay === undefined) row.paymentDueDay = null;
         });
     });
+
+    // v7: savings goals — a brand-new table, nothing existing to migrate.
+    this.version(7).stores({ savingsGoals: 'id, order' });
   }
 }
 
@@ -194,15 +199,17 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function buildSnapshot(): Promise<Snapshot> {
-  const [accounts, categories, incomeCategories, expenses, incomes, transfers, settings] = await Promise.all([
-    db.accounts.toArray(),
-    db.categories.toArray(),
-    db.incomeCategories.toArray(),
-    db.expenses.toArray(),
-    db.incomes.toArray(),
-    db.transfers.toArray(),
-    getSettings(),
-  ]);
+  const [accounts, categories, incomeCategories, expenses, incomes, transfers, savingsGoals, settings] =
+    await Promise.all([
+      db.accounts.toArray(),
+      db.categories.toArray(),
+      db.incomeCategories.toArray(),
+      db.expenses.toArray(),
+      db.incomes.toArray(),
+      db.transfers.toArray(),
+      db.savingsGoals.toArray(),
+      getSettings(),
+    ]);
   return {
     schemaVersion: SCHEMA_VERSION,
     exportedAt: Date.now(),
@@ -212,6 +219,7 @@ export async function buildSnapshot(): Promise<Snapshot> {
     expenses,
     incomes,
     transfers,
+    savingsGoals,
     settings,
   };
 }
@@ -325,7 +333,16 @@ function normalizeIncomeCategories(categories: unknown[]): IncomeCategory[] {
   }));
 }
 
-const TABLES = ['accounts', 'categories', 'incomeCategories', 'expenses', 'incomes', 'transfers', 'settings'] as const;
+const TABLES = [
+  'accounts',
+  'categories',
+  'incomeCategories',
+  'expenses',
+  'incomes',
+  'transfers',
+  'savingsGoals',
+  'settings',
+] as const;
 
 export async function mergeSnapshot(remote: Snapshot): Promise<void> {
   if (remote.schemaVersion > SCHEMA_VERSION) {
@@ -349,6 +366,7 @@ export async function mergeSnapshot(remote: Snapshot): Promise<void> {
     await db.expenses.bulkPut(mergeRows(local.expenses, remote.expenses ?? []));
     await db.incomes.bulkPut(mergeRows(local.incomes, remoteIncomes));
     await db.transfers.bulkPut(mergeRows(local.transfers, remote.transfers ?? []));
+    await db.savingsGoals.bulkPut(mergeRows(local.savingsGoals, remote.savingsGoals ?? []));
     if (remote.settings && remote.settings.updatedAt > local.settings.updatedAt) {
       await db.settings.put(remote.settings);
     }
@@ -370,6 +388,7 @@ export async function replaceWithSnapshot(snap: Snapshot): Promise<void> {
     await db.expenses.bulkPut(snap.expenses ?? []);
     await db.incomes.bulkPut(incomes);
     await db.transfers.bulkPut(snap.transfers ?? []);
+    await db.savingsGoals.bulkPut(snap.savingsGoals ?? []);
     await db.settings.put(snap.settings ?? DEFAULT_SETTINGS);
   });
 }

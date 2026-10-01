@@ -407,6 +407,12 @@ export function donutByCategory(
   return resolveDistinctColors(slices);
 }
 
+/** A savings goal's progress, clamped to [0, 100] and safe against a target of 0 (shows as 0% rather than dividing by zero). */
+export function goalProgress(savedAmount: Cents, targetAmount: Cents): number {
+  if (targetAmount <= 0) return 0;
+  return Math.max(0, Math.min(100, (savedAmount / targetAmount) * 100));
+}
+
 /** Group rows into buckets keyed by day, month, or year, newest bucket first. */
 export function groupByPeriod<T extends { date: string }>(
   rows: T[],

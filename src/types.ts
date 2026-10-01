@@ -127,6 +127,23 @@ export interface Transfer extends Synced {
   toAccountId: string | null;
 }
 
+/**
+ * A standalone, manually-tracked target — "saved so far" is a number the
+ * user updates themselves as they set money aside, not something derived
+ * from any account balance or transaction. Deliberately disconnected from
+ * real money movement: linking it to an account would make "contributing"
+ * to a goal look like it moves money, when it doesn't.
+ */
+export interface SavingsGoal extends Synced {
+  name: string;
+  targetAmount: Cents;
+  savedAmount: Cents;
+  currency: string;
+  icon: string;
+  color: string;
+  order: number;
+}
+
 export interface Settings {
   id: 'settings';
   currency: string;
@@ -134,7 +151,7 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export interface Snapshot {
   schemaVersion: number;
@@ -145,6 +162,7 @@ export interface Snapshot {
   expenses: Expense[];
   incomes: Income[];
   transfers: Transfer[];
+  savingsGoals: SavingsGoal[];
   settings: Settings;
 }
 

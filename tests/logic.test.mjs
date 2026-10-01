@@ -94,6 +94,12 @@ eq('every series present in every bucket', data.every(d => series.every(s => typ
 eq('Aug bucket has only c1', data[1]['c1'], 90);
 eq('deleted row not charted', data[2]['c3'], 250);
 
+// --- savings goals
+eq('goalProgress halfway', sel.goalProgress(5000, 10000), 50);
+eq('goalProgress clamps at 100 when overshot', sel.goalProgress(15000, 10000), 100);
+eq('goalProgress is 0 for a target of 0 (no divide-by-zero)', sel.goalProgress(500, 0), 0);
+eq('goalProgress is 0 when nothing saved yet', sel.goalProgress(0, 10000), 0);
+
 // --- donut
 const donut = sel.donutByCategory(categories, expenses, accounts, '2026-09', 'USD', 'USD');
 eq('donut sorted desc', donut.map(d=>d.name), ['Groceries','Health & Self Care','Dining Out/Coffee']);

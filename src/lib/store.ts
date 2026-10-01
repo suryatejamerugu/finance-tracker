@@ -1,7 +1,18 @@
 import { db } from './db';
 import { uid } from './money';
 import { recordUndo, type Soft } from './undo';
-import type { Account, AccountType, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
+import type {
+  Account,
+  AccountType,
+  Category,
+  Cents,
+  Expense,
+  Income,
+  IncomeCategory,
+  ISODate,
+  SavingsGoal,
+  Transfer,
+} from '../types';
 
 /**
  * Every mutation goes through here so `updatedAt` is always stamped and deletes
@@ -271,7 +282,9 @@ export async function updateIncomeCategory(
 
 export async function softDelete(table: Soft, id: string): Promise<void> {
   const existing = await (db[table] as unknown as {
-    get: (id: string) => Promise<Expense | Income | Transfer | Category | Account | IncomeCategory | undefined>;
+    get: (
+      id: string,
+    ) => Promise<Expense | Income | Transfer | Category | Account | IncomeCategory | SavingsGoal | undefined>;
   }).get(id);
   if (!existing) return;
   recordUndo(table, id, existing, 'delete');
@@ -282,12 +295,12 @@ export async function softDelete(table: Soft, id: string): Promise<void> {
   });
 }
 
-type Orderable = 'categories' | 'accounts' | 'incomeCategories';
+type Orderable = 'categories' | 'accounts' | 'incomeCategories' | 'savingsGoals';
 
 /** Persists a drag-and-drop reorder: `orderedIds` is the full list, top to bottom. */
 export async function reorder(table: Orderable, orderedIds: string[]): Promise<void> {
   const coll = db[table] as unknown as {
-    get: (id: string) => Promise<(Category | Account | IncomeCategory) | undefined>;
+    get: (id: string) => Promise<(Category | Account | IncomeCategory | SavingsGoal) | undefined>;
     put: (row: unknown) => Promise<unknown>;
   };
   const now = Date.now();
@@ -296,4 +309,50 @@ export async function reorder(table: Orderable, orderedIds: string[]): Promise<v
     if (!existing) continue;
     await coll.put({ ...existing, order: i, updatedAt: now });
   }
+}
+
+export async function addSavingsGoal(input: {
+  name: string;
+  targetAmount: Cents;
+  currency: string;
+  color: string;
+  icon: string;
+}): Promise<void> {
+  const order = await db.savingsGoals.count();
+  await db.savingsGoals.put({
+    id: uid(),
+    name: input.name.trim() || 'Goal',
+    targetAmount: Math.abs(input.targetAmount),
+    savedAmount: 0,
+    currency: input.currency,
+    icon: input.icon,
+    color: input.color,
+    order,
+    ...stamp(),
+  });
+}
+
+export async function updateSavingsGoal(
+  id: string,
+  input: { name: string; targetAmount: Cents; currency: string; color: string; icon: string },
+): Promise<void> {
+  const existing = await db.savingsGoals.get(id);
+  if (!existing) return;
+  recordUndo('savingsGoals', id, existing, 'edit');
+  await db.savingsGoals.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    targetAmount: Math.abs(input.targetAmount),
+    currency: input.currency,
+    color: input.color,
+    icon: input.icon,
+    updatedAt: Date.now(),
+  });
+}
+
+/** The inline "saved so far" field on the dashboard — a quick correction like a budget amount, not undo-tracked (the same reasoning: frequent, low-stakes, and trivially re-typed). */
+export async function setSavingsGoalProgress(id: string, savedAmount: Cents): Promise<void> {
+  const existing = await db.savingsGoals.get(id);
+  if (!existing) return;
+  await db.savingsGoals.put({ ...existing, savedAmount: Math.max(0, savedAmount), updatedAt: Date.now() });
 }

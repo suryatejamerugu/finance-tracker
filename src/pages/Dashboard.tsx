@@ -16,6 +16,7 @@ import { RecentActivity } from '../components/RecentActivity';
 import { SpendingTrend } from '../components/SpendingTrend';
 import { IncomeTrend } from '../components/IncomeTrend';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
+import { SavingsGoals } from '../components/SavingsGoals';
 import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
 import { Overlay } from '../components/Panel';
@@ -86,6 +87,7 @@ export function Dashboard({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [budgetsOpen, setBudgetsOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
   const [dismissedOverspent, setDismissedOverspent] = useState<string | null>(null);
   const [dismissedUnbudgeted, setDismissedUnbudgeted] = useState<string | null>(null);
   const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
@@ -93,6 +95,7 @@ export function Dashboard({
   const activityRef = useRef<HTMLDivElement>(null);
   const reportsRef = useRef<HTMLDivElement>(null);
   const accountsRef = useRef<HTMLDivElement>(null);
+  const goalsRef = useRef<HTMLDivElement>(null);
 
   function scrollTo(ref: RefObject<HTMLDivElement | null>) {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -108,15 +111,17 @@ export function Dashboard({
   }
 
   const data = useLiveQuery(async () => {
-    const [accounts, categories, incomeCategories, expenses, incomes, transfers, settings] = await Promise.all([
-      db.accounts.toArray(),
-      db.categories.toArray(),
-      db.incomeCategories.toArray(),
-      db.expenses.toArray(),
-      db.incomes.toArray(),
-      db.transfers.toArray(),
-      db.settings.get('settings'),
-    ]);
+    const [accounts, categories, incomeCategories, expenses, incomes, transfers, savingsGoals, settings] =
+      await Promise.all([
+        db.accounts.toArray(),
+        db.categories.toArray(),
+        db.incomeCategories.toArray(),
+        db.expenses.toArray(),
+        db.incomes.toArray(),
+        db.transfers.toArray(),
+        db.savingsGoals.toArray(),
+        db.settings.get('settings'),
+      ]);
     return {
       accounts,
       categories,
@@ -124,6 +129,7 @@ export function Dashboard({
       expenses,
       incomes,
       transfers,
+      savingsGoals,
       settings: settings ?? DEFAULT_SETTINGS,
     };
   }, []);
@@ -135,6 +141,7 @@ export function Dashboard({
   const liveCategories = live(data.categories).sort((a, b) => a.order - b.order);
   const liveAccounts = live(data.accounts).sort((a, b) => a.order - b.order);
   const liveIncomeCategories = live(data.incomeCategories).sort((a, b) => a.order - b.order);
+  const liveSavingsGoals = live(data.savingsGoals).sort((a, b) => a.order - b.order);
 
   const currencies = availableCurrencies(data.accounts, settings.currency);
   const currency = currencies.includes(currencyLens) ? currencyLens : settings.currency;
@@ -167,6 +174,7 @@ export function Dashboard({
     { label: 'Transactions', action: () => scrollTo(activityRef) },
     { label: 'Reports', action: () => scrollTo(reportsRef) },
     { label: 'Accounts', action: () => scrollTo(accountsRef) },
+    { label: 'Goals', action: () => scrollTo(goalsRef) },
   ];
 
   return (
@@ -446,6 +454,17 @@ export function Dashboard({
             onViewAll={() => setAccountsOpen(true)}
             hideBalances={hideBalances}
           />
+          <div ref={goalsRef} className="scroll-mt-4">
+            <SavingsGoals
+              goals={liveSavingsGoals}
+              settings={settings}
+              defaultCurrency={currency}
+              onChanged={onChanged}
+              limit={6}
+              onViewAll={() => setGoalsOpen(true)}
+              hideBalances={hideBalances}
+            />
+          </div>
         </div>
       </div>
 
@@ -504,6 +523,18 @@ export function Dashboard({
             incomes={data.incomes}
             transfers={data.transfers}
             settings={settings}
+            onChanged={onChanged}
+            hideBalances={hideBalances}
+          />
+        </Overlay>
+      )}
+
+      {goalsOpen && (
+        <Overlay onClose={() => setGoalsOpen(false)}>
+          <SavingsGoals
+            goals={liveSavingsGoals}
+            settings={settings}
+            defaultCurrency={currency}
             onChanged={onChanged}
             hideBalances={hideBalances}
           />
