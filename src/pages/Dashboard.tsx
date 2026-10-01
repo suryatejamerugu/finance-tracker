@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DEFAULT_SETTINGS } from '../lib/db';
 import {
@@ -20,6 +20,37 @@ import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
 
 const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'account'];
+/** The three everyday transaction actions, grouped apart from the two setup actions below. */
+const PRIMARY_ADD_COUNT = 3;
+
+type SummaryTone = 'ink' | 'under' | 'over' | 'faint';
+const TONE_CLASS: Record<SummaryTone, string> = {
+  ink: 'text-ink',
+  under: 'text-under',
+  over: 'text-over',
+  faint: 'text-faint',
+};
+
+/** One HUD-style readout: a label, a big tabular number, and an optional second line. */
+function SummaryCard({
+  label,
+  value,
+  sublabel,
+  tone = 'ink',
+}: {
+  label: string;
+  value: string;
+  sublabel?: string;
+  tone?: SummaryTone;
+}) {
+  return (
+    <div className="rounded-xl border border-rule bg-raised px-3.5 py-3 shadow-card card-hover">
+      <div className="text-[10.5px] font-medium uppercase tracking-wide text-faint">{label}</div>
+      <div className={`num mt-1 text-[19px] font-semibold ${TONE_CLASS[tone]}`}>{value}</div>
+      {sublabel && <div className="mt-0.5 text-[11px] text-faint">{sublabel}</div>}
+    </div>
+  );
+}
 
 /**
  * Everything on one page, three columns, matching the Notion dashboard:
@@ -37,8 +68,14 @@ export function Dashboard({
   const [month, setMonth] = useState(currentMonth());
   const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [dismissedWarning, setDismissedWarning] = useState<string | null>(null);
+  const [dismissedOverspent, setDismissedOverspent] = useState<string | null>(null);
+  const [dismissedUnbudgeted, setDismissedUnbudgeted] = useState<string | null>(null);
   const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
+  const budgetRef = useRef<HTMLDivElement>(null);
+
+  function reviewBudgets() {
+    budgetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function setLens(c: string) {
     setCurrencyLens(c);
@@ -112,7 +149,7 @@ export function Dashboard({
         </div>
       )}
 
-      {/* Month bar and headline figures */}
+      {/* Month bar and currency lens */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
         <div className="flex items-center gap-1">
           <button
@@ -143,7 +180,7 @@ export function Dashboard({
                 onClick={() => setLens(c)}
                 aria-current={currency === c ? 'true' : undefined}
                 className={`rounded-md px-2 py-1 text-[12.5px] ${
-                  currency === c ? 'bg-brand-soft text-brand' : 'text-faint hover:text-muted'
+                  currency === c ? 'bg-brand text-white' : 'text-faint hover:text-muted'
                 }`}
               >
                 {c}
@@ -151,36 +188,30 @@ export function Dashboard({
             ))}
           </div>
         )}
-
-        <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-          <div className="flex items-baseline gap-1.5">
-            <dt className="text-[12px] text-faint">In</dt>
-            <dd className="num text-[15px] text-under">{formatBig(summary.income, currency, locale)}</dd>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <dt className="text-[12px] text-faint">Out</dt>
-            <dd className="num text-[15px]">{formatBig(summary.spent, currency, locale)}</dd>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <dt className="text-[12px] text-faint">Net</dt>
-            <dd className={`num text-[15px] ${summary.net < 0 ? 'text-over' : ''}`}>
-              {formatMoney(summary.net, { currency, locale, signed: true })}
-            </dd>
-          </div>
-          {summary.budgeted > 0 && (
-            <div className="flex items-baseline gap-1.5">
-              <dt className="text-[12px] text-faint">{summary.left < 0 ? 'Over budget' : 'Left'}</dt>
-              <dd className={`num text-[15px] ${summary.left < 0 ? 'text-over' : ''}`}>
-                {formatBig(Math.abs(summary.left), currency, locale)}
-              </dd>
-            </div>
-          )}
-        </dl>
       </div>
 
-      {/* The five Notion dashboard buttons, plus the full-history/export view */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        {ADD_ORDER.map((kind) => (
+      {/* This month's headline numbers, as a HUD-style readout row. */}
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <SummaryCard label="Income" value={formatBig(summary.income, currency, locale)} tone="under" />
+        <SummaryCard label="Spending" value={formatBig(summary.spent, currency, locale)} />
+        <SummaryCard
+          label="Net cash flow"
+          value={formatMoney(summary.net, { currency, locale, signed: true })}
+          tone={summary.net < 0 ? 'over' : 'under'}
+        />
+        <SummaryCard
+          label="Budget status"
+          value={summary.budgeted > 0 ? formatBig(Math.abs(summary.left), currency, locale) : 'No budget set'}
+          sublabel={summary.budgeted > 0 ? (summary.left < 0 ? 'over budget' : 'left to spend') : undefined}
+          tone={summary.budgeted === 0 ? 'faint' : summary.left < 0 ? 'over' : 'ink'}
+        />
+      </div>
+
+      {/* Add expense stays the one unmissable action; income/transfer sit right
+          beside it since they're used almost as often. Category/account are
+          one-time setup, so they're visually set apart rather than hidden. */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {ADD_ORDER.slice(0, PRIMARY_ADD_COUNT).map((kind) => (
           <button
             key={kind}
             type="button"
@@ -194,6 +225,17 @@ export function Dashboard({
             {ADD_LABELS[kind]}
           </button>
         ))}
+        <span className="mx-1 h-5 w-px bg-rule" aria-hidden="true" />
+        {ADD_ORDER.slice(PRIMARY_ADD_COUNT).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => setModal({ kind })}
+            className="press rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted hover:border-brand hover:text-brand"
+          >
+            {ADD_LABELS[kind]}
+          </button>
+        ))}
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
@@ -203,34 +245,70 @@ export function Dashboard({
         </button>
       </div>
 
+      {/*
+        Overspending and "no budget set" mean different things and don't
+        deserve the same alarm: overspending is a real notice (red), a
+        missing budget is just a gap to fill in when you get to it (amber).
+        Each clears on its own rather than one dismiss hiding both.
+      */}
+      <div className={summary.overspent > 0 || summary.unbudgeted > 0 ? 'mb-5 space-y-2.5' : ''}>
       {(() => {
-        if (summary.overspent === 0 && summary.unbudgeted === 0) return null;
-        const warningKey = `${month}:${summary.overspent}:${summary.unbudgeted}`;
-        if (dismissedWarning === warningKey) return null;
+        if (summary.overspent === 0) return null;
+        const key = `${month}:${summary.overspent}`;
+        if (dismissedOverspent === key) return null;
         return (
-          <p className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-rule bg-over-soft px-3 py-2 text-[13px] text-over">
+          <p className="flex items-start justify-between gap-3 rounded-lg border border-rule bg-over-soft px-3 py-2 text-[13px] text-over">
             <span>
-              {summary.overspent > 0 &&
-                `${summary.overspent} ${summary.overspent === 1 ? 'category is' : 'categories are'} over budget.`}
-              {summary.overspent > 0 && summary.unbudgeted > 0 && ' '}
-              {summary.unbudgeted > 0 &&
-                `${summary.unbudgeted} ${summary.unbudgeted === 1 ? 'category has' : 'categories have'} spending but no budget set.`}
+              {summary.overspent} {summary.overspent === 1 ? 'category is' : 'categories are'} over budget this
+              month.
             </span>
-            <button
-              type="button"
-              onClick={() => setDismissedWarning(warningKey)}
-              aria-label="Dismiss"
-              className="shrink-0 text-[14px] leading-none hover:text-ink"
-            >
-              ×
-            </button>
+            <span className="flex shrink-0 items-center gap-3">
+              <button type="button" onClick={reviewBudgets} className="font-medium underline-offset-2 hover:underline">
+                Review budgets
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedOverspent(key)}
+                aria-label="Dismiss"
+                className="text-[14px] leading-none hover:text-ink"
+              >
+                ×
+              </button>
+            </span>
           </p>
         );
       })()}
+      {(() => {
+        if (summary.unbudgeted === 0) return null;
+        const key = `${month}:${summary.unbudgeted}`;
+        if (dismissedUnbudgeted === key) return null;
+        return (
+          <p className="flex items-start justify-between gap-3 rounded-lg border border-rule bg-amber-soft px-3 py-2 text-[13px] text-amber">
+            <span>
+              {summary.unbudgeted} {summary.unbudgeted === 1 ? 'category has' : 'categories have'} spending but no
+              budget set.
+            </span>
+            <span className="flex shrink-0 items-center gap-3">
+              <button type="button" onClick={reviewBudgets} className="font-medium underline-offset-2 hover:underline">
+                Review budgets
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedUnbudgeted(key)}
+                aria-label="Dismiss"
+                className="text-[14px] leading-none hover:text-ink"
+              >
+                ×
+              </button>
+            </span>
+          </p>
+        );
+      })()}
+      </div>
 
       {/* 21 / 54 / 25 on desktop, matching the Notion column ratios */}
       <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-[21fr_54fr_25fr]">
-        <div className="order-2 lg:order-1">
+        <div ref={budgetRef} className="order-2 lg:order-1 scroll-mt-4">
           <CategoryGallery statuses={categoryStatuses} currency={currency} settings={settings} onChanged={onChanged} />
         </div>
 
