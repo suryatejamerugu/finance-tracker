@@ -1,6 +1,19 @@
 import { db } from './db';
 import { uid } from './money';
-import type { Account, AccountType, Category, Cents, Expense, Income, IncomeCategory, ISODate, Transfer } from '../types';
+import { recordUndo, type Soft } from './undo';
+import type {
+  Account,
+  AccountType,
+  Category,
+  Cents,
+  Expense,
+  Income,
+  IncomeCategory,
+  ISODate,
+  RecurringEntry,
+  SavingsGoal,
+  Transfer,
+} from '../types';
 
 /**
  * Every mutation goes through here so `updatedAt` is always stamped and deletes
@@ -16,6 +29,8 @@ export async function addExpense(input: {
   categoryId: string | null;
   accountId: string | null;
   text?: string;
+  /** Set when logged from a recurring entry's "Log it" action. */
+  recurringId?: string | null;
 }): Promise<void> {
   await db.expenses.put({
     id: uid(),
@@ -25,6 +40,7 @@ export async function addExpense(input: {
     categoryId: input.categoryId,
     accountId: input.accountId,
     text: input.text?.trim() ?? '',
+    recurringId: input.recurringId ?? null,
     ...stamp(),
   });
 }
@@ -42,6 +58,7 @@ export async function updateExpense(
 ): Promise<void> {
   const existing = await db.expenses.get(id);
   if (!existing) return;
+  recordUndo('expenses', id, existing, 'edit');
   await db.expenses.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -60,6 +77,8 @@ export async function addIncome(input: {
   date: ISODate;
   accountId: string | null;
   sourceId: string | null;
+  /** Set when logged from a recurring entry's "Log it" action. */
+  recurringId?: string | null;
 }): Promise<void> {
   await db.incomes.put({
     id: uid(),
@@ -68,6 +87,7 @@ export async function addIncome(input: {
     date: input.date,
     accountId: input.accountId,
     sourceId: input.sourceId,
+    recurringId: input.recurringId ?? null,
     ...stamp(),
   });
 }
@@ -78,6 +98,7 @@ export async function updateIncome(
 ): Promise<void> {
   const existing = await db.incomes.get(id);
   if (!existing) return;
+  recordUndo('incomes', id, existing, 'edit');
   await db.incomes.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -127,6 +148,7 @@ export async function updateTransfer(
   if (!(await sameCurrency(input.fromAccountId, input.toAccountId))) {
     throw new Error('Transfers need both accounts in the same currency.');
   }
+  recordUndo('transfers', id, existing, 'edit');
   await db.transfers.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -209,6 +231,7 @@ export async function updateCategory(
 ): Promise<void> {
   const existing = await db.categories.get(id);
   if (!existing) return;
+  recordUndo('categories', id, existing, 'edit');
   await db.categories.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -233,6 +256,7 @@ export async function updateAccount(
 ): Promise<void> {
   const existing = await db.accounts.get(id);
   if (!existing) return;
+  recordUndo('accounts', id, existing, 'edit');
   await db.accounts.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -253,6 +277,7 @@ export async function updateIncomeCategory(
 ): Promise<void> {
   const existing = await db.incomeCategories.get(id);
   if (!existing) return;
+  recordUndo('incomeCategories', id, existing, 'edit');
   await db.incomeCategories.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -262,13 +287,16 @@ export async function updateIncomeCategory(
   });
 }
 
-type Soft = 'expenses' | 'incomes' | 'transfers' | 'categories' | 'accounts' | 'incomeCategories';
-
 export async function softDelete(table: Soft, id: string): Promise<void> {
   const existing = await (db[table] as unknown as {
-    get: (id: string) => Promise<Expense | Income | Transfer | Category | Account | IncomeCategory | undefined>;
+    get: (
+      id: string,
+    ) => Promise<
+      Expense | Income | Transfer | Category | Account | IncomeCategory | SavingsGoal | RecurringEntry | undefined
+    >;
   }).get(id);
   if (!existing) return;
+  recordUndo(table, id, existing, 'delete');
   await (db[table] as unknown as { put: (row: unknown) => Promise<unknown> }).put({
     ...existing,
     deleted: true,
@@ -276,12 +304,12 @@ export async function softDelete(table: Soft, id: string): Promise<void> {
   });
 }
 
-type Orderable = 'categories' | 'accounts' | 'incomeCategories';
+type Orderable = 'categories' | 'accounts' | 'incomeCategories' | 'savingsGoals' | 'recurringEntries';
 
 /** Persists a drag-and-drop reorder: `orderedIds` is the full list, top to bottom. */
 export async function reorder(table: Orderable, orderedIds: string[]): Promise<void> {
   const coll = db[table] as unknown as {
-    get: (id: string) => Promise<(Category | Account | IncomeCategory) | undefined>;
+    get: (id: string) => Promise<(Category | Account | IncomeCategory | SavingsGoal | RecurringEntry) | undefined>;
     put: (row: unknown) => Promise<unknown>;
   };
   const now = Date.now();
@@ -289,5 +317,135 @@ export async function reorder(table: Orderable, orderedIds: string[]): Promise<v
     const existing = await coll.get(orderedIds[i]);
     if (!existing) continue;
     await coll.put({ ...existing, order: i, updatedAt: now });
+  }
+}
+
+export async function addSavingsGoal(input: {
+  name: string;
+  targetAmount: Cents;
+  currency: string;
+  color: string;
+  icon: string;
+}): Promise<void> {
+  const order = await db.savingsGoals.count();
+  await db.savingsGoals.put({
+    id: uid(),
+    name: input.name.trim() || 'Goal',
+    targetAmount: Math.abs(input.targetAmount),
+    savedAmount: 0,
+    currency: input.currency,
+    icon: input.icon,
+    color: input.color,
+    order,
+    ...stamp(),
+  });
+}
+
+export async function updateSavingsGoal(
+  id: string,
+  input: { name: string; targetAmount: Cents; currency: string; color: string; icon: string },
+): Promise<void> {
+  const existing = await db.savingsGoals.get(id);
+  if (!existing) return;
+  recordUndo('savingsGoals', id, existing, 'edit');
+  await db.savingsGoals.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    targetAmount: Math.abs(input.targetAmount),
+    currency: input.currency,
+    color: input.color,
+    icon: input.icon,
+    updatedAt: Date.now(),
+  });
+}
+
+/** The inline "saved so far" field on the dashboard — a quick correction like a budget amount, not undo-tracked (the same reasoning: frequent, low-stakes, and trivially re-typed). */
+export async function setSavingsGoalProgress(id: string, savedAmount: Cents): Promise<void> {
+  const existing = await db.savingsGoals.get(id);
+  if (!existing) return;
+  await db.savingsGoals.put({ ...existing, savedAmount: Math.max(0, savedAmount), updatedAt: Date.now() });
+}
+
+export async function addRecurringEntry(input: {
+  name: string;
+  type: 'expense' | 'income';
+  amount: Cents;
+  accountId: string | null;
+  categoryId: string | null;
+  dayOfMonth: number;
+  color: string;
+  icon: string;
+}): Promise<void> {
+  const order = await db.recurringEntries.count();
+  await db.recurringEntries.put({
+    id: uid(),
+    name: input.name.trim() || 'Recurring entry',
+    type: input.type,
+    amount: Math.abs(input.amount),
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
+    icon: input.icon,
+    color: input.color,
+    order,
+    ...stamp(),
+  });
+}
+
+export async function updateRecurringEntry(
+  id: string,
+  input: {
+    name: string;
+    type: 'expense' | 'income';
+    amount: Cents;
+    accountId: string | null;
+    categoryId: string | null;
+    dayOfMonth: number;
+    color: string;
+    icon: string;
+  },
+): Promise<void> {
+  const existing = await db.recurringEntries.get(id);
+  if (!existing) return;
+  recordUndo('recurringEntries', id, existing, 'edit');
+  await db.recurringEntries.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    type: input.type,
+    amount: Math.abs(input.amount),
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
+    icon: input.icon,
+    color: input.color,
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Turns one period's pending recurring instance into a real transaction,
+ * tagged so it won't be surfaced again until next period — the only way a
+ * recurring entry ever produces a transaction (see RecurringEntry's doc
+ * comment in types.ts).
+ */
+export async function logRecurringEntry(entry: RecurringEntry, date: ISODate): Promise<void> {
+  if (entry.type === 'expense') {
+    await addExpense({
+      name: entry.name,
+      amount: entry.amount,
+      date,
+      categoryId: entry.categoryId,
+      accountId: entry.accountId,
+      recurringId: entry.id,
+    });
+  } else {
+    await addIncome({
+      name: entry.name,
+      amount: entry.amount,
+      date,
+      accountId: entry.accountId,
+      sourceId: entry.categoryId,
+      recurringId: entry.id,
+    });
   }
 }

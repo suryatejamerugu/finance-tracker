@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { DataMenu } from './DataMenu';
 
 /**
@@ -8,6 +9,7 @@ import { DataMenu } from './DataMenu';
  * this-month action, so it belongs behind a header button instead.
  */
 export function DataMenuModal({ onChanged, onClose }: { onChanged: () => void; onClose: () => void }) {
+  const trapRef = useFocusTrap<HTMLDivElement>();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -20,6 +22,7 @@ export function DataMenuModal({ onChanged, onClose }: { onChanged: () => void; o
       onClick={onClose}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label="Your data"
@@ -28,7 +31,7 @@ export function DataMenuModal({ onChanged, onClose }: { onChanged: () => void; o
       >
         <div className="flex items-center justify-between">
           <h2 className="text-[15px] font-medium">Your data</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="px-1 text-[16px] text-muted hover:text-ink">
+          <button type="button" onClick={onClose} aria-label="Close" className="p-2 -m-2 text-[16px] text-muted hover:text-ink">
             ✕
           </button>
         </div>

@@ -1,0 +1,174 @@
+import { useEffect, useState } from 'react';
+import type { SavingsGoal } from '../types';
+import { PALETTE, suggestedColor } from '../lib/colors';
+import { useFocusTrap } from '../hooks/useFocusTrap';
+import { CURRENCIES, currencySymbol } from '../lib/currency';
+import { parseAmount } from '../lib/money';
+import { guessCategoryIcon } from '../lib/iconGuess';
+import { addSavingsGoal, updateSavingsGoal } from '../lib/store';
+import { IconPicker } from './Pickers';
+
+/**
+ * Create or edit a goal — name, target amount, currency, icon, color. Kept
+ * separate from AddModal (which already covers five other kinds) since a
+ * goal has no account/category link, no date, and its own "target amount"
+ * field; bolting it on there would mean yet another kind-specific branch
+ * threaded through an already-long component.
+ */
+export function SavingsGoalModal({
+  editing,
+  existingCount,
+  defaultCurrency,
+  onChanged,
+  onClose,
+}: {
+  editing: SavingsGoal | null;
+  /** Used only for a new goal's default color, so it doesn't repeat an existing one. */
+  existingCount: number;
+  defaultCurrency: string;
+  onChanged: () => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(editing?.name ?? '');
+  const [amountInput, setAmountInput] = useState(
+    editing ? (editing.targetAmount / 100).toFixed(2) : '',
+  );
+  const [currency, setCurrency] = useState(editing?.currency ?? defaultCurrency);
+  const [color, setColor] = useState(editing?.color ?? suggestedColor(existingCount));
+  const [icon, setIcon] = useState(editing?.icon ?? 'piggy-bank');
+  const [iconTouched, setIconTouched] = useState(Boolean(editing));
+  const [saving, setSaving] = useState(false);
+  const trapRef = useFocusTrap<HTMLDivElement>();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function save() {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    try {
+      const targetAmount = parseAmount(amountInput) ?? 0;
+      if (editing) {
+        await updateSavingsGoal(editing.id, { name, targetAmount, currency, color, icon });
+      } else {
+        await addSavingsGoal({ name, targetAmount, currency, color, icon });
+      }
+      onChanged();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={editing ? 'Edit goal' : 'New goal'}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-raised p-5 shadow-pop"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-[15px] font-medium">{editing ? 'Edit goal' : 'New goal'}</h2>
+          <button type="button" onClick={onClose} className="px-2 text-[15px] text-muted">
+            Cancel
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <input
+            value={name}
+            onChange={(e) => {
+              const next = e.target.value;
+              setName(next);
+              if (!iconTouched) setIcon(guessCategoryIcon(next));
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && void save()}
+            placeholder="What are you saving for?"
+            aria-label="Goal name"
+            autoFocus
+            className="w-full rounded-lg border border-rule bg-transparent px-3 py-2.5 text-[15px] outline-none focus:border-brand"
+          />
+
+          <div>
+            <span className="mb-1.5 block text-[12px] text-faint">Target amount</span>
+            <div className="flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2">
+              <span className="text-[15px] text-faint">{currencySymbol(currency)}</span>
+              <input
+                value={amountInput}
+                onChange={(e) => setAmountInput(e.target.value)}
+                inputMode="decimal"
+                placeholder="0.00"
+                aria-label="Target amount"
+                className="num w-full bg-transparent text-[15px] outline-none placeholder:text-faint"
+              />
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[12px] text-faint">Currency</span>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              aria-label="Currency"
+              className="w-full rounded-lg border border-rule bg-transparent px-3 py-2.5 text-[15px] outline-none focus:border-brand"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[12px] text-faint">Color</span>
+            <div className="flex flex-wrap gap-1.5">
+              {PALETTE.map((swatch) => (
+                <button
+                  key={swatch}
+                  type="button"
+                  onClick={() => setColor(swatch)}
+                  aria-label={`Use color ${swatch}`}
+                  aria-pressed={color === swatch}
+                  className="h-6 w-6 shrink-0 rounded-full transition-transform hover:scale-110"
+                  style={{
+                    background: swatch,
+                    boxShadow:
+                      color === swatch ? `0 0 0 2px var(--color-raised), 0 0 0 4px ${swatch}` : 'none',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[12px] text-faint">Icon</span>
+            <IconPicker
+              value={icon}
+              onChange={(k) => {
+                setIcon(k);
+                setIconTouched(true);
+              }}
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={!name.trim() || saving}
+          className="press mt-5 w-full rounded-lg bg-brand-gradient py-3 text-[15px] font-medium text-white shadow-card hover:shadow-card-hover disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+    </div>
+  );
+}

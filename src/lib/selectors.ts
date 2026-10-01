@@ -8,6 +8,7 @@ import type {
   ISODate,
   Income,
   ISOMonth,
+  RecurringEntry,
   Transfer,
 } from '../types';
 import { monthOf, shiftMonth } from './money';
@@ -311,6 +312,9 @@ export interface MonthSummary {
   net: Cents;
   overspent: number;
   unbudgeted: number;
+  /** The month immediately before, for the "vs last month" comparison on the dashboard — not shifted again if that month is itself incomplete or empty. */
+  spentPrev: Cents;
+  incomePrev: Cents;
 }
 
 export function monthSummary(
@@ -327,6 +331,7 @@ export function monthSummary(
   const spent = sum(inMonth(scopedExpenses, month), (e) => e.amount);
   const income = sum(inMonth(scopedIncomes, month), (i) => i.amount);
   const budgeted = sum(statuses, (s) => s.category.budgets[currency] ?? 0);
+  const prevMonth = shiftMonth(month, -1);
   return {
     income,
     spent,
@@ -335,6 +340,8 @@ export function monthSummary(
     net: income - spent,
     overspent: statuses.filter((s) => s.state === 'over').length,
     unbudgeted: statuses.filter((s) => s.state === 'unbudgeted').length,
+    spentPrev: sum(inMonth(scopedExpenses, prevMonth), (e) => e.amount),
+    incomePrev: sum(inMonth(scopedIncomes, prevMonth), (i) => i.amount),
   };
 }
 
@@ -399,6 +406,51 @@ export function donutByCategory(
     .filter((s) => s.value > 0)
     .sort((a, b) => b.value - a.value);
   return resolveDistinctColors(slices);
+}
+
+export interface UpcomingBill {
+  entry: RecurringEntry;
+  dueDate: ISODate;
+  status: 'overdue' | 'due today' | 'upcoming';
+}
+
+/**
+ * One pending occurrence per recurring entry — this calendar month's due
+ * date, unless an expense/income already tagged with this entry's id exists
+ * in that same month, in which case it's done for this period and nothing
+ * is surfaced. Never a backlog of missed months: a period that was never
+ * logged just quietly rolls forward into the next one, rather than piling
+ * up "overdue" entries forever. Sorted soonest-due first.
+ */
+export function upcomingBills(
+  entries: RecurringEntry[],
+  expenses: Expense[],
+  incomes: Income[],
+  today: ISODate,
+): UpcomingBill[] {
+  const [y, m] = today.split('-').map(Number);
+  const liveExpenses = live(expenses);
+  const liveIncomes = live(incomes);
+  const results: UpcomingBill[] = [];
+
+  for (const entry of live(entries)) {
+    const dueDate = `${y}-${pad2(m)}-${pad2(Math.min(entry.dayOfMonth, lastDayOf(y, m)))}`;
+    const loggedThisPeriod =
+      entry.type === 'expense'
+        ? liveExpenses.some((e) => e.recurringId === entry.id && monthOf(e.date) === monthOf(dueDate))
+        : liveIncomes.some((i) => i.recurringId === entry.id && monthOf(i.date) === monthOf(dueDate));
+    if (loggedThisPeriod) continue;
+    const status: UpcomingBill['status'] = dueDate < today ? 'overdue' : dueDate === today ? 'due today' : 'upcoming';
+    results.push({ entry, dueDate, status });
+  }
+
+  return results.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/** A savings goal's progress, clamped to [0, 100] and safe against a target of 0 (shows as 0% rather than dividing by zero). */
+export function goalProgress(savedAmount: Cents, targetAmount: Cents): number {
+  if (targetAmount <= 0) return 0;
+  return Math.max(0, Math.min(100, (savedAmount / targetAmount) * 100));
 }
 
 /** Group rows into buckets keyed by day, month, or year, newest bucket first. */

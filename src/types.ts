@@ -88,6 +88,8 @@ export interface Expense extends Synced {
   accountId: string | null;
   categoryId: string | null;
   text: string;
+  /** Set when this row was logged from a recurring entry's "Log it" action — null for everything typed in by hand. Never written again after creation, so editing a recurring-derived row behaves exactly like editing any other. */
+  recurringId?: string | null;
 }
 
 /** Seed list only — income categories are a real, user-editable table (below), same as Categories. */
@@ -116,6 +118,31 @@ export interface Income extends Synced {
   date: ISODate;
   accountId: string | null;
   sourceId: string | null;
+  /** See Expense.recurringId. */
+  recurringId?: string | null;
+}
+
+/**
+ * A monthly template, not a scheduled automation — nothing posts itself in
+ * the background. "Upcoming bills" on the dashboard surfaces the period's
+ * instance once it's due and offers a one-click "Log it" that creates a
+ * real Expense/Income (tagged with this id, so it isn't surfaced again
+ * until next month), exactly as if typed in by hand. That keeps every
+ * transaction an explicit, visible action — never a silent write while the
+ * app happens to be open, or a double-post if it's opened twice.
+ */
+export interface RecurringEntry extends Synced {
+  name: string;
+  type: 'expense' | 'income';
+  amount: Cents;
+  accountId: string | null;
+  /** The expense category id (type: 'expense') or income source id (type: 'income'). */
+  categoryId: string | null;
+  /** Day of month, 1-31 — clamped to the real last day of whichever month it's checked against. */
+  dayOfMonth: number;
+  icon: string;
+  color: string;
+  order: number;
 }
 
 /** Notion: Transfers. Title property is "Transactions". */
@@ -127,6 +154,23 @@ export interface Transfer extends Synced {
   toAccountId: string | null;
 }
 
+/**
+ * A standalone, manually-tracked target — "saved so far" is a number the
+ * user updates themselves as they set money aside, not something derived
+ * from any account balance or transaction. Deliberately disconnected from
+ * real money movement: linking it to an account would make "contributing"
+ * to a goal look like it moves money, when it doesn't.
+ */
+export interface SavingsGoal extends Synced {
+  name: string;
+  targetAmount: Cents;
+  savedAmount: Cents;
+  currency: string;
+  icon: string;
+  color: string;
+  order: number;
+}
+
 export interface Settings {
   id: 'settings';
   currency: string;
@@ -134,7 +178,7 @@ export interface Settings {
   updatedAt: number;
 }
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 8;
 
 export interface Snapshot {
   schemaVersion: number;
@@ -145,6 +189,8 @@ export interface Snapshot {
   expenses: Expense[];
   incomes: Income[];
   transfers: Transfer[];
+  savingsGoals: SavingsGoal[];
+  recurringEntries: RecurringEntry[];
   settings: Settings;
 }
 

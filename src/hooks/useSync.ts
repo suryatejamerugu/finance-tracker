@@ -14,6 +14,8 @@ export type SyncState = 'offline' | 'idle' | 'syncing' | 'error';
 
 const LAST_SYNC_KEY = 'll.lastSync';
 const PUSH_DEBOUNCE_MS = 2500;
+/** Backoff between automatic retries after a failed sync — gives transient network blips a few chances before it's treated as a real problem the user needs to act on. */
+const RETRY_DELAYS_MS = [5_000, 15_000, 45_000];
 
 export function useSync() {
   const [token, setToken] = useState<StoredToken | null>(() => loadToken());
@@ -26,6 +28,8 @@ export function useSync() {
 
   const timer = useRef<number | null>(null);
   const inFlight = useRef(false);
+  const retryAttempt = useRef(0);
+  const retryTimer = useRef<number | null>(null);
 
   const markSynced = useCallback(() => {
     const now = Date.now();
@@ -35,6 +39,10 @@ export function useSync() {
 
   const syncNow = useCallback(async () => {
     if (!loadToken() || inFlight.current) return;
+    if (retryTimer.current) {
+      window.clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
     inFlight.current = true;
     setState('syncing');
     setError(null);
@@ -45,9 +53,17 @@ export function useSync() {
       await drive.push(await buildSnapshot());
       markSynced();
       setState('idle');
+      retryAttempt.current = 0;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sync failed.');
       setState('error');
+      // A few automatic retries with backoff before leaving it to the user —
+      // most failures here are a dropped connection, not a real problem.
+      if (retryAttempt.current < RETRY_DELAYS_MS.length) {
+        const delay = RETRY_DELAYS_MS[retryAttempt.current];
+        retryAttempt.current += 1;
+        retryTimer.current = window.setTimeout(() => void syncNow(), delay);
+      }
     } finally {
       inFlight.current = false;
     }
@@ -73,6 +89,11 @@ export function useSync() {
   }, [syncNow]);
 
   const disconnect = useCallback(async () => {
+    if (retryTimer.current) {
+      window.clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+    retryAttempt.current = 0;
     await revoke();
     drive.forgetFileId();
     localStorage.removeItem(LAST_SYNC_KEY);

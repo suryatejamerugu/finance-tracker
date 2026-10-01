@@ -62,6 +62,7 @@ export function accountTypeMeta(type: string): { value: AccountType; label: stri
 
 /** The curated set categories and income categories pick from — covers common personal-finance concepts, plus a "tag" fallback for anything else. */
 export const ICON_OPTIONS: Array<{ key: string; label: string; icon: LucideIcon }> = [
+  { key: 'piggy-bank', label: 'Savings', icon: PiggyBank },
   { key: 'cart', label: 'Groceries', icon: ShoppingCart },
   { key: 'coffee', label: 'Dining', icon: Coffee },
   { key: 'receipt', label: 'Bills', icon: Receipt },
@@ -110,7 +111,7 @@ export function IconBadge({
 }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full"
+      className="inline-flex shrink-0 items-center justify-center rounded-md"
       style={{ width: size, height: size, background: `${color}26`, color }}
       aria-hidden="true"
     >

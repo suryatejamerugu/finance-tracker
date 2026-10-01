@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Account, AccountStatus, Expense, Income, Settings, Transfer } from '../types';
-import { formatBig, formatMoney, shortDate, todayISO } from '../lib/money';
+import { formatBig, formatMoney, HIDDEN_AMOUNT, shortDate, todayISO } from '../lib/money';
 import { reorder, softDelete, updateAccount } from '../lib/store';
 import { creditCardStatus } from '../lib/selectors';
 import { accountTypeMeta, IconBadge } from '../lib/icons';
@@ -21,12 +21,14 @@ export function SpendDonut({
   total,
   currency,
   settings,
+  hideBalances,
 }: {
   slices: Array<{ name: string; value: number; color: string }>;
   total: number;
   /** The dashboard's current currency lens — slices are already scoped to it. */
   currency: string;
   settings: Settings;
+  hideBalances?: boolean;
 }) {
   const { locale } = settings;
   const [active, setActive] = useState<number | null>(null);
@@ -63,14 +65,16 @@ export function SpendDonut({
                       />
                     ))}
                   </Pie>
-                  <Tooltip {...chartTooltip(currency, locale)} />
+                  <Tooltip {...chartTooltip(currency, locale, hideBalances)} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <span className="num text-[20px] font-medium">
-                  {active !== null
-                    ? formatBig(slices[active].value * 100, currency, locale)
-                    : formatBig(total, currency, locale)}
+                  {hideBalances
+                    ? HIDDEN_AMOUNT
+                    : active !== null
+                      ? formatBig(slices[active].value * 100, currency, locale)
+                      : formatBig(total, currency, locale)}
                 </span>
                 <span className="text-[11px] text-faint">{active !== null ? slices[active].name : 'spent'}</span>
               </div>
@@ -91,7 +95,7 @@ export function SpendDonut({
                     aria-hidden="true"
                   />
                   <span className="min-w-0 flex-1 truncate text-muted">{s.name}</span>
-                  <span className="num">{formatBig(s.value * 100, currency, locale)}</span>
+                  <span className="num">{hideBalances ? HIDDEN_AMOUNT : formatBig(s.value * 100, currency, locale)}</span>
                 </li>
               ))}
             </ul>
@@ -110,6 +114,9 @@ export function AccountsGallery({
   transfers,
   settings,
   onChanged,
+  limit,
+  onViewAll,
+  hideBalances,
 }: {
   statuses: AccountStatus[];
   expenses: Expense[];
@@ -117,6 +124,10 @@ export function AccountsGallery({
   transfers: Transfer[];
   settings: Settings;
   onChanged: () => void;
+  /** Dashboard-overview mode: see CategoryGallery's identical prop for why. Omit both for the full, drag-to-reorder-capable view. */
+  limit?: number;
+  onViewAll?: () => void;
+  hideBalances?: boolean;
 }) {
   const { locale } = settings;
   const today = todayISO();
@@ -148,11 +159,13 @@ export function AccountsGallery({
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-[15px] font-medium">Accounts</h2>
           <span className="num flex flex-wrap justify-end gap-x-2 text-[13px] text-muted">
-            {[...totalsByCurrency.entries()].map(([cur, sum]) => (
-              <span key={cur} className={sum < 0 ? 'text-over' : ''}>
-                {formatMoney(sum, { currency: cur, locale })}
-              </span>
-            ))}
+            {hideBalances
+              ? [...totalsByCurrency.keys()].map((cur) => <span key={cur}>{HIDDEN_AMOUNT}</span>)
+              : [...totalsByCurrency.entries()].map(([cur, sum]) => (
+                  <span key={cur} className={sum < 0 ? 'text-over' : ''}>
+                    {formatMoney(sum, { currency: cur, locale })}
+                  </span>
+                ))}
           </span>
         </div>
 
@@ -160,92 +173,125 @@ export function AccountsGallery({
           {statuses.length === 0 ? (
             <EmptyRow>No accounts yet.</EmptyRow>
           ) : (
-            <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
-              <SortableList ids={statuses.map((s) => s.account.id)} onReorder={handleReorder}>
-                {statuses.map((s) => {
-                  const cc =
-                    s.account.type === 'credit_card'
-                      ? creditCardStatus(s.account, s.balance, expenses, incomes, transfers, today)
-                      : null;
-                  return (
-                    <SortableRow key={s.account.id} id={s.account.id}>
-                      {(handle) => (
-                        <div className="group bg-raised px-3.5 py-2.5">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span className="flex min-w-0 items-center gap-1.5">
-                              <DragHandle {...handle} />
-                              <IconBadge icon={accountTypeMeta(s.account.type).icon} color={s.account.color} size={20} />
-                              <span className="truncate text-[13.5px]">{s.account.name}</span>
-                            </span>
-                            <span className="flex shrink-0 items-center gap-2">
-                              <span className={`num text-[14px] ${(cc ? cc.owed > 0 : s.balance < 0) ? 'text-over' : ''}`}>
-                                {formatMoney(cc ? cc.owed : s.balance, { currency: s.account.currency, locale })}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setEditing(s.account)}
-                                aria-label={`Edit ${s.account.name}`}
-                                className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
-                              >
-                                <EditIcon />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void remove(s.account.name, s.account.id)}
-                                aria-label={`Delete ${s.account.name}`}
-                                className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
-                              >
-                                ×
-                              </button>
+            (() => {
+              const shown = limit ? statuses.slice(0, limit) : statuses;
+
+              const Row = (s: AccountStatus, handle: Parameters<typeof DragHandle>[0] | null) => {
+                const cc =
+                  s.account.type === 'credit_card'
+                    ? creditCardStatus(s.account, s.balance, expenses, incomes, transfers, today)
+                    : null;
+                return (
+                  <div className="group bg-raised px-3.5 py-2.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        {handle && <DragHandle {...handle} />}
+                        <IconBadge icon={accountTypeMeta(s.account.type).icon} color={s.account.color} size={20} />
+                        <span className="truncate text-[13.5px]">{s.account.name}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        <span className={`num text-[14px] ${(cc ? cc.owed > 0 : s.balance < 0) ? 'text-over' : ''}`}>
+                          {hideBalances
+                            ? HIDDEN_AMOUNT
+                            : formatMoney(cc ? cc.owed : s.balance, { currency: s.account.currency, locale })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditing(s.account)}
+                          aria-label={`Edit ${s.account.name}`}
+                          className="p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                        >
+                          <EditIcon />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void remove(s.account.name, s.account.id)}
+                          aria-label={`Delete ${s.account.name}`}
+                          className="p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                    {cc && (
+                      <div className="mt-1 text-[11.5px] text-faint">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span>available</span>
+                          <span className="num">
+                            {hideBalances
+                              ? HIDDEN_AMOUNT
+                              : cc.availableCredit != null
+                                ? `${formatBig(cc.availableCredit, s.account.currency, locale)} of ${formatBig(cc.creditLimit ?? 0, s.account.currency, locale)}`
+                                : 'set a limit in edit'}
+                          </span>
+                        </div>
+                        {cc.creditBalance > 0 && (
+                          <div className="mt-0.5 flex items-baseline justify-between gap-2 text-under">
+                            <span>card credit</span>
+                            <span className="num">
+                              {hideBalances ? HIDDEN_AMOUNT : formatBig(cc.creditBalance, s.account.currency, locale)}
                             </span>
                           </div>
-                          {cc && (
-                            <div className="mt-1 text-[11.5px] text-faint">
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span>available</span>
-                                <span className="num">
-                                  {cc.availableCredit != null
-                                    ? `${formatBig(cc.availableCredit, s.account.currency, locale)} of ${formatBig(cc.creditLimit ?? 0, s.account.currency, locale)}`
-                                    : 'set a limit in edit'}
-                                </span>
-                              </div>
-                              {cc.creditBalance > 0 && (
-                                <div className="mt-0.5 flex items-baseline justify-between gap-2 text-under">
-                                  <span>card credit</span>
-                                  <span className="num">{formatBig(cc.creditBalance, s.account.currency, locale)}</span>
-                                </div>
-                              )}
-                              {cc.lastStatementDate && (() => {
-                                const overdue = Boolean(
-                                  cc.statementBalance && cc.statementBalance > 0 && cc.nextDueDate && cc.nextDueDate < today,
-                                );
-                                const suffix =
-                                  cc.statementBalance === 0
-                                    ? ' · paid'
-                                    : cc.nextDueDate
-                                      ? overdue
-                                        ? ` overdue since ${shortDate(cc.nextDueDate, locale)}`
-                                        : ` due ${shortDate(cc.nextDueDate, locale)}`
-                                      : '';
-                                return (
-                                  <div className="mt-0.5 flex items-baseline justify-between gap-2">
-                                    <span>this cycle</span>
-                                    <span className={`num ${overdue ? 'text-over' : ''}`}>
-                                      {formatBig(cc.statementBalance ?? 0, s.account.currency, locale)}
-                                      {suffix}
-                                    </span>
-                                  </div>
-                                );
-                              })()}
+                        )}
+                        {cc.lastStatementDate && (() => {
+                          const overdue = Boolean(
+                            cc.statementBalance && cc.statementBalance > 0 && cc.nextDueDate && cc.nextDueDate < today,
+                          );
+                          const suffix =
+                            cc.statementBalance === 0
+                              ? ' · paid'
+                              : cc.nextDueDate
+                                ? overdue
+                                  ? ` overdue since ${shortDate(cc.nextDueDate, locale)}`
+                                  : ` due ${shortDate(cc.nextDueDate, locale)}`
+                                : '';
+                          return (
+                            <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                              <span>this cycle</span>
+                              <span className={`num ${overdue ? 'text-over' : ''}`}>
+                                {hideBalances ? HIDDEN_AMOUNT : formatBig(cc.statementBalance ?? 0, s.account.currency, locale)}
+                                {suffix}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      )}
-                    </SortableRow>
-                  );
-                })}
-              </SortableList>
-            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                );
+              };
+
+              if (limit) {
+                return (
+                  <div className="divide-y divide-rule">
+                    {shown.map((s) => (
+                      <div key={s.account.id}>{Row(s, null)}</div>
+                    ))}
+                    {statuses.length > limit && (
+                      <button
+                        type="button"
+                        onClick={onViewAll}
+                        className="block w-full px-3.5 py-2 text-center text-[12.5px] text-muted hover:text-brand"
+                      >
+                        View all {statuses.length} accounts
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
+                  <SortableList ids={shown.map((s) => s.account.id)} onReorder={handleReorder}>
+                    {shown.map((s) => (
+                      <SortableRow key={s.account.id} id={s.account.id}>
+                        {(handle) => Row(s, handle)}
+                      </SortableRow>
+                    ))}
+                  </SortableList>
+                </div>
+              );
+            })()
           )}
         </div>
       </section>

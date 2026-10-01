@@ -1,5 +1,8 @@
 import type { Cents, ISODate, ISOMonth } from '../types';
 
+/** The one placeholder every "hide balances" display swaps in for a real figure, so a masked amount always looks the same regardless of which component rendered it. */
+export const HIDDEN_AMOUNT = '••••';
+
 /** '12.34' or '12' or '$12.34' -> 1234. Returns null if it isn't a number. */
 export function parseAmount(input: string): Cents | null {
   const cleaned = input.replace(/[^0-9.\-]/g, '').trim();

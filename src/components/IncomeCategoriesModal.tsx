@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { IncomeCategory } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { addIncomeCategory, reorder, softDelete, updateIncomeCategory } from '../lib/store';
 import { IconBadge, iconFor } from '../lib/icons';
 import { guessIncomeIcon } from '../lib/iconGuess';
@@ -30,6 +31,7 @@ export function IncomeCategoriesModal({
   const [newIcon, setNewIcon] = useState('tag');
   const [newIconTouched, setNewIconTouched] = useState(false);
   const [editing, setEditing] = useState<IncomeCategory | null>(null);
+  const trapRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -72,6 +74,7 @@ export function IncomeCategoriesModal({
         onClick={onClose}
       >
         <div
+          ref={trapRef}
           role="dialog"
           aria-modal="true"
           aria-label="Income categories"
@@ -84,7 +87,7 @@ export function IncomeCategoriesModal({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="px-1 text-[16px] text-muted hover:text-ink"
+              className="p-2 -m-2 text-[16px] text-muted hover:text-ink"
             >
               ✕
             </button>
@@ -158,7 +161,7 @@ export function IncomeCategoriesModal({
                             type="button"
                             onClick={() => setEditing(c)}
                             aria-label={`Edit ${c.name}`}
-                            className="text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                            className="p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
                           >
                             <EditIcon />
                           </button>
@@ -166,7 +169,7 @@ export function IncomeCategoriesModal({
                             type="button"
                             onClick={() => void remove(c.name, c.id)}
                             aria-label={`Delete ${c.name}`}
-                            className="text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                            className="p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
                           >
                             ×
                           </button>

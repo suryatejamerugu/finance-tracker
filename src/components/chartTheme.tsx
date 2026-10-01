@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { formatMoney } from '../lib/money';
+import { formatMoney, HIDDEN_AMOUNT } from '../lib/money';
 
 export const AXIS = { fontSize: 11, fill: 'var(--color-faint)' } as const;
 
@@ -54,7 +54,7 @@ export function InteractiveLegend({
               onMouseLeave={() => onHover(null)}
               aria-pressed={!isHidden}
               title={isHidden ? `Show ${name}` : `Hide ${name}`}
-              className="flex items-center gap-1.5 rounded px-1 py-0.5 transition-opacity"
+              className="flex items-center gap-1.5 rounded px-1 py-1.5 -my-1 transition-opacity"
               style={{ opacity: isHidden ? 0.35 : dimmed ? 0.55 : 1 }}
             >
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorOf(name) }} aria-hidden="true" />
@@ -79,9 +79,10 @@ export function InteractiveLegend({
  */
 type TooltipValue = number | string | readonly (number | string)[] | undefined;
 
-export function chartTooltip(currency: string, locale: string) {
+export function chartTooltip(currency: string, locale: string, hideBalances?: boolean) {
   return {
     formatter: (value: TooltipValue): string => {
+      if (hideBalances) return HIDDEN_AMOUNT;
       const n = Array.isArray(value) ? Number(value[0]) : Number(value);
       if (!Number.isFinite(n)) return '—';
       return formatMoney(n * 100, { currency, locale });
