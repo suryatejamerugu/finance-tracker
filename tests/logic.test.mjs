@@ -83,6 +83,8 @@ eq('budgeted', sum.budgeted, 40000);
 eq('net = income - spent', sum.net, 203000 - 43844);
 eq('overspent count', sum.overspent, 1);
 eq('unbudgeted count', sum.unbudgeted, 1);
+eq('spentPrev is last month only', sum.spentPrev, 9000);
+eq('incomePrev is last month only', sum.incomePrev, 203000);
 
 // --- stacked chart
 const { data, series } = sel.stackedByMonth(expenses, '2026-09', 3, e => e.categoryId);

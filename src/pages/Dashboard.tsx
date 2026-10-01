@@ -32,6 +32,19 @@ const TONE_CLASS: Record<SummaryTone, string> = {
   faint: 'text-faint',
 };
 
+/**
+ * A short "vs last month" line — percentage only, never a dollar delta, so it
+ * stays meaningful (and non-leaking) even while hide-balances is on, the same
+ * way a budget's usage percentage already does.
+ */
+function monthOverMonth(current: number, previous: number): string | undefined {
+  if (current === 0 && previous === 0) return undefined;
+  if (previous === 0) return 'none last month';
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return 'same as last month';
+  return `${pct > 0 ? '↑' : '↓'} ${Math.abs(pct)}% vs last month`;
+}
+
 /** One HUD-style readout: a label, a big tabular number, and an optional second line. */
 function SummaryCard({
   label,
@@ -231,11 +244,13 @@ export function Dashboard({
         <SummaryCard
           label="Income"
           value={hideBalances ? HIDDEN_AMOUNT : formatBig(summary.income, currency, locale)}
+          sublabel={monthOverMonth(summary.income, summary.incomePrev)}
           tone="under"
         />
         <SummaryCard
           label="Spending"
           value={hideBalances ? HIDDEN_AMOUNT : formatBig(summary.spent, currency, locale)}
+          sublabel={monthOverMonth(summary.spent, summary.spentPrev)}
         />
         <SummaryCard
           label="Net cash flow"

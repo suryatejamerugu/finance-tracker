@@ -311,6 +311,9 @@ export interface MonthSummary {
   net: Cents;
   overspent: number;
   unbudgeted: number;
+  /** The month immediately before, for the "vs last month" comparison on the dashboard — not shifted again if that month is itself incomplete or empty. */
+  spentPrev: Cents;
+  incomePrev: Cents;
 }
 
 export function monthSummary(
@@ -327,6 +330,7 @@ export function monthSummary(
   const spent = sum(inMonth(scopedExpenses, month), (e) => e.amount);
   const income = sum(inMonth(scopedIncomes, month), (i) => i.amount);
   const budgeted = sum(statuses, (s) => s.category.budgets[currency] ?? 0);
+  const prevMonth = shiftMonth(month, -1);
   return {
     income,
     spent,
@@ -335,6 +339,8 @@ export function monthSummary(
     net: income - spent,
     overspent: statuses.filter((s) => s.state === 'over').length,
     unbudgeted: statuses.filter((s) => s.state === 'unbudgeted').length,
+    spentPrev: sum(inMonth(scopedExpenses, prevMonth), (e) => e.amount),
+    incomePrev: sum(inMonth(scopedIncomes, prevMonth), (i) => i.amount),
   };
 }
 
