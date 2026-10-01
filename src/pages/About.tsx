@@ -273,6 +273,23 @@ export function About() {
         </p>
       </Section>
 
+      <Section title="Set up a recurring bill or income">
+        <p>
+          Click <Kbd>New recurring entry</Kbd> above the Upcoming bills card. Give it a name,
+          whether it's a bill or income, an amount, an account, a category or source, and a day of
+          the month — rent on the 2nd, a subscription on the 15th, a paycheck on the 1st.
+        </p>
+        <p>
+          This doesn't log anything by itself — nothing posts in the background, ever. Each month,
+          once that day comes up, it shows up on the Upcoming bills card ("overdue" if the day's
+          already passed and it's not logged yet, "due today," or just the date if it's still
+          ahead). Click <Kbd>Log it</Kbd> to turn it into a real expense or income, exactly as if
+          you'd typed it in by hand — the dashboard, budgets, and charts treat it the same as
+          anything else from that point on. Ignore a month and it just quietly rolls forward to
+          the next one instead of piling up.
+        </p>
+      </Section>
+
       <Section title="Track a savings goal">
         <p>
           Click <Kbd>New goal</Kbd> below the Accounts card, give it a name, a target amount, and

@@ -8,8 +8,9 @@ import {
   donutByCategory,
   live,
   monthSummary,
+  upcomingBills,
 } from '../lib/selectors';
-import { currentMonth, formatBig, formatMoney, HIDDEN_AMOUNT, monthLabel, shiftMonth } from '../lib/money';
+import { currentMonth, formatBig, formatMoney, HIDDEN_AMOUNT, monthLabel, shiftMonth, todayISO } from '../lib/money';
 import { ADD_LABELS, AddModal, type AddKind, type EditingRow } from '../components/AddModal';
 import { CategoryGallery } from '../components/CategoryGallery';
 import { RecentActivity } from '../components/RecentActivity';
@@ -17,6 +18,7 @@ import { SpendingTrend } from '../components/SpendingTrend';
 import { IncomeTrend } from '../components/IncomeTrend';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
 import { SavingsGoals } from '../components/SavingsGoals';
+import { UpcomingBills } from '../components/UpcomingBills';
 import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
 import { Overlay } from '../components/Panel';
@@ -96,6 +98,7 @@ export function Dashboard({
   const reportsRef = useRef<HTMLDivElement>(null);
   const accountsRef = useRef<HTMLDivElement>(null);
   const goalsRef = useRef<HTMLDivElement>(null);
+  const billsRef = useRef<HTMLDivElement>(null);
 
   function scrollTo(ref: RefObject<HTMLDivElement | null>) {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -111,17 +114,27 @@ export function Dashboard({
   }
 
   const data = useLiveQuery(async () => {
-    const [accounts, categories, incomeCategories, expenses, incomes, transfers, savingsGoals, settings] =
-      await Promise.all([
-        db.accounts.toArray(),
-        db.categories.toArray(),
-        db.incomeCategories.toArray(),
-        db.expenses.toArray(),
-        db.incomes.toArray(),
-        db.transfers.toArray(),
-        db.savingsGoals.toArray(),
-        db.settings.get('settings'),
-      ]);
+    const [
+      accounts,
+      categories,
+      incomeCategories,
+      expenses,
+      incomes,
+      transfers,
+      savingsGoals,
+      recurringEntries,
+      settings,
+    ] = await Promise.all([
+      db.accounts.toArray(),
+      db.categories.toArray(),
+      db.incomeCategories.toArray(),
+      db.expenses.toArray(),
+      db.incomes.toArray(),
+      db.transfers.toArray(),
+      db.savingsGoals.toArray(),
+      db.recurringEntries.toArray(),
+      db.settings.get('settings'),
+    ]);
     return {
       accounts,
       categories,
@@ -130,6 +143,7 @@ export function Dashboard({
       incomes,
       transfers,
       savingsGoals,
+      recurringEntries,
       settings: settings ?? DEFAULT_SETTINGS,
     };
   }, []);
@@ -142,6 +156,7 @@ export function Dashboard({
   const liveAccounts = live(data.accounts).sort((a, b) => a.order - b.order);
   const liveIncomeCategories = live(data.incomeCategories).sort((a, b) => a.order - b.order);
   const liveSavingsGoals = live(data.savingsGoals).sort((a, b) => a.order - b.order);
+  const bills = upcomingBills(data.recurringEntries, data.expenses, data.incomes, todayISO());
 
   const currencies = availableCurrencies(data.accounts, settings.currency);
   const currency = currencies.includes(currencyLens) ? currencyLens : settings.currency;
@@ -171,6 +186,7 @@ export function Dashboard({
   const NAV_ITEMS: Array<{ label: string; action: () => void }> = [
     { label: 'Overview', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
     { label: 'Budget', action: () => scrollTo(budgetRef) },
+    { label: 'Bills', action: () => scrollTo(billsRef) },
     { label: 'Transactions', action: () => scrollTo(activityRef) },
     { label: 'Reports', action: () => scrollTo(reportsRef) },
     { label: 'Accounts', action: () => scrollTo(accountsRef) },
@@ -393,6 +409,17 @@ export function Dashboard({
         </div>
 
         <div className="order-3 lg:order-2">
+          <div ref={billsRef} className="scroll-mt-4">
+            <UpcomingBills
+              bills={bills}
+              categories={liveCategories}
+              accounts={liveAccounts}
+              incomeCategories={liveIncomeCategories}
+              settings={settings}
+              onChanged={onChanged}
+              hideBalances={hideBalances}
+            />
+          </div>
           <div ref={activityRef} className="scroll-mt-4">
             <RecentActivity
               expenses={data.expenses}

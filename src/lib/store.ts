@@ -10,6 +10,7 @@ import type {
   Income,
   IncomeCategory,
   ISODate,
+  RecurringEntry,
   SavingsGoal,
   Transfer,
 } from '../types';
@@ -28,6 +29,8 @@ export async function addExpense(input: {
   categoryId: string | null;
   accountId: string | null;
   text?: string;
+  /** Set when logged from a recurring entry's "Log it" action. */
+  recurringId?: string | null;
 }): Promise<void> {
   await db.expenses.put({
     id: uid(),
@@ -37,6 +40,7 @@ export async function addExpense(input: {
     categoryId: input.categoryId,
     accountId: input.accountId,
     text: input.text?.trim() ?? '',
+    recurringId: input.recurringId ?? null,
     ...stamp(),
   });
 }
@@ -73,6 +77,8 @@ export async function addIncome(input: {
   date: ISODate;
   accountId: string | null;
   sourceId: string | null;
+  /** Set when logged from a recurring entry's "Log it" action. */
+  recurringId?: string | null;
 }): Promise<void> {
   await db.incomes.put({
     id: uid(),
@@ -81,6 +87,7 @@ export async function addIncome(input: {
     date: input.date,
     accountId: input.accountId,
     sourceId: input.sourceId,
+    recurringId: input.recurringId ?? null,
     ...stamp(),
   });
 }
@@ -284,7 +291,9 @@ export async function softDelete(table: Soft, id: string): Promise<void> {
   const existing = await (db[table] as unknown as {
     get: (
       id: string,
-    ) => Promise<Expense | Income | Transfer | Category | Account | IncomeCategory | SavingsGoal | undefined>;
+    ) => Promise<
+      Expense | Income | Transfer | Category | Account | IncomeCategory | SavingsGoal | RecurringEntry | undefined
+    >;
   }).get(id);
   if (!existing) return;
   recordUndo(table, id, existing, 'delete');
@@ -295,12 +304,12 @@ export async function softDelete(table: Soft, id: string): Promise<void> {
   });
 }
 
-type Orderable = 'categories' | 'accounts' | 'incomeCategories' | 'savingsGoals';
+type Orderable = 'categories' | 'accounts' | 'incomeCategories' | 'savingsGoals' | 'recurringEntries';
 
 /** Persists a drag-and-drop reorder: `orderedIds` is the full list, top to bottom. */
 export async function reorder(table: Orderable, orderedIds: string[]): Promise<void> {
   const coll = db[table] as unknown as {
-    get: (id: string) => Promise<(Category | Account | IncomeCategory | SavingsGoal) | undefined>;
+    get: (id: string) => Promise<(Category | Account | IncomeCategory | SavingsGoal | RecurringEntry) | undefined>;
     put: (row: unknown) => Promise<unknown>;
   };
   const now = Date.now();
@@ -355,4 +364,88 @@ export async function setSavingsGoalProgress(id: string, savedAmount: Cents): Pr
   const existing = await db.savingsGoals.get(id);
   if (!existing) return;
   await db.savingsGoals.put({ ...existing, savedAmount: Math.max(0, savedAmount), updatedAt: Date.now() });
+}
+
+export async function addRecurringEntry(input: {
+  name: string;
+  type: 'expense' | 'income';
+  amount: Cents;
+  accountId: string | null;
+  categoryId: string | null;
+  dayOfMonth: number;
+  color: string;
+  icon: string;
+}): Promise<void> {
+  const order = await db.recurringEntries.count();
+  await db.recurringEntries.put({
+    id: uid(),
+    name: input.name.trim() || 'Recurring entry',
+    type: input.type,
+    amount: Math.abs(input.amount),
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
+    icon: input.icon,
+    color: input.color,
+    order,
+    ...stamp(),
+  });
+}
+
+export async function updateRecurringEntry(
+  id: string,
+  input: {
+    name: string;
+    type: 'expense' | 'income';
+    amount: Cents;
+    accountId: string | null;
+    categoryId: string | null;
+    dayOfMonth: number;
+    color: string;
+    icon: string;
+  },
+): Promise<void> {
+  const existing = await db.recurringEntries.get(id);
+  if (!existing) return;
+  recordUndo('recurringEntries', id, existing, 'edit');
+  await db.recurringEntries.put({
+    ...existing,
+    name: input.name.trim() || existing.name,
+    type: input.type,
+    amount: Math.abs(input.amount),
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
+    icon: input.icon,
+    color: input.color,
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Turns one period's pending recurring instance into a real transaction,
+ * tagged so it won't be surfaced again until next period — the only way a
+ * recurring entry ever produces a transaction (see RecurringEntry's doc
+ * comment in types.ts).
+ */
+export async function logRecurringEntry(entry: RecurringEntry, date: ISODate): Promise<void> {
+  if (entry.type === 'expense') {
+    await addExpense({
+      name: entry.name,
+      amount: entry.amount,
+      date,
+      categoryId: entry.categoryId,
+      accountId: entry.accountId,
+      recurringId: entry.id,
+    });
+  } else {
+    await addIncome({
+      name: entry.name,
+      amount: entry.amount,
+      date,
+      accountId: entry.accountId,
+      sourceId: entry.categoryId,
+      recurringId: entry.id,
+    });
+  }
 }

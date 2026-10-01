@@ -100,6 +100,28 @@ eq('goalProgress clamps at 100 when overshot', sel.goalProgress(15000, 10000), 1
 eq('goalProgress is 0 for a target of 0 (no divide-by-zero)', sel.goalProgress(500, 0), 0);
 eq('goalProgress is 0 when nothing saved yet', sel.goalProgress(0, 10000), 0);
 
+// --- recurring entries / upcoming bills
+const rec = (id, name, type, amount, day, order) =>
+  row({ id, name, type, amount, accountId: 'a1', categoryId: type === 'expense' ? 'c1' : null, dayOfMonth: day, icon: 'tag', color: '#000', order });
+const recurring = [
+  rec('r1', 'Rent', 'expense', 120000, 2, 0), // due the 2nd, not logged this month -> overdue on the 15th
+  rec('r2', 'Gym', 'expense', 4500, 20, 1), // due the 20th -> upcoming on the 15th
+  rec('r3', 'Paycheck', 'income', 320000, 15, 2), // due today (the 15th)
+  rec('r4', 'Logged already', 'expense', 1000, 5, 3), // already logged this month -> excluded
+];
+const recExpenses = [
+  exp('re1', '2026-09-05', 1000, 'c1', 'a1'),
+];
+recExpenses[0].recurringId = 'r4';
+const bills = sel.upcomingBills(recurring, recExpenses, [], '2026-09-15');
+eq('logged-this-month entry excluded', bills.some((b) => b.entry.id === 'r4'), false);
+eq('3 pending bills', bills.length, 3);
+eq('sorted soonest first', bills.map((b) => b.entry.id), ['r1', 'r3', 'r2']);
+eq('past-due entry is overdue', bills.find((b) => b.entry.id === 'r1').status, 'overdue');
+eq('same-day entry is due today', bills.find((b) => b.entry.id === 'r3').status, 'due today');
+eq('future entry is upcoming', bills.find((b) => b.entry.id === 'r2').status, 'upcoming');
+eq('due date clamps a short day-of-month correctly', bills.find((b) => b.entry.id === 'r1').dueDate, '2026-09-02');
+
 // --- donut
 const donut = sel.donutByCategory(categories, expenses, accounts, '2026-09', 'USD', 'USD');
 eq('donut sorted desc', donut.map(d=>d.name), ['Groceries','Health & Self Care','Dining Out/Coffee']);
