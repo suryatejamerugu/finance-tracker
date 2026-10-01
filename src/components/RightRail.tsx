@@ -215,15 +215,28 @@ export function AccountsGallery({
                                   <span className="num">{formatBig(cc.creditBalance, s.account.currency, locale)}</span>
                                 </div>
                               )}
-                              {cc.lastStatementDate && (
-                                <div className="mt-0.5 flex items-baseline justify-between gap-2">
-                                  <span>this cycle</span>
-                                  <span className="num">
-                                    {formatBig(cc.statementBalance ?? 0, s.account.currency, locale)}
-                                    {cc.nextDueDate ? ` due ${shortDate(cc.nextDueDate, locale)}` : ''}
-                                  </span>
-                                </div>
-                              )}
+                              {cc.lastStatementDate && (() => {
+                                const overdue = Boolean(
+                                  cc.statementBalance && cc.statementBalance > 0 && cc.nextDueDate && cc.nextDueDate < today,
+                                );
+                                const suffix =
+                                  cc.statementBalance === 0
+                                    ? ' · paid'
+                                    : cc.nextDueDate
+                                      ? overdue
+                                        ? ` overdue since ${shortDate(cc.nextDueDate, locale)}`
+                                        : ` due ${shortDate(cc.nextDueDate, locale)}`
+                                      : '';
+                                return (
+                                  <div className="mt-0.5 flex items-baseline justify-between gap-2">
+                                    <span>this cycle</span>
+                                    <span className={`num ${overdue ? 'text-over' : ''}`}>
+                                      {formatBig(cc.statementBalance ?? 0, s.account.currency, locale)}
+                                      {suffix}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                         </div>
