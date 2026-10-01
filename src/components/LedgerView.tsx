@@ -347,7 +347,9 @@ export function LedgerView({
 
         <div className="flex-1 overflow-y-auto">
           {shown.length === 0 ? (
-            <EmptyRow>Nothing matches.</EmptyRow>
+            <EmptyRow>
+              {describeCriteria() ? `Nothing matches ${describeCriteria()}.` : 'Nothing logged yet.'}
+            </EmptyRow>
           ) : (
             <div className="divide-y divide-rule">
               {shown.map((e) => (
