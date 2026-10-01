@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, DEFAULT_SETTINGS } from '../lib/db';
 import {
@@ -18,6 +18,7 @@ import { IncomeTrend } from '../components/IncomeTrend';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
 import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
+import { Overlay } from '../components/Panel';
 
 const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'account'];
 /** The three everyday transaction actions, grouped apart from the two setup actions below. */
@@ -68,10 +69,19 @@ export function Dashboard({
   const [month, setMonth] = useState(currentMonth());
   const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [budgetsOpen, setBudgetsOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const [dismissedOverspent, setDismissedOverspent] = useState<string | null>(null);
   const [dismissedUnbudgeted, setDismissedUnbudgeted] = useState<string | null>(null);
   const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
   const budgetRef = useRef<HTMLDivElement>(null);
+  const activityRef = useRef<HTMLDivElement>(null);
+  const reportsRef = useRef<HTMLDivElement>(null);
+  const accountsRef = useRef<HTMLDivElement>(null);
+
+  function scrollTo(ref: RefObject<HTMLDivElement | null>) {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function reviewBudgets() {
     budgetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -136,8 +146,32 @@ export function Dashboard({
 
   const isEmpty = data.expenses.length === 0 && data.incomes.length === 0 && data.transfers.length === 0;
 
+  const NAV_ITEMS: Array<{ label: string; action: () => void }> = [
+    { label: 'Overview', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+    { label: 'Budget', action: () => scrollTo(budgetRef) },
+    { label: 'Transactions', action: () => scrollTo(activityRef) },
+    { label: 'Reports', action: () => scrollTo(reportsRef) },
+    { label: 'Accounts', action: () => scrollTo(accountsRef) },
+  ];
+
   return (
     <div className="px-4 pb-16 sm:px-6">
+      {/* A slim, always-available way to jump to a section instead of scrolling
+          to find it — the app is one page, so this isn't a router, just
+          anchors into the page's own sections. */}
+      <nav aria-label="Dashboard sections" className="-mx-1 flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b border-rule py-2">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={item.action}
+            className="rounded-md px-2.5 py-1 text-[12.5px] text-faint transition-colors hover:bg-brand-soft hover:text-brand"
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
       {isEmpty && (
         <div className="pt-4">
           <DemoDataBanner
@@ -309,46 +343,57 @@ export function Dashboard({
       {/* 21 / 54 / 25 on desktop, matching the Notion column ratios */}
       <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-[21fr_54fr_25fr]">
         <div ref={budgetRef} className="order-2 lg:order-1 scroll-mt-4">
-          <CategoryGallery statuses={categoryStatuses} currency={currency} settings={settings} onChanged={onChanged} />
+          <CategoryGallery
+            statuses={categoryStatuses}
+            currency={currency}
+            settings={settings}
+            onChanged={onChanged}
+            limit={6}
+            onViewAll={() => setBudgetsOpen(true)}
+          />
         </div>
 
         <div className="order-3 lg:order-2">
-          <RecentActivity
-            expenses={data.expenses}
-            incomes={data.incomes}
-            transfers={data.transfers}
-            categories={liveCategories}
-            accounts={liveAccounts}
-            incomeCategories={liveIncomeCategories}
-            currency={currency}
-            homeCurrency={settings.currency}
-            settings={settings}
-            onChanged={onChanged}
-            onEdit={(kind, row) => setModal({ kind, editing: row })}
-            onViewAll={() => setHistoryOpen(true)}
-          />
-          <SpendingTrend
-            expenses={data.expenses}
-            categories={liveCategories}
-            accounts={liveAccounts}
-            currency={currency}
-            homeCurrency={settings.currency}
-            month={month}
-            settings={settings}
-          />
-          <IncomeTrend
-            incomes={data.incomes}
-            accounts={liveAccounts}
-            incomeCategories={liveIncomeCategories}
-            currency={currency}
-            homeCurrency={settings.currency}
-            month={month}
-            settings={settings}
-            onChanged={onChanged}
-          />
+          <div ref={activityRef} className="scroll-mt-4">
+            <RecentActivity
+              expenses={data.expenses}
+              incomes={data.incomes}
+              transfers={data.transfers}
+              categories={liveCategories}
+              accounts={liveAccounts}
+              incomeCategories={liveIncomeCategories}
+              currency={currency}
+              homeCurrency={settings.currency}
+              settings={settings}
+              onChanged={onChanged}
+              onEdit={(kind, row) => setModal({ kind, editing: row })}
+              onViewAll={() => setHistoryOpen(true)}
+            />
+          </div>
+          <div ref={reportsRef} className="scroll-mt-4">
+            <SpendingTrend
+              expenses={data.expenses}
+              categories={liveCategories}
+              accounts={liveAccounts}
+              currency={currency}
+              homeCurrency={settings.currency}
+              month={month}
+              settings={settings}
+            />
+            <IncomeTrend
+              incomes={data.incomes}
+              accounts={liveAccounts}
+              incomeCategories={liveIncomeCategories}
+              currency={currency}
+              homeCurrency={settings.currency}
+              month={month}
+              settings={settings}
+              onChanged={onChanged}
+            />
+          </div>
         </div>
 
-        <div className="order-1 lg:order-3">
+        <div ref={accountsRef} className="order-1 lg:order-3 scroll-mt-4">
           <SpendDonut slices={slices} total={summary.spent} currency={currency} settings={settings} />
           <AccountsGallery
             statuses={accountStatuses}
@@ -357,6 +402,8 @@ export function Dashboard({
             transfers={data.transfers}
             settings={settings}
             onChanged={onChanged}
+            limit={6}
+            onViewAll={() => setAccountsOpen(true)}
           />
         </div>
       </div>
@@ -393,6 +440,25 @@ export function Dashboard({
           onClose={() => setHistoryOpen(false)}
           onEdit={(kind, row) => setModal({ kind, editing: row })}
         />
+      )}
+
+      {budgetsOpen && (
+        <Overlay onClose={() => setBudgetsOpen(false)}>
+          <CategoryGallery statuses={categoryStatuses} currency={currency} settings={settings} onChanged={onChanged} />
+        </Overlay>
+      )}
+
+      {accountsOpen && (
+        <Overlay onClose={() => setAccountsOpen(false)}>
+          <AccountsGallery
+            statuses={accountStatuses}
+            expenses={data.expenses}
+            incomes={data.incomes}
+            transfers={data.transfers}
+            settings={settings}
+            onChanged={onChanged}
+          />
+        </Overlay>
       )}
     </div>
   );

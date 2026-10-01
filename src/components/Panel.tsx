@@ -1,4 +1,42 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+
+/**
+ * A generic "see the full thing" overlay for a dashboard-overview preview —
+ * the budgets and accounts previews use this for their "View all" link, so
+ * the full, drag-to-reorder-capable gallery gets its own scrollable space
+ * instead of competing with the rest of the page's scroll.
+ */
+export function Overlay({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-2xl bg-raised p-5 shadow-pop"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 text-[16px] text-muted hover:text-ink"
+        >
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /**
  * A dropdown to switch periods, showing only that period's rows — used by the
