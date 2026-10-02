@@ -417,6 +417,7 @@ export function Dashboard({
             statuses={categoryStatuses}
             currency={currency}
             settings={settings}
+            incomeCategories={liveIncomeCategories}
             onChanged={onChanged}
             hideBalances={hideBalances}
           />
