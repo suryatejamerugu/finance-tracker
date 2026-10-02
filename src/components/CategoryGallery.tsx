@@ -6,7 +6,7 @@ import { IconBadge, iconFor } from '../lib/icons';
 import { EmptyRow, Panel } from './Panel';
 import { DragHandle, SortableList, SortableRow } from './dnd';
 import { EditNameColorModal } from './EditNameColorModal';
-import { IncomeCategoriesModal } from './IncomeCategoriesModal';
+import { CategoriesModal } from './CategoriesModal';
 import { EditIcon } from './icons';
 
 const TABS = ['This Month', 'Last Month'] as const;
@@ -186,8 +186,11 @@ export function CategoryGallery({
       )}
 
       {managingIncome && (
-        <IncomeCategoriesModal
-          categories={incomeCategories}
+        <CategoriesModal
+          categories={statuses.map((s) => s.category)}
+          incomeCategories={incomeCategories}
+          currency={currency}
+          initialKind="income"
           onChanged={onChanged}
           onClose={() => setManagingIncome(false)}
         />

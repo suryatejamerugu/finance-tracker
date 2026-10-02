@@ -14,6 +14,7 @@ import {
 } from '../lib/selectors';
 import { currentMonth, formatBig, formatMoney, HIDDEN_AMOUNT, monthLabel, shiftMonth, todayISO } from '../lib/money';
 import { ADD_LABELS, AddModal, type AddKind, type EditingRow } from '../components/AddModal';
+import { CategoriesModal } from '../components/CategoriesModal';
 import { CategoryGallery } from '../components/CategoryGallery';
 import { RecentActivity } from '../components/RecentActivity';
 import { AccountsGallery, SpendDonut } from '../components/RightRail';
@@ -22,7 +23,7 @@ import { UpcomingBills } from '../components/UpcomingBills';
 import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
 
-const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'account'];
+const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'account'];
 /** The three everyday transaction actions, grouped apart from the two setup actions below. */
 const PRIMARY_ADD_COUNT = 3;
 
@@ -86,6 +87,7 @@ export function Dashboard({
   const [month, setMonth] = useState(currentMonth());
   const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [dismissedOverspent, setDismissedOverspent] = useState<string | null>(null);
   const [dismissedUnbudgeted, setDismissedUnbudgeted] = useState<string | null>(null);
   const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
@@ -326,6 +328,13 @@ export function Dashboard({
           </button>
         ))}
         <span className="mx-1 h-5 w-px bg-rule" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={() => setCategoriesOpen(true)}
+          className="press rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted hover:border-brand hover:text-brand"
+        >
+          New category
+        </button>
         {ADD_ORDER.slice(PRIMARY_ADD_COUNT).map((kind) => (
           <button
             key={kind}
@@ -498,6 +507,16 @@ export function Dashboard({
           editing={modal.editing ?? null}
           onClose={() => setModal(null)}
           onSaved={onChanged}
+        />
+      )}
+
+      {categoriesOpen && (
+        <CategoriesModal
+          categories={liveCategories}
+          incomeCategories={liveIncomeCategories}
+          currency={currency}
+          onChanged={onChanged}
+          onClose={() => setCategoriesOpen(false)}
         />
       )}
 

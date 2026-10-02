@@ -4,8 +4,8 @@ import type { AccountType } from '../types';
  * Best-guess defaults from a name, used two places: the v5 migration (every
  * existing row needs a type/icon retroactively, and re-asking isn't
  * reasonable for someone with years of data) and live in AddModal/
- * IncomeCategoriesModal as you type a name, so the common case needs no
- * picker interaction at all — just an override if the guess is wrong.
+ * CategoriesModal as you type a name, so the common case needs no picker
+ * interaction at all — just an override if the guess is wrong.
  */
 export function guessAccountType(name: string): AccountType {
   const n = name.toLowerCase();
