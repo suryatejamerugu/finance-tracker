@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { Category, CategoryStatus, Settings } from '../types';
+import type { Category, CategoryStatus, IncomeCategory, Settings } from '../types';
 import { formatMoney, HIDDEN_AMOUNT, parseAmount } from '../lib/money';
 import { reorder, setCategoryBudget, softDelete, updateCategory } from '../lib/store';
 import { IconBadge, iconFor } from '../lib/icons';
 import { EmptyRow, Panel } from './Panel';
 import { DragHandle, SortableList, SortableRow } from './dnd';
 import { EditNameColorModal } from './EditNameColorModal';
+import { IncomeCategoriesModal } from './IncomeCategoriesModal';
 import { EditIcon } from './icons';
 
 const TABS = ['This Month', 'Last Month'] as const;
@@ -27,6 +28,7 @@ export function CategoryGallery({
   statuses,
   currency,
   settings,
+  incomeCategories,
   onChanged,
   hideBalances,
 }: {
@@ -34,6 +36,8 @@ export function CategoryGallery({
   /** The dashboard's current currency lens — statuses are already scoped to it. */
   currency: string;
   settings: Settings;
+  /** For the "Income sources" management link — income has no budget, so it has no card of its own; this is the one place on the dashboard both kinds of category are reachable from. */
+  incomeCategories: IncomeCategory[];
   onChanged: () => void;
   /** When true, spent/budget figures are masked and the inline budget field becomes read-only (editing a value you can't see risks blurring it blank). */
   hideBalances?: boolean;
@@ -41,6 +45,7 @@ export function CategoryGallery({
   const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
   const [editing, setEditing] = useState<Category | null>(null);
+  const [managingIncome, setManagingIncome] = useState(false);
 
   async function remove(name: string, id: string) {
     if (
@@ -150,7 +155,19 @@ export function CategoryGallery({
 
   return (
     <>
-      <Panel title="Budget" tabs={TABS}>
+      <Panel
+        title="Budget"
+        tabs={TABS}
+        action={
+          <button
+            type="button"
+            onClick={() => setManagingIncome(true)}
+            className="rounded-md px-2 py-1.5 -my-1 text-[12px] text-faint hover:text-brand"
+          >
+            Income sources
+          </button>
+        }
+      >
         {render}
       </Panel>
 
@@ -165,6 +182,14 @@ export function CategoryGallery({
             await updateCategory(editing.id, { name, color, icon });
             onChanged();
           }}
+        />
+      )}
+
+      {managingIncome && (
+        <IncomeCategoriesModal
+          categories={incomeCategories}
+          onChanged={onChanged}
+          onClose={() => setManagingIncome(false)}
         />
       )}
     </>
