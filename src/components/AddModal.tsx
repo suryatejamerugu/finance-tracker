@@ -2,29 +2,25 @@ import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { Account, AccountType, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
 import { parseAmount, todayISO } from '../lib/money';
-import {
-  addAccount,
-  addCategory,
-  addExpense,
-  addIncome,
-  addIncomeCategory,
-  addTransfer,
-  updateExpense,
-  updateIncome,
-  updateTransfer,
-} from '../lib/store';
+import { addAccount, addExpense, addIncome, addTransfer, updateExpense, updateIncome, updateTransfer } from '../lib/store';
 import { PALETTE, suggestedColor } from '../lib/colors';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
-import { guessAccountType, guessCategoryIcon, guessIncomeIcon } from '../lib/iconGuess';
-import { AccountTypePicker, IconPicker } from './Pickers';
+import { guessAccountType } from '../lib/iconGuess';
+import { AccountTypePicker } from './Pickers';
 
-export type AddKind = 'expense' | 'income' | 'transfer' | 'category' | 'account';
+/**
+ * "category" used to be a fifth kind here too, but create/edit/delete/reorder
+ * for both budget categories and income sources now live together in
+ * CategoriesModal — a single create-only form made little sense once that
+ * existed, and duplicating its logic here would just be two places to keep
+ * in sync.
+ */
+export type AddKind = 'expense' | 'income' | 'transfer' | 'account';
 
 export const ADD_LABELS: Record<AddKind, string> = {
   expense: 'New expense',
   income: 'New income',
   transfer: 'New transfer',
-  category: 'New category',
   account: 'New account',
 };
 
@@ -32,7 +28,6 @@ const EDIT_LABELS: Record<AddKind, string> = {
   expense: 'Edit expense',
   income: 'Edit income',
   transfer: 'Edit transfer',
-  category: 'Edit category',
   account: 'Edit account',
 };
 
@@ -86,15 +81,10 @@ export function AddModal({
     editing && kind === 'income' ? ((editing as Income).sourceId ?? '') : (incomeCategories[0]?.id ?? ''),
   );
   const [text, setText] = useState(editing && kind === 'expense' ? ((editing as Expense).text ?? '') : '');
-  const [categoryKind, setCategoryKind] = useState<'expense' | 'income'>('expense');
-  const [color, setColor] = useState(() =>
-    suggestedColor(kind === 'account' ? accounts.length : categories.length),
-  );
+  const [color, setColor] = useState(() => suggestedColor(accounts.length));
   const [accountCurrency, setAccountCurrency] = useState(currency);
   const [accountType, setAccountType] = useState<AccountType>('other');
   const [accountTypeTouched, setAccountTypeTouched] = useState(false);
-  const [icon, setIcon] = useState('tag');
-  const [iconTouched, setIconTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const first = useRef<HTMLInputElement>(null);
 
@@ -110,8 +100,6 @@ export function AddModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const isIncomeCategory = kind === 'category' && categoryKind === 'income';
-  const needsAmount = !isIncomeCategory;
   const cents = parseAmount(amount);
 
   async function save() {
@@ -120,7 +108,7 @@ export function AddModal({
       first.current?.focus();
       return;
     }
-    if (needsAmount && (cents === null || (cents === 0 && kind !== 'account' && kind !== 'category'))) {
+    if (cents === null || (cents === 0 && kind !== 'account')) {
       setError('Enter an amount');
       return;
     }
@@ -149,9 +137,6 @@ export function AddModal({
         };
         if (editing) await updateTransfer(editing.id, input);
         else await addTransfer(input);
-      } else if (kind === 'category') {
-        if (isIncomeCategory) await addIncomeCategory({ name, color, icon });
-        else await addCategory({ name, budget: value, color, currency, icon });
       } else {
         const initialAmount = accountType === 'credit_card' ? -Math.abs(value) : value;
         await addAccount({ name, initialAmount, color, currency: accountCurrency, type: accountType });
@@ -167,15 +152,13 @@ export function AddModal({
 
   const title = editing ? EDIT_LABELS[kind] : ADD_LABELS[kind];
   const amountLabel =
-    kind === 'category'
-      ? `Monthly budget (${currency})`
-      : kind === 'account'
-        ? accountType === 'credit_card'
-          ? 'Amount already owed at the start'
-          : 'Initial amount'
-        : 'Amount';
+    kind === 'account'
+      ? accountType === 'credit_card'
+        ? 'Amount already owed at the start'
+        : 'Initial amount'
+      : 'Amount';
   const dated = kind === 'expense' || kind === 'income' || kind === 'transfer';
-  const amountCurrency = kind === 'account' ? accountCurrency : kind === 'category' ? currency : rowCurrency;
+  const amountCurrency = kind === 'account' ? accountCurrency : rowCurrency;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 backdrop-blur-sm sm:items-center sm:p-4">
@@ -194,28 +177,6 @@ export function AddModal({
         </div>
 
         <div className="space-y-3">
-          {kind === 'category' && (
-            <div className="flex overflow-hidden rounded-lg border border-rule">
-              {(['expense', 'income'] as const).map((t, i) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setCategoryKind(t);
-                    setError(null);
-                    if (!iconTouched) setIcon(t === 'income' ? guessIncomeIcon(name) : guessCategoryIcon(name));
-                  }}
-                  aria-pressed={categoryKind === t}
-                  className={`flex-1 py-1.5 text-[13px] font-medium ${i > 0 ? 'border-l border-rule' : ''} ${
-                    categoryKind === t ? 'bg-brand text-paper' : 'bg-raised text-faint hover:text-muted'
-                  }`}
-                >
-                  {t === 'expense' ? 'Budget category' : 'Income source'}
-                </button>
-              ))}
-            </div>
-          )}
-
           <input
             ref={first}
             value={name}
@@ -224,33 +185,28 @@ export function AddModal({
               setName(next);
               setError(null);
               if (kind === 'account' && !accountTypeTouched) setAccountType(guessAccountType(next));
-              if (kind === 'category' && !iconTouched) {
-                setIcon(isIncomeCategory ? guessIncomeIcon(next) : guessCategoryIcon(next));
-              }
             }}
             placeholder={kind === 'transfer' ? 'What is this transfer for?' : 'Name'}
             aria-label="Name"
             className={field}
           />
 
-          {needsAmount && (
-            <div className="flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2">
-              <span className="text-[15px] text-faint">{currencySymbol(amountCurrency)}</span>
-              <input
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError(null);
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && void save()}
-                inputMode="decimal"
-                placeholder="0.00"
-                aria-label={amountLabel}
-                className="num w-full bg-transparent text-[15px] outline-none placeholder:text-faint"
-              />
-              <span className="shrink-0 text-[12px] text-faint">{amountLabel}</span>
-            </div>
-          )}
+          <div className="flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2">
+            <span className="text-[15px] text-faint">{currencySymbol(amountCurrency)}</span>
+            <input
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setError(null);
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && void save()}
+              inputMode="decimal"
+              placeholder="0.00"
+              aria-label={amountLabel}
+              className="num w-full bg-transparent text-[15px] outline-none placeholder:text-faint"
+            />
+            <span className="shrink-0 text-[12px] text-faint">{amountLabel}</span>
+          </div>
 
           {dated && (
             <input
@@ -368,20 +324,7 @@ export function AddModal({
             </div>
           )}
 
-          {kind === 'category' && (
-            <div>
-              <span className="mb-1.5 block text-[12px] text-faint">Icon</span>
-              <IconPicker
-                value={icon}
-                onChange={(k) => {
-                  setIcon(k);
-                  setIconTouched(true);
-                }}
-              />
-            </div>
-          )}
-
-          {(kind === 'category' || kind === 'account') && (
+          {kind === 'account' && (
             <div>
               <span className="mb-1.5 block text-[12px] text-faint">Color</span>
               <div className="flex flex-wrap gap-1.5">

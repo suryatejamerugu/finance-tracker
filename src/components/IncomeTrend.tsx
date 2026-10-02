@@ -8,23 +8,24 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { Account, Income, IncomeCategory, Settings } from '../types';
+import type { Account, Category, Income, IncomeCategory, Settings } from '../types';
 import { HIDDEN_AMOUNT, shortDate, shortMonthLabel, todayISO } from '../lib/money';
 import { filterByCurrency, live, REPORT_RANGES, trendBuckets, type ReportRange } from '../lib/selectors';
 import { resolveDistinctColors } from '../lib/colors';
 import { EmptyRow } from './Panel';
 import { AXIS, chartTooltip, InteractiveLegend, useSeriesInteraction } from './chartTheme';
-import { IncomeCategoriesModal } from './IncomeCategoriesModal';
+import { CategoriesModal } from './CategoriesModal';
 
 /**
  * Income-by-source trend over a selectable range — split out from what used
  * to be IncomesPanel's "Chart" tab, and later moved off the dashboard onto
- * the Reports page. "Categories" (managing income sources) stays here since
+ * the Reports page. "Categories" (managing both kinds) stays here too since
  * this is still the one place income's own settings live.
  */
 export function IncomeTrend({
   incomes,
   accounts,
+  categories,
   incomeCategories,
   currency,
   homeCurrency,
@@ -35,6 +36,7 @@ export function IncomeTrend({
 }: {
   incomes: Income[];
   accounts: Account[];
+  categories: Category[];
   incomeCategories: IncomeCategory[];
   /** The dashboard's current currency lens. */
   currency: string;
@@ -126,8 +128,11 @@ export function IncomeTrend({
       </section>
 
       {managingCategories && (
-        <IncomeCategoriesModal
-          categories={incomeCategories}
+        <CategoriesModal
+          categories={categories}
+          incomeCategories={incomeCategories}
+          currency={currency}
+          initialKind="income"
           onChanged={onChanged}
           onClose={() => setManagingCategories(false)}
         />

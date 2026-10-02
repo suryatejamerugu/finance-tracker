@@ -105,6 +105,7 @@ export function Reports({ onChanged }: { onChanged: () => void }) {
       <IncomeTrend
         incomes={data.incomes}
         accounts={liveAccounts}
+        categories={liveCategories}
         incomeCategories={liveIncomeCategories}
         currency={currency}
         homeCurrency={settings.currency}
