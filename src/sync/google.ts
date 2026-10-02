@@ -124,6 +124,11 @@ function loadAccountHint(): string | undefined {
   return localStorage.getItem(ACCOUNT_HINT_KEY) ?? undefined;
 }
 
+/** Whether this device has ever completed sign-in, independent of whether the hourly access token has since expired — see useSync's `linked` state for why that distinction matters. */
+export function getAccountHint(): string | undefined {
+  return loadAccountHint();
+}
+
 export function clearAccountHint() {
   localStorage.removeItem(ACCOUNT_HINT_KEY);
 }

@@ -327,13 +327,15 @@ export async function addSavingsGoal(input: {
   color: string;
   icon: string;
   accountId?: string | null;
+  /** Manually-tracked goals only — ignored (and not meaningful) once accountId is set. */
+  savedAmount?: Cents;
 }): Promise<void> {
   const order = await db.savingsGoals.count();
   await db.savingsGoals.put({
     id: uid(),
     name: input.name.trim() || 'Goal',
     targetAmount: Math.abs(input.targetAmount),
-    savedAmount: 0,
+    savedAmount: input.accountId ? 0 : Math.max(0, input.savedAmount ?? 0),
     currency: input.currency,
     icon: input.icon,
     color: input.color,
@@ -345,11 +347,20 @@ export async function addSavingsGoal(input: {
 
 export async function updateSavingsGoal(
   id: string,
-  input: { name: string; targetAmount: Cents; currency: string; color: string; icon: string; accountId?: string | null },
+  input: {
+    name: string;
+    targetAmount: Cents;
+    currency: string;
+    color: string;
+    icon: string;
+    accountId?: string | null;
+    savedAmount?: Cents;
+  },
 ): Promise<void> {
   const existing = await db.savingsGoals.get(id);
   if (!existing) return;
   recordUndo('savingsGoals', id, existing, 'edit');
+  const accountId = input.accountId !== undefined ? input.accountId : existing.accountId;
   await db.savingsGoals.put({
     ...existing,
     name: input.name.trim() || existing.name,
@@ -357,7 +368,8 @@ export async function updateSavingsGoal(
     currency: input.currency,
     color: input.color,
     icon: input.icon,
-    accountId: input.accountId !== undefined ? input.accountId : existing.accountId,
+    accountId,
+    savedAmount: accountId ? existing.savedAmount : Math.max(0, input.savedAmount ?? existing.savedAmount),
     updatedAt: Date.now(),
   });
 }

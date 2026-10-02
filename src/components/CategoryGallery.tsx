@@ -28,8 +28,6 @@ export function CategoryGallery({
   currency,
   settings,
   onChanged,
-  limit,
-  onViewAll,
   hideBalances,
 }: {
   statuses: CategoryStatus[];
@@ -39,17 +37,6 @@ export function CategoryGallery({
   onChanged: () => void;
   /** When true, spent/budget figures are masked and the inline budget field becomes read-only (editing a value you can't see risks blurring it blank). */
   hideBalances?: boolean;
-  /**
-   * Dashboard-overview mode: show only the first `limit` categories with no
-   * internal scrollbar, plus a "View all" link — instead of every category
-   * in its own independently-scrolling panel (the "nested scrolling" the
-   * full-screen "View all" destination, reached via `onViewAll`, is exempt
-   * from — a dedicated view scrolling on its own is normal; a scrollbar
-   * competing with the page's own scrollbar is what's being avoided here).
-   * Omit both for that full, drag-to-reorder-capable view itself.
-   */
-  limit?: number;
-  onViewAll?: () => void;
 }) {
   const { locale } = settings;
   const money = (c: number) => formatMoney(c, { currency, locale });
@@ -72,8 +59,7 @@ export function CategoryGallery({
   const render = (tab: Tab) => {
     if (statuses.length === 0) return <EmptyRow>No categories yet.</EmptyRow>;
     const isThis = tab === 'This Month';
-    const shown = limit ? statuses.slice(0, limit) : statuses;
-    const ids = shown.map((s) => s.category.id);
+    const ids = statuses.map((s) => s.category.id);
 
     const Row = (s: CategoryStatus, handle: Parameters<typeof DragHandle>[0] | null) => {
       const spent = isThis ? s.expenseThisMonth : s.expenseLastMonth;
@@ -149,29 +135,10 @@ export function CategoryGallery({
       );
     };
 
-    if (limit) {
-      return (
-        <div className="divide-y divide-rule">
-          {shown.map((s) => (
-            <div key={s.category.id}>{Row(s, null)}</div>
-          ))}
-          {statuses.length > limit && (
-            <button
-              type="button"
-              onClick={onViewAll}
-              className="block w-full px-3.5 py-2 text-center text-[12.5px] text-muted hover:text-brand"
-            >
-              View all {statuses.length} categories
-            </button>
-          )}
-        </div>
-      );
-    }
-
     return (
-      <div className="max-h-[600px] divide-y divide-rule overflow-y-auto">
+      <div className="max-h-[480px] divide-y divide-rule overflow-y-auto">
         <SortableList ids={ids} onReorder={handleReorder}>
-          {shown.map((s) => (
+          {statuses.map((s) => (
             <SortableRow key={s.category.id} id={s.category.id}>
               {(handle) => Row(s, handle)}
             </SortableRow>
