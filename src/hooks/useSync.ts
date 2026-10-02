@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildSnapshot, mergeSnapshot } from '../lib/db';
 import * as drive from '../sync/drive';
 import {
-  clearToken,
+  getAccountHint,
   isConfigured,
   loadToken,
   requestToken,
@@ -17,8 +17,26 @@ const PUSH_DEBOUNCE_MS = 2500;
 /** Backoff between automatic retries after a failed sync — gives transient network blips a few chances before it's treated as a real problem the user needs to act on. */
 const RETRY_DELAYS_MS = [5_000, 15_000, 45_000];
 
+/**
+ * A device that has signed in before (it has an account hint, saved once on
+ * first connect and only cleared by disconnecting) should look "connected"
+ * from the moment the page loads, even on a fresh load where the cached
+ * access token has since expired — that expiry is just the normal hourly
+ * rhythm of OAuth, refreshed silently by getAccessToken() the moment a real
+ * request needs it, not a sign the user disconnected. Falling back to the
+ * hint keeps the UI (and connectedRef below) reading "connected" through
+ * that refresh instead of flashing "Back up to Drive" and demanding an
+ * interactive re-consent for something that doesn't need one.
+ */
+function initialToken(): StoredToken | null {
+  const cached = loadToken();
+  if (cached) return cached;
+  const hint = getAccountHint();
+  return hint ? { accessToken: '', expiresAt: 0, email: hint } : null;
+}
+
 export function useSync() {
-  const [token, setToken] = useState<StoredToken | null>(() => loadToken());
+  const [token, setToken] = useState<StoredToken | null>(() => initialToken());
   const [state, setState] = useState<SyncState>('offline');
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(() => {
@@ -37,8 +55,16 @@ export function useSync() {
     setLastSync(now);
   }, []);
 
+  // Mirrors `Boolean(token)` in a ref so syncNow/scheduleSync (both stable
+  // callbacks) can read "are we connected" synchronously without becoming
+  // stale closures or needing `token` in their own dependency arrays.
+  const connectedRef = useRef(Boolean(token));
+  useEffect(() => {
+    connectedRef.current = Boolean(token);
+  }, [token]);
+
   const syncNow = useCallback(async () => {
-    if (!loadToken() || inFlight.current) return;
+    if (!connectedRef.current || inFlight.current) return;
     if (retryTimer.current) {
       window.clearTimeout(retryTimer.current);
       retryTimer.current = null;
@@ -58,7 +84,11 @@ export function useSync() {
       setError(e instanceof Error ? e.message : 'Sync failed.');
       setState('error');
       // A few automatic retries with backoff before leaving it to the user —
-      // most failures here are a dropped connection, not a real problem.
+      // most failures here are a dropped connection, not a real problem. A
+      // genuine auth failure (consent revoked, etc.) surfaces as this same
+      // "error" state with a specific message rather than silently reverting
+      // to "offline" — the user stays informed and in control of
+      // reconnecting, instead of it happening invisibly on a timer.
       if (retryAttempt.current < RETRY_DELAYS_MS.length) {
         const delay = RETRY_DELAYS_MS[retryAttempt.current];
         retryAttempt.current += 1;
@@ -71,7 +101,7 @@ export function useSync() {
 
   /** Call after any write. Coalesces a burst of edits into one upload. */
   const scheduleSync = useCallback(() => {
-    if (!loadToken()) return;
+    if (!connectedRef.current) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => void syncNow(), PUSH_DEBOUNCE_MS);
   }, [syncNow]);
@@ -138,18 +168,6 @@ export function useSync() {
       window.removeEventListener('pagehide', flushIfPending);
     };
   }, [syncNow]);
-
-  // A dead token should not leave the UI claiming it is connected.
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (token && !loadToken()) {
-        clearToken();
-        setToken(null);
-        setState('offline');
-      }
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [token]);
 
   return {
     configured: isConfigured(),

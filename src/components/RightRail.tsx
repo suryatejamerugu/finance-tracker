@@ -115,8 +115,6 @@ export function AccountsGallery({
   settings,
   goalsByAccount,
   onChanged,
-  limit,
-  onViewAll,
   hideBalances,
 }: {
   statuses: AccountStatus[];
@@ -127,9 +125,6 @@ export function AccountsGallery({
   /** Cents of this account's balance already claimed by its linked savings goals — see goalAllocations()/allocatedByAccount() in selectors.ts. */
   goalsByAccount?: Map<string, number>;
   onChanged: () => void;
-  /** Dashboard-overview mode: see CategoryGallery's identical prop for why. Omit both for the full, drag-to-reorder-capable view. */
-  limit?: number;
-  onViewAll?: () => void;
   hideBalances?: boolean;
 }) {
   const { locale } = settings;
@@ -177,8 +172,6 @@ export function AccountsGallery({
             <EmptyRow>No accounts yet.</EmptyRow>
           ) : (
             (() => {
-              const shown = limit ? statuses.slice(0, limit) : statuses;
-
               const Row = (s: AccountStatus, handle: Parameters<typeof DragHandle>[0] | null) => {
                 const cc =
                   s.account.type === 'credit_card'
@@ -271,29 +264,10 @@ export function AccountsGallery({
                 );
               };
 
-              if (limit) {
-                return (
-                  <div className="divide-y divide-rule">
-                    {shown.map((s) => (
-                      <div key={s.account.id}>{Row(s, null)}</div>
-                    ))}
-                    {statuses.length > limit && (
-                      <button
-                        type="button"
-                        onClick={onViewAll}
-                        className="block w-full px-3.5 py-2 text-center text-[12.5px] text-muted hover:text-brand"
-                      >
-                        View all {statuses.length} accounts
-                      </button>
-                    )}
-                  </div>
-                );
-              }
-
               return (
                 <div className="max-h-[420px] divide-y divide-rule overflow-y-auto">
-                  <SortableList ids={shown.map((s) => s.account.id)} onReorder={handleReorder}>
-                    {shown.map((s) => (
+                  <SortableList ids={statuses.map((s) => s.account.id)} onReorder={handleReorder}>
+                    {statuses.map((s) => (
                       <SortableRow key={s.account.id} id={s.account.id}>
                         {(handle) => Row(s, handle)}
                       </SortableRow>

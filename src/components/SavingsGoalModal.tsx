@@ -35,6 +35,9 @@ export function SavingsGoalModal({
   const [amountInput, setAmountInput] = useState(
     editing ? (editing.targetAmount / 100).toFixed(2) : '',
   );
+  const [savedInput, setSavedInput] = useState(
+    editing && !editing.accountId ? (editing.savedAmount / 100).toFixed(2) : '',
+  );
   const [currency, setCurrency] = useState(editing?.currency ?? defaultCurrency);
   const [accountId, setAccountId] = useState(editing?.accountId ?? '');
   const [color, setColor] = useState(editing?.color ?? suggestedColor(existingCount));
@@ -54,6 +57,7 @@ export function SavingsGoalModal({
     setSaving(true);
     try {
       const targetAmount = parseAmount(amountInput) ?? 0;
+      const savedAmount = parseAmount(savedInput) ?? 0;
       const linkedAccount = accounts.find((a) => a.id === accountId);
       const effectiveCurrency = linkedAccount?.currency ?? currency;
       if (editing) {
@@ -64,6 +68,7 @@ export function SavingsGoalModal({
           color,
           icon,
           accountId: accountId || null,
+          savedAmount,
         });
       } else {
         await addSavingsGoal({
@@ -73,6 +78,7 @@ export function SavingsGoalModal({
           color,
           icon,
           accountId: accountId || null,
+          savedAmount,
         });
       }
       onChanged();
@@ -151,6 +157,28 @@ export function SavingsGoalModal({
                 : "Leave unlinked to track progress by typing in a number yourself, like a budget."}
             </p>
           </div>
+
+          {!accountId && (
+            <div>
+              <span className="mb-1.5 block text-[12px] text-faint">Saved so far</span>
+              <div className="flex items-baseline gap-2 rounded-lg border border-rule bg-paper px-3 py-2">
+                <span className="text-[15px] text-faint">{currencySymbol(currency)}</span>
+                <input
+                  value={savedInput}
+                  onChange={(e) => setSavedInput(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  aria-label="Saved so far"
+                  className="num w-full bg-transparent text-[15px] outline-none placeholder:text-faint"
+                />
+              </div>
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
+                Cash, an envelope, a savings account you're not tracking here — however you're
+                actually setting the money aside. Update this any time; it also has a quick inline
+                field right on the goal's card.
+              </p>
+            </div>
+          )}
 
           <div>
             <span className="mb-1.5 block text-[12px] text-faint">Currency</span>

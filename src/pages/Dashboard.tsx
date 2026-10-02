@@ -21,7 +21,6 @@ import { SavingsGoals } from '../components/SavingsGoals';
 import { UpcomingBills } from '../components/UpcomingBills';
 import { LedgerView } from '../components/LedgerView';
 import { DemoDataBanner } from '../components/DemoDataBanner';
-import { Overlay } from '../components/Panel';
 
 const ADD_ORDER: AddKind[] = ['expense', 'income', 'transfer', 'category', 'account'];
 /** The three everyday transaction actions, grouped apart from the two setup actions below. */
@@ -87,8 +86,6 @@ export function Dashboard({
   const [month, setMonth] = useState(currentMonth());
   const [modal, setModal] = useState<{ kind: AddKind; editing?: EditingRow } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [budgetsOpen, setBudgetsOpen] = useState(false);
-  const [accountsOpen, setAccountsOpen] = useState(false);
   const [dismissedOverspent, setDismissedOverspent] = useState<string | null>(null);
   const [dismissedUnbudgeted, setDismissedUnbudgeted] = useState<string | null>(null);
   const [currencyLens, setCurrencyLens] = useState(() => localStorage.getItem('ft.currencyLens') ?? '');
@@ -421,8 +418,6 @@ export function Dashboard({
             currency={currency}
             settings={settings}
             onChanged={onChanged}
-            limit={6}
-            onViewAll={() => setBudgetsOpen(true)}
             hideBalances={hideBalances}
           />
         </div>
@@ -475,8 +470,6 @@ export function Dashboard({
             settings={settings}
             goalsByAccount={goalsByAccount}
             onChanged={onChanged}
-            limit={6}
-            onViewAll={() => setAccountsOpen(true)}
             hideBalances={hideBalances}
           />
           <div ref={goalsRef} className="scroll-mt-4">
@@ -527,33 +520,6 @@ export function Dashboard({
           onEdit={(kind, row) => setModal({ kind, editing: row })}
           hideBalances={hideBalances}
         />
-      )}
-
-      {budgetsOpen && (
-        <Overlay title="All budgets" onClose={() => setBudgetsOpen(false)}>
-          <CategoryGallery
-            statuses={categoryStatuses}
-            currency={currency}
-            settings={settings}
-            onChanged={onChanged}
-            hideBalances={hideBalances}
-          />
-        </Overlay>
-      )}
-
-      {accountsOpen && (
-        <Overlay title="All accounts" onClose={() => setAccountsOpen(false)}>
-          <AccountsGallery
-            statuses={accountStatuses}
-            expenses={data.expenses}
-            incomes={data.incomes}
-            transfers={data.transfers}
-            settings={settings}
-            goalsByAccount={goalsByAccount}
-            onChanged={onChanged}
-            hideBalances={hideBalances}
-          />
-        </Overlay>
       )}
 
     </div>
