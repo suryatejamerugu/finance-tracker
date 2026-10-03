@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildSnapshot, mergeSnapshot } from '../lib/db';
 import * as drive from '../sync/drive';
 import {
+  clearAccountHint,
+  clearToken,
   getAccountHint,
   isConfigured,
   loadToken,
@@ -132,6 +134,40 @@ export function useSync() {
     setState('offline');
   }, []);
 
+  /**
+   * Moving to a different Google account (or just picking a different one
+   * than whatever this device happened to sign into first) — nothing on
+   * this device is tied to the account beyond which Drive it backs up to,
+   * so this never touches the local data itself. It forgets the old
+   * session and immediately opens Google's interactive sign-in so the next
+   * pull/push targets the newly chosen account; that push uploads exactly
+   * what's already on this device, so switching doubles as "move my data
+   * to a new account" with no separate export/import step.
+   *
+   * Deliberately skips revoke() (disconnect()'s network round-trip to tell
+   * Google to forget this device) — forgetting the session is a handful of
+   * synchronous localStorage writes, so the interactive sign-in call right
+   * after it still lands inside the click that triggered this, which is
+   * what keeps browsers from treating it as an unrequested popup. The old
+   * account's token simply expires on its own; it was never shown anything
+   * beyond its own private backup file to begin with.
+   */
+  const switchAccount = useCallback(async () => {
+    if (retryTimer.current) {
+      window.clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+    retryAttempt.current = 0;
+    clearToken();
+    clearAccountHint();
+    drive.forgetFileId();
+    localStorage.removeItem(LAST_SYNC_KEY);
+    setToken(null);
+    setLastSync(null);
+    setState('offline');
+    await connect();
+  }, [connect]);
+
   // Sync on load, when the tab regains focus, and when the network returns.
   useEffect(() => {
     if (!token) {
@@ -178,6 +214,7 @@ export function useSync() {
     lastSync,
     connect,
     disconnect,
+    switchAccount,
     syncNow,
     scheduleSync,
   };
