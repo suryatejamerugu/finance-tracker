@@ -47,14 +47,14 @@ export default function App() {
         <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-rule px-4 py-2.5 safe-top sm:px-6">
           <a
             href="/"
-            className="pixel-notch inline-flex items-center gap-2 border border-rule bg-brand-soft px-2.5 py-1.5 no-underline transition-colors hover:border-brand"
+            className="pixel-notch pixel-notch-frame inline-flex shrink-0 items-center gap-2 bg-brand-soft px-2.5 py-1.5 no-underline"
           >
             <span className="font-display text-[9px] leading-none text-brand" aria-hidden="true">FT</span>
             <span className="text-[15px] font-semibold tracking-tight">
               <span className="text-brand-gradient">Finance</span> Tracker
             </span>
           </a>
-          <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
             <SyncBadge sync={sync} />
             <a
               href="/reports"
