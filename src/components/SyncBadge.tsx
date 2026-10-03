@@ -58,26 +58,50 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
           : 'Connected';
 
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         className={`block max-w-[9.5rem] truncate text-[12px] sm:max-w-none ${sync.state === 'error' ? 'text-over' : 'text-faint'} hover:text-muted`}
       >
         {label}
       </button>
 
+      {/*
+        A viewport-centered overlay rather than a popover anchored to this
+        button — an `absolute right-0`-style panel measures itself against
+        its own tiny anchor, which overflows off-screen the moment that
+        anchor isn't near the real right edge (e.g. once the header wraps
+        onto its own line on a narrow phone, this button can end up hard
+        against the left edge instead). Centering in the viewport, the same
+        pattern every other dialog in this app already uses, works the same
+        regardless of where the button that opened it happens to sit.
+      */}
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
           <div
             ref={trapRef}
             role="dialog"
             aria-modal="true"
             aria-label="Backup account"
-            className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-rule bg-raised p-3.5 text-left shadow-pop"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-raised p-5 text-left shadow-pop"
           >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[15px] font-medium">Backup account</h2>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="p-2 -m-2 text-[16px] text-muted hover:text-ink"
+              >
+                ✕
+              </button>
+            </div>
             <p className="text-[11px] text-faint">Signed in as</p>
             <p className="truncate text-[13.5px] font-medium">{sync.email ?? 'Unknown account'}</p>
             <p className="mt-2 text-[11.5px] text-faint">
@@ -116,8 +140,8 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 }
