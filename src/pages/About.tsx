@@ -283,6 +283,27 @@ export function About() {
         </p>
       </Section>
 
+      <Section title="Switch to a different Google account">
+        <p>
+          Signing in once doesn't lock you into that account forever. Click the sync badge in the
+          header and choose <strong className="text-ink">Switch account</strong> — it signs out of
+          the current one and immediately opens Google's sign-in so you can pick a different
+          account (or the same one under a different email, if that's what changed).
+        </p>
+        <p>
+          This is also how you'd move everything to a new account on purpose: your data lives on
+          this device, not inside the Google account — the account is just which Drive it backs up
+          to. The moment you switch, the next backup uploads exactly what's already on this device
+          to the newly chosen account's Drive, with nothing to export or re-import by hand. Nothing
+          already backed up to the old account is touched or deleted; it simply stops receiving new
+          changes.
+        </p>
+        <p>
+          If you'd rather stop Drive backup entirely instead of switching, <strong className="text-ink">Disconnect</strong>{' '}
+          does that — same badge, next to Switch account.
+        </p>
+      </Section>
+
       <Section title="Light and dark theme">
         <p>
           Follows your system setting by default. The sun/moon toggle in the header pins an

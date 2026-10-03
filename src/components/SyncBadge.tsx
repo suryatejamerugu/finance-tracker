@@ -16,7 +16,10 @@ function ago(ts: number): string {
  * only by hovering the badge for a title tooltip — easy to miss, and there
  * was no way to sign out or switch accounts from the UI at all even though
  * useSync() already exposes disconnect(). This turns the badge into a
- * disclosure that answers both questions and adds a Disconnect action.
+ * disclosure that answers both questions and adds Switch account/Disconnect
+ * actions — switching is also how you'd move everything on this device to a
+ * new Google account, since nothing here is tied to the account beyond
+ * which Drive it backs up to.
  */
 export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
   const [open, setOpen] = useState(false);
@@ -117,27 +120,47 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
                 </p>
               </>
             )}
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void sync.syncNow();
-                  setOpen(false);
-                }}
-                className="flex-1 rounded-lg border border-rule py-1.5 text-[12.5px] text-muted hover:border-brand hover:text-brand"
-              >
-                Sync now
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void sync.disconnect();
-                  setOpen(false);
-                }}
-                className="flex-1 rounded-lg border border-rule py-1.5 text-[12.5px] text-over hover:border-over"
-              >
-                Disconnect
-              </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                void sync.syncNow();
+                setOpen(false);
+              }}
+              className="mt-3 w-full rounded-lg border border-rule py-1.5 text-[12.5px] text-muted hover:border-brand hover:text-brand"
+            >
+              Sync now
+            </button>
+
+            <div className="mt-4 border-t border-rule pt-3">
+              <p className="text-[11.5px] leading-relaxed text-faint">
+                Want to use a different Google account, or hand this device off to someone else?{' '}
+                <strong className="text-ink">Switch account</strong> signs out of this one and opens
+                Google's sign-in so you can pick another — everything already on this device goes
+                with you and uploads fresh to whichever account you choose next.
+              </p>
+              <div className="mt-2.5 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    void sync.switchAccount();
+                  }}
+                  className="flex-1 rounded-lg border border-rule py-1.5 text-[12.5px] text-muted hover:border-brand hover:text-brand"
+                >
+                  Switch account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void sync.disconnect();
+                    setOpen(false);
+                  }}
+                  className="flex-1 rounded-lg border border-rule py-1.5 text-[12.5px] text-over hover:border-over"
+                >
+                  Disconnect
+                </button>
+              </div>
             </div>
           </div>
         </div>
