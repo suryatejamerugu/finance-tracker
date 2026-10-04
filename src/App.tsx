@@ -44,7 +44,7 @@ export default function App() {
   return (
     <div className="theme-transition flex min-h-dvh flex-col">
       <div className="mx-auto w-full max-w-[1400px] flex-1">
-        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-rule px-4 py-2.5 safe-top sm:px-6">
+        <header className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-b border-rule px-4 py-2.5 safe-top sm:justify-between sm:px-6">
           <a
             href="/"
             className="pixel-notch pixel-notch-frame inline-flex shrink-0 items-center gap-2 bg-brand-soft px-2.5 py-1.5 no-underline"

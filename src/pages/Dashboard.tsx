@@ -348,7 +348,7 @@ export function Dashboard({
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          className="press ml-auto rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted hover:border-brand hover:text-brand"
+          className="press sm:ml-auto rounded-lg border border-rule px-3 py-1.5 text-[13px] text-muted hover:border-brand hover:text-brand"
         >
           Full history
         </button>

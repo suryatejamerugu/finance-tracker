@@ -516,7 +516,7 @@ export function LedgerView({
                     type="button"
                     onClick={() => edit(e)}
                     aria-label={`Edit ${e.name}`}
-                    className="shrink-0 p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+                    className="reveal shrink-0 p-2 -m-2 text-faint hover:text-brand"
                   >
                     <EditIcon />
                   </button>
@@ -524,7 +524,7 @@ export function LedgerView({
                     type="button"
                     onClick={() => void remove(e)}
                     aria-label={`Delete ${e.name}`}
-                    className="shrink-0 p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+                    className="reveal shrink-0 p-2 -m-2 text-[14px] text-faint hover:text-over"
                   >
                     ×
                   </button>

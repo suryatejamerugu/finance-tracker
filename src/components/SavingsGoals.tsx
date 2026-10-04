@@ -82,7 +82,7 @@ export function SavingsGoals({
               type="button"
               onClick={() => setEditing(g)}
               aria-label={`Edit ${g.name}`}
-              className="p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+              className="reveal p-2 -m-2 text-faint hover:text-brand"
             >
               <EditIcon />
             </button>
@@ -90,7 +90,7 @@ export function SavingsGoals({
               type="button"
               onClick={() => void remove(g.name, g.id)}
               aria-label={`Delete ${g.name}`}
-              className="p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+              className="reveal p-2 -m-2 text-[14px] text-faint hover:text-over"
             >
               ×
             </button>
