@@ -275,6 +275,28 @@
   }
 
   /*
+   * Row actions (edit/delete, the reorder drag handle) used to stay at
+   * opacity-0 until `:hover` on the row's `.group` — on a touch device
+   * there is no hover state to reveal them, so they were fully invisible
+   * and undiscoverable, not just subtle. Only hide-until-hover where a
+   * real hover-capable pointer exists (a mouse/trackpad); every touch,
+   * hybrid or coarse-pointer device keeps these fully visible instead.
+   */
+  .reveal {
+    opacity: 1;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .reveal {
+      opacity: 0;
+    }
+    .group:hover .reveal,
+    .reveal:focus,
+    .reveal:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  /*
    * Tactile raised-button-and-press feedback — the app's "3D" signature. A
    * crisp, solid offset shadow (no blur) stands in for a button's side
    * face; pressing it slides the button down and right into that edge

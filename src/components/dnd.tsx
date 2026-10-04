@@ -79,7 +79,7 @@ export function DragHandle({ attributes, listeners, setActivatorNodeRef }: Handl
       {...attributes}
       {...listeners}
       aria-label="Drag to reorder"
-      className="shrink-0 cursor-grab touch-none text-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+      className="reveal shrink-0 cursor-grab touch-none text-faint active:cursor-grabbing"
     >
       <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
         <circle cx="5" cy="3" r="1.3" />

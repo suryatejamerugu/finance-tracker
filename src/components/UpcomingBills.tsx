@@ -114,7 +114,7 @@ export function UpcomingBills({
           type="button"
           onClick={() => setEditing(entry)}
           aria-label={`Edit ${entry.name}`}
-          className="shrink-0 p-2 -m-2 text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-brand"
+          className="reveal shrink-0 p-2 -m-2 text-faint hover:text-brand"
         >
           <EditIcon />
         </button>
@@ -122,7 +122,7 @@ export function UpcomingBills({
           type="button"
           onClick={() => void remove(entry.name, entry.id)}
           aria-label={`Delete ${entry.name}`}
-          className="shrink-0 p-2 -m-2 text-[14px] text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-over"
+          className="reveal shrink-0 p-2 -m-2 text-[14px] text-faint hover:text-over"
         >
           ×
         </button>
