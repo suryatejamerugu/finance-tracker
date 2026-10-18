@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { AccountType, Cents } from '../types';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import { PALETTE } from '../lib/colors';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
 import { parseAmount } from '../lib/money';
@@ -86,7 +86,6 @@ export function EditNameColorModal({
   onSave: (result: EditNameColorResult) => Promise<void>;
   onClose: () => void;
 }) {
-  const trapRef = useFocusTrap<HTMLDivElement>();
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
   const [currency, setCurrency] = useState(currencyField?.value ?? '');
@@ -107,12 +106,6 @@ export function EditNameColorModal({
   const [fixingBalance, setFixingBalance] = useState(false);
   const [currentOwedInput, setCurrentOwedInput] = useState('');
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const isCreditCard = Boolean(accountAmounts) && type === 'credit_card';
 
@@ -146,21 +139,12 @@ export function EditNameColorModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-raised p-5 shadow-pop"
-      >
+    <Sheet ariaLabel={title} onClose={onClose} surfaceClassName="max-h-[90vh] w-full max-w-md overflow-y-auto p-5">
+      {(requestClose) => (
+      <>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-medium">{title}</h2>
-          <button type="button" onClick={onClose} className="px-2 text-[15px] text-muted">
+          <button type="button" onClick={requestClose} className="px-2 text-[15px] text-muted">
             Cancel
           </button>
         </div>
@@ -344,7 +328,8 @@ export function EditNameColorModal({
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
-      </div>
-    </div>
+      </>
+      )}
+    </Sheet>
   );
 }

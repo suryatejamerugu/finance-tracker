@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Account, SavingsGoal } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import { CURRENCIES, currencySymbol } from '../lib/currency';
 import { parseAmount } from '../lib/money';
 import { guessCategoryIcon } from '../lib/iconGuess';
@@ -44,13 +44,6 @@ export function SavingsGoalModal({
   const [icon, setIcon] = useState(editing?.icon ?? 'piggy-bank');
   const [iconTouched, setIconTouched] = useState(Boolean(editing));
   const [saving, setSaving] = useState(false);
-  const trapRef = useFocusTrap<HTMLDivElement>();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   async function save() {
     if (!name.trim() || saving) return;
@@ -89,21 +82,16 @@ export function SavingsGoalModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <Sheet
+      ariaLabel={editing ? 'Edit goal' : 'New goal'}
+      onClose={onClose}
+      surfaceClassName="max-h-[90vh] w-full max-w-md overflow-y-auto p-5"
     >
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={editing ? 'Edit goal' : 'New goal'}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-raised p-5 shadow-pop"
-      >
+      {(requestClose) => (
+      <>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-medium">{editing ? 'Edit goal' : 'New goal'}</h2>
-          <button type="button" onClick={onClose} className="px-2 text-[15px] text-muted">
+          <button type="button" onClick={requestClose} className="px-2 text-[15px] text-muted">
             Cancel
           </button>
         </div>
@@ -236,7 +224,8 @@ export function SavingsGoalModal({
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
-      </div>
-    </div>
+      </>
+      )}
+    </Sheet>
   );
 }

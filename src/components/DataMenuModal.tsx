@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import { DataMenu } from './DataMenu';
 
 /**
@@ -9,29 +8,13 @@ import { DataMenu } from './DataMenu';
  * this-month action, so it belongs behind a header button instead.
  */
 export function DataMenuModal({ onChanged, onClose }: { onChanged: () => void; onClose: () => void }) {
-  const trapRef = useFocusTrap<HTMLDivElement>();
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Your data"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl bg-raised p-5 shadow-pop"
-      >
+    <Sheet ariaLabel="Your data" onClose={onClose} surfaceClassName="w-full max-w-md p-5">
+      {(requestClose) => (
+      <>
         <div className="flex items-center justify-between">
           <h2 className="text-[15px] font-medium">Your data</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="p-2 -m-2 text-[16px] text-muted hover:text-ink">
+          <button type="button" onClick={requestClose} aria-label="Close" className="p-2 -m-2 text-[16px] text-muted hover:text-ink">
             ✕
           </button>
         </div>
@@ -40,7 +23,8 @@ export function DataMenuModal({ onChanged, onClose }: { onChanged: () => void; o
           backup file is the way to move it somewhere else, or to bring your Notion export in.
         </p>
         <DataMenu onChanged={onChanged} />
-      </div>
-    </div>
+      </>
+      )}
+    </Sheet>
   );
 }

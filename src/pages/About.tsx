@@ -62,8 +62,9 @@ export function About() {
         </Steps>
         <p>
           Made a mistake? Every expense row — on the dashboard and in Full History — has an edit
-          pencil, not just a delete button. Hover a row to see it. And if you edit or delete
-          anything (an expense, income, transfer, category, or account), an{' '}
+          pencil, not just a delete button (on a mouse, it appears on hover; on touch it's always
+          there). And if you edit or delete anything (an expense, income, transfer, category, or
+          account), an{' '}
           <strong className="text-ink">Undo</strong> link appears at the bottom of the screen for
           a few seconds afterward — click it to put back exactly what was there before.
         </p>

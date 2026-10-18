@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Account, Category, IncomeCategory, RecurringEntry } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import { currencySymbol } from '../lib/currency';
 import { parseAmount } from '../lib/money';
 import { guessCategoryIcon, guessIncomeIcon } from '../lib/iconGuess';
@@ -43,13 +43,6 @@ export function RecurringEntryModal({
   const [saving, setSaving] = useState(false);
 
   const accountCurrency = accounts.find((a) => a.id === accountId)?.currency ?? '';
-  const trapRef = useFocusTrap<HTMLDivElement>();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   async function save() {
     if (!name.trim() || saving) return;
@@ -80,21 +73,16 @@ export function RecurringEntryModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <Sheet
+      ariaLabel={editing ? 'Edit recurring entry' : 'New recurring entry'}
+      onClose={onClose}
+      surfaceClassName="max-h-[90vh] w-full max-w-md overflow-y-auto p-5"
     >
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={editing ? 'Edit recurring entry' : 'New recurring entry'}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-raised p-5 shadow-pop"
-      >
+      {(requestClose) => (
+      <>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-medium">{editing ? 'Edit recurring entry' : 'New recurring entry'}</h2>
-          <button type="button" onClick={onClose} className="px-2 text-[15px] text-muted">
+          <button type="button" onClick={requestClose} className="px-2 text-[15px] text-muted">
             Cancel
           </button>
         </div>
@@ -232,7 +220,8 @@ export function RecurringEntryModal({
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
-      </div>
-    </div>
+      </>
+      )}
+    </Sheet>
   );
 }

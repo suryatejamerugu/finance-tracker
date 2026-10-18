@@ -16,8 +16,13 @@ export function Footer() {
     <footer className="border-t border-rule safe-bottom">
       <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-5 px-4 py-7 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div className="text-center sm:text-left">
-          <span className="pixel-notch pixel-notch-frame inline-flex items-center gap-2 bg-brand-soft px-2.5 py-1.5">
-            <span className="font-display text-[9px] leading-none text-brand" aria-hidden="true">FT</span>
+          <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+            <span
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-[10px] font-bold leading-none text-white"
+              aria-hidden="true"
+            >
+              FT
+            </span>
             <span className="text-[14px] font-semibold tracking-tight">
               <span className="text-brand-gradient">Finance</span> Tracker
             </span>

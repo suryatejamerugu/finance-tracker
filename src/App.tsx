@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { seedIfEmpty } from './lib/seed'
+import { attachPressSpring } from './lib/pressSpring'
 import { useSync } from './hooks/useSync'
 import { useTheme } from './hooks/useTheme'
 import { useHideBalances } from './hooks/useHideBalances'
@@ -39,17 +40,26 @@ export default function App() {
     void seedIfEmpty().finally(() => setReady(true))
   }, [])
 
+  // One delegated listener for every `.press` button's spring feedback —
+  // see lib/pressSpring.ts. Mounted once for the app's lifetime.
+  useEffect(() => attachPressSpring(), [])
+
   if (!ready) return <div className="p-6 text-muted">Loading…</div>
 
   return (
     <div className="theme-transition flex min-h-dvh flex-col">
       <div className="mx-auto w-full max-w-[1400px] flex-1">
-        <header className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-b border-rule px-4 py-2.5 safe-top sm:justify-between sm:px-6">
+        <header className="sticky top-0 z-40 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-b border-rule bg-raised/75 px-4 py-2.5 backdrop-blur-xl backdrop-saturate-150 safe-top sm:justify-between sm:px-6">
           <a
             href="/"
-            className="pixel-notch pixel-notch-frame inline-flex shrink-0 items-center gap-2 bg-brand-soft px-2.5 py-1.5 no-underline"
+            className="glass inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 no-underline transition-shadow hover:shadow-card"
           >
-            <span className="font-display text-[9px] leading-none text-brand" aria-hidden="true">FT</span>
+            <span
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-[10px] font-bold leading-none text-white"
+              aria-hidden="true"
+            >
+              FT
+            </span>
             <span className="text-[15px] font-semibold tracking-tight">
               <span className="text-brand-gradient">Finance</span> Tracker
             </span>
