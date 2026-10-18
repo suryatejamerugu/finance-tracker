@@ -2,8 +2,6 @@
 
 @theme {
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
-  /* Decorative only — the wordmark and a couple of short headings, never body copy or numbers. */
-  --font-display: 'Press Start 2P', ui-monospace, monospace;
 
   /* Light theme — warm paper background, a readable retro-violet/teal/amber
      accent set. Every pairing below has been checked against WCAG 2.1 AA
@@ -24,32 +22,27 @@
   --color-amber: #9a5b06;
   --color-amber-soft: #fdebc8;
 
-  /* Squarer, chunkier corners than a typical soft dashboard — console
-     panel and button chrome, not rounded cards. rounded-full is left at
-     the Tailwind default so genuine circles (icon-only buttons, color
-     swatches) are unaffected. */
-  --radius-md: 4px;
-  --radius-lg: 5px;
-  --radius-xl: 7px;
-  --radius-2xl: 9px;
-  --radius-3xl: 11px;
+  /* Generous, continuous-feeling corners — Apple's rounder-as-you-scale-up
+     shape language, not the console-panel squareness this app used to have.
+     rounded-full is left at the Tailwind default so genuine circles
+     (icon-only buttons, color swatches) are unaffected. */
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
 
-  /* Cards/panels: shallow shadow + a visible frame border (the border
-     itself comes from --color-rule, used everywhere via border-rule). */
-  --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.08), 0 3px 10px -4px rgba(40, 30, 10, 0.12),
-    0 16px 32px -16px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.09), 0 6px 16px -4px rgba(40, 30, 10, 0.14),
-    0 26px 44px -18px rgba(40, 30, 10, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-
-  /*
-   * Buttons: a crisp, solid-color offset shadow standing in for a 3D side
-   * face — no blur, so it reads as a hard physical edge rather than a soft
-   * lift. Pressing a button sinks it down into that edge (see .press).
-   */
-  --shadow-raised: 3px 3px 0 0 rgba(32, 36, 52, 0.55);
-  --shadow-raised-hover: 4px 4px 0 0 rgba(32, 36, 52, 0.55);
-  --shadow-pressed: 1px 1px 0 0 rgba(32, 36, 52, 0.55);
+  /* Soft, blur-based elevation — no hard offset, no visible light-source
+     direction. Depth comes from blur spread and layering, the way glass
+     surfaces stack on iOS/macOS rather than a cartoon drop shadow. */
+  --shadow-card: 0 1px 2px rgba(20, 20, 35, 0.04), 0 8px 24px -10px rgba(20, 20, 35, 0.1),
+    0 24px 48px -24px rgba(20, 20, 35, 0.14);
+  --shadow-card-hover: 0 2px 6px rgba(20, 20, 35, 0.06), 0 14px 32px -12px rgba(20, 20, 35, 0.14),
+    0 32px 64px -24px rgba(20, 20, 35, 0.18);
+  --shadow-pop: 0 24px 70px -16px rgba(20, 20, 35, 0.28), 0 4px 16px -4px rgba(20, 20, 35, 0.12);
+  --shadow-raised: 0 1px 2px rgba(20, 20, 35, 0.08), 0 4px 10px -4px rgba(20, 20, 35, 0.16);
+  --shadow-raised-hover: 0 2px 4px rgba(20, 20, 35, 0.1), 0 8px 18px -6px rgba(20, 20, 35, 0.2);
+  --shadow-pressed: 0 1px 1px rgba(20, 20, 35, 0.08);
 
   --duration-fast: 100ms;
   --duration-base: 160ms;
@@ -80,14 +73,14 @@
       --color-amber: #fbbf24;
       --color-amber-soft: #3d2e0f;
 
-      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 3px 10px -4px rgba(0, 0, 0, 0.35),
-        0 18px 36px -16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-      --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.5),
-        0 28px 52px -18px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-      --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      --shadow-raised: 3px 3px 0 0 rgba(0, 0, 0, 0.6);
-      --shadow-raised-hover: 4px 4px 0 0 rgba(0, 0, 0, 0.6);
-      --shadow-pressed: 1px 1px 0 0 rgba(0, 0, 0, 0.6);
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.42),
+        0 24px 48px -24px rgba(0, 0, 0, 0.55);
+      --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.35), 0 14px 32px -12px rgba(0, 0, 0, 0.5),
+        0 32px 64px -24px rgba(0, 0, 0, 0.65);
+      --shadow-pop: 0 24px 70px -16px rgba(0, 0, 0, 0.6), 0 4px 16px -4px rgba(0, 0, 0, 0.35);
+      --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 10px -4px rgba(0, 0, 0, 0.45);
+      --shadow-raised-hover: 0 2px 4px rgba(0, 0, 0, 0.38), 0 8px 18px -6px rgba(0, 0, 0, 0.5);
+      --shadow-pressed: 0 1px 1px rgba(0, 0, 0, 0.35);
     }
   }
 
@@ -109,14 +102,14 @@
     --color-amber: #fbbf24;
     --color-amber-soft: #3d2e0f;
 
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 3px 10px -4px rgba(0, 0, 0, 0.35),
-      0 18px 36px -16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px -6px rgba(0, 0, 0, 0.5),
-      0 28px 52px -18px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    --shadow-pop: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    --shadow-raised: 3px 3px 0 0 rgba(0, 0, 0, 0.6);
-    --shadow-raised-hover: 4px 4px 0 0 rgba(0, 0, 0, 0.6);
-    --shadow-pressed: 1px 1px 0 0 rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.42),
+      0 24px 48px -24px rgba(0, 0, 0, 0.55);
+    --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.35), 0 14px 32px -12px rgba(0, 0, 0, 0.5),
+      0 32px 64px -24px rgba(0, 0, 0, 0.65);
+    --shadow-pop: 0 24px 70px -16px rgba(0, 0, 0, 0.6), 0 4px 16px -4px rgba(0, 0, 0, 0.35);
+    --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 10px -4px rgba(0, 0, 0, 0.45);
+    --shadow-raised-hover: 0 2px 4px rgba(0, 0, 0, 0.38), 0 8px 18px -6px rgba(0, 0, 0, 0.5);
+    --shadow-pressed: 0 1px 1px rgba(0, 0, 0, 0.35);
   }
 
   :root[data-theme='light'] {
@@ -136,14 +129,14 @@
     --color-amber: #9a5b06;
     --color-amber-soft: #fdebc8;
 
-    --shadow-card: 0 1px 2px rgba(40, 30, 10, 0.08), 0 3px 10px -4px rgba(40, 30, 10, 0.12),
-      0 16px 32px -16px rgba(40, 30, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    --shadow-card-hover: 0 2px 4px rgba(40, 30, 10, 0.09), 0 6px 16px -4px rgba(40, 30, 10, 0.14),
-      0 26px 44px -18px rgba(40, 30, 10, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    --shadow-pop: 0 24px 60px -12px rgba(40, 30, 10, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    --shadow-raised: 3px 3px 0 0 rgba(32, 36, 52, 0.55);
-    --shadow-raised-hover: 4px 4px 0 0 rgba(32, 36, 52, 0.55);
-    --shadow-pressed: 1px 1px 0 0 rgba(32, 36, 52, 0.55);
+    --shadow-card: 0 1px 2px rgba(20, 20, 35, 0.04), 0 8px 24px -10px rgba(20, 20, 35, 0.1),
+      0 24px 48px -24px rgba(20, 20, 35, 0.14);
+    --shadow-card-hover: 0 2px 6px rgba(20, 20, 35, 0.06), 0 14px 32px -12px rgba(20, 20, 35, 0.14),
+      0 32px 64px -24px rgba(20, 20, 35, 0.18);
+    --shadow-pop: 0 24px 70px -16px rgba(20, 20, 35, 0.28), 0 4px 16px -4px rgba(20, 20, 35, 0.12);
+    --shadow-raised: 0 1px 2px rgba(20, 20, 35, 0.08), 0 4px 10px -4px rgba(20, 20, 35, 0.16);
+    --shadow-raised-hover: 0 2px 4px rgba(20, 20, 35, 0.1), 0 8px 18px -6px rgba(20, 20, 35, 0.2);
+    --shadow-pressed: 0 1px 1px rgba(20, 20, 35, 0.08);
   }
 
   html {
@@ -256,12 +249,6 @@
     color: transparent;
   }
 
-  /* Decorative pixel-style branding font — headings/eyebrow labels only. */
-  .font-display {
-    font-family: var(--font-display);
-    letter-spacing: 0.02em;
-  }
-
   .card-hover {
     box-shadow: var(--shadow-card);
     transition:
@@ -272,6 +259,43 @@
   .card-hover:hover {
     box-shadow: var(--shadow-card-hover);
     border-color: color-mix(in srgb, var(--color-brand) 35%, var(--color-rule));
+  }
+
+  /*
+   * Translucent "material" surfaces — the glass half of the Apple redesign.
+   * `.glass` is for things that sit over moving content (header, dialog/
+   * sheet backdrops-adjacent chrome); `.glass-strong` is more opaque, for a
+   * sheet/dialog's own body where text needs to stay reliably legible
+   * regardless of what's behind it. One translucent layer, content under it
+   * — never glass stacked on glass.
+   */
+  .glass {
+    background: color-mix(in srgb, var(--color-raised) 72%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--color-rule) 35%, transparent);
+  }
+  .glass-strong {
+    background: color-mix(in srgb, var(--color-raised) 88%, transparent);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--color-rule) 35%, transparent);
+  }
+
+  /*
+   * A Sheet's backdrop: opacity is driven every spring frame by writing
+   * `--backdrop-opacity` directly via ref (see components/Sheet.tsx), not
+   * through React state — a modal open/close animation repaints every
+   * frame for its whole (sometimes long, e.g. Full history) duration, and
+   * routing that through a re-render would re-render its children too.
+   * Blur is tied to the same variable so it ramps in with the fade instead
+   * of blurring the page behind an invisible, not-yet-opened sheet.
+   */
+  .sheet-backdrop {
+    --backdrop-opacity: 0;
+    background: color-mix(in srgb, var(--color-ink) calc(var(--backdrop-opacity) * 40%), transparent);
+    backdrop-filter: blur(calc(var(--backdrop-opacity) * 6px));
+    -webkit-backdrop-filter: blur(calc(var(--backdrop-opacity) * 6px));
   }
 
   /*
@@ -297,73 +321,33 @@
   }
 
   /*
-   * Tactile raised-button-and-press feedback — the app's "3D" signature. A
-   * crisp, solid offset shadow (no blur) stands in for a button's side
-   * face; pressing it slides the button down and right into that edge
-   * until the shadow nearly disappears, like a physical key bottoming
-   * out. Applied widely (every existing `.press` button picks this up
-   * automatically), so the retro treatment never needs bolting on
-   * per-component.
+   * Press feedback — responds the instant a finger/cursor goes down, not on
+   * release (principle 1). The actual scale-down is driven by a real spring
+   * (lib/pressSpring.ts sets `--press-scale` every frame on pointerdown/up),
+   * not a CSS transition, specifically so a rapid second tap before the
+   * release animation finishes retargets smoothly instead of restarting —
+   * `transform` is therefore deliberately left out of this element's own
+   * transition list, since the spring already owns it frame-by-frame.
    */
   .press {
+    --press-scale: 1;
+    transform: scale(var(--press-scale, 1));
     box-shadow: var(--shadow-raised);
     transition:
-      transform var(--duration-fast) cubic-bezier(0.2, 0.7, 0.3, 1),
-      box-shadow var(--duration-fast) cubic-bezier(0.2, 0.7, 0.3, 1),
-      filter var(--duration-fast) ease;
+      box-shadow var(--duration-base) ease,
+      filter var(--duration-base) ease;
   }
   .press:hover {
-    transform: translate(-1px, -1px);
     box-shadow: var(--shadow-raised-hover);
     filter: brightness(1.04);
   }
-  .press:active {
-    transform: translate(2px, 2px);
-    box-shadow: var(--shadow-pressed);
-    filter: brightness(0.96);
-  }
 
-  /* A budget/usage bar made of small notched segments instead of one solid
-     fill — a restrained nod to retro meter UI, still fully legible as a
-     percentage-of-total at a glance. */
-  .bar-segmented {
-    background-image: repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent calc(100% / 14 - 2px),
-      var(--color-paper) calc(100% / 14 - 2px),
-      var(--color-paper) calc(100% / 14)
-    );
-    background-size: 100% 100%;
-  }
-
-  /* A small stepped-corner notch for the one or two spots that should read
-     as distinctly "retro cartridge" chrome (the brand mark) — deliberately
-     not used on every card, per "restrained retro accents." */
-  .pixel-notch {
-    clip-path: polygon(
-      0 6px, 6px 6px, 6px 0,
-      calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
-      100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%,
-      6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)
-    );
-  }
-
-  /*
-   * A literal `border` on a clip-path'd element is a known cross-browser
-   * rendering trap — Safari in particular can leave a stray sliver of the
-   * border's square corner miter poking past the clipped notch, visible as
-   * a thin stray line right at the shape's corner. An inset box-shadow
-   * paints inside the already-clipped box instead of as separate border
-   * geometry, so it always respects the clip path exactly. Pair with
-   * `.pixel-notch` in place of `border border-rule` / `hover:border-brand`.
-   */
-  .pixel-notch-frame {
-    box-shadow: inset 0 0 0 1px var(--color-rule);
-    transition: box-shadow var(--duration-base) ease;
-  }
-  .pixel-notch-frame:hover {
-    box-shadow: inset 0 0 0 1px var(--color-brand);
+  /* Smooth capsule fill for budget/usage bars — replaces the old notched-
+     segment meter texture, which read as retro console chrome rather than
+     the plain glass progress indicator this redesign calls for. */
+  .bar-fill {
+    border-radius: 999px;
+    transition: width var(--duration-slow) cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .theme-transition,
@@ -382,9 +366,5 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
-  }
-  .press:hover,
-  .press:active {
-    transform: none;
   }
 }

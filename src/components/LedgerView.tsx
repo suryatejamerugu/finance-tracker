@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useMemo, useState } from 'react';
+import { Sheet } from './Sheet';
 import type {
   Account,
   Category,
@@ -98,13 +98,6 @@ export function LedgerView({
   const [visible, setVisible] = useState(PAGE);
   const [pdfMonth, setPdfMonth] = useState(month);
   const [pdfCurrency, setPdfCurrency] = useState(currency);
-  const trapRef = useFocusTrap<HTMLDivElement>();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const all = useMemo(
     () => buildLedger(expenses, incomes, transfers, categories, accounts, incomeCategories, homeCurrency),
@@ -238,23 +231,19 @@ export function LedgerView({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={onClose}
+    <Sheet
+      variant="sheet"
+      ariaLabel="Full history"
+      onClose={onClose}
+      surfaceClassName="flex h-[92dvh] w-full max-w-3xl flex-col safe-bottom sm:h-[85dvh]"
     >
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Full history"
-        onClick={(e) => e.stopPropagation()}
-        className="flex h-[92dvh] w-full max-w-3xl flex-col rounded-t-2xl bg-raised shadow-pop safe-bottom sm:h-[85dvh] sm:rounded-2xl"
-      >
+      {(requestClose) => (
+      <>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule px-5 py-3.5">
           <h2 className="text-[15px] font-medium">Full history</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Close"
             className="p-2 -m-2 text-[16px] text-muted hover:text-ink"
           >
@@ -549,7 +538,8 @@ export function LedgerView({
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </>
+      )}
+    </Sheet>
   );
 }

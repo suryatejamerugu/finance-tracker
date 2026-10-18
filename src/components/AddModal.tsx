@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import type { Account, AccountType, Category, Expense, Income, IncomeCategory, Transfer } from '../types';
 import { parseAmount, todayISO } from '../lib/money';
 import { addAccount, addExpense, addIncome, addTransfer, updateExpense, updateIncome, updateTransfer } from '../lib/store';
@@ -57,7 +57,6 @@ export function AddModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const trapRef = useFocusTrap<HTMLDivElement>();
   const [name, setName] = useState(editing?.name ?? '');
   const [amount, setAmount] = useState(editing ? (editing.amount / 100).toFixed(2) : '');
   const [date, setDate] = useState(editing && 'date' in editing ? editing.date : todayISO());
@@ -95,10 +94,7 @@ export function AddModal({
 
   useEffect(() => {
     first.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
 
   const cents = parseAmount(amount);
 
@@ -161,17 +157,17 @@ export function AddModal({
   const amountCurrency = kind === 'account' ? accountCurrency : rowCurrency;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/35 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <div
-        ref={trapRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="w-full max-w-md rounded-t-2xl bg-raised p-5 shadow-pop safe-bottom sm:rounded-2xl sm:pb-5"
-      >
+    <Sheet
+      variant="sheet"
+      ariaLabel={title}
+      onClose={onClose}
+      surfaceClassName="w-full max-w-md p-5 safe-bottom sm:pb-5"
+    >
+      {(requestClose) => (
+      <>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-medium">{title}</h2>
-          <button type="button" onClick={onClose} className="px-2 text-[15px] text-muted">
+          <button type="button" onClick={requestClose} className="px-2 text-[15px] text-muted">
             Cancel
           </button>
         </div>
@@ -361,7 +357,8 @@ export function AddModal({
         >
           {editing ? 'Save changes' : 'Save'}
         </button>
-      </div>
-    </div>
+      </>
+      )}
+    </Sheet>
   );
 }

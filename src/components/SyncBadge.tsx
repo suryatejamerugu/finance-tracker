@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { useSync } from '../hooks/useSync';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 
 function ago(ts: number): string {
   const mins = Math.floor((Date.now() - ts) / 60_000);
@@ -23,14 +23,6 @@ function ago(ts: number): string {
  */
 export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
   const [open, setOpen] = useState(false);
-  const trapRef = useFocusTrap<HTMLDivElement>(open);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   if (!sync.configured) {
     return <span className="max-w-[9.5rem] truncate text-[12px] text-faint sm:max-w-none">Saved on this device</span>;
@@ -82,23 +74,14 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
         regardless of where the button that opened it happens to sit.
       */}
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            ref={trapRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Backup account"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl bg-raised p-5 text-left shadow-pop"
-          >
+        <Sheet ariaLabel="Backup account" onClose={() => setOpen(false)} surfaceClassName="w-full max-w-sm p-5 text-left">
+          {(requestClose) => (
+          <>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[15px] font-medium">Backup account</h2>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={requestClose}
                 aria-label="Close"
                 className="p-2 -m-2 text-[16px] text-muted hover:text-ink"
               >
@@ -162,8 +145,9 @@ export function SyncBadge({ sync }: { sync: ReturnType<typeof useSync> }) {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+          )}
+        </Sheet>
       )}
     </>
   );

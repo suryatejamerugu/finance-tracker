@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Category, IncomeCategory } from '../types';
 import { PALETTE, suggestedColor } from '../lib/colors';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import { addCategory, addIncomeCategory, reorder, softDelete, updateCategory, updateIncomeCategory } from '../lib/store';
 import { IconBadge, iconFor } from '../lib/icons';
 import { guessCategoryIcon, guessIncomeIcon } from '../lib/iconGuess';
@@ -45,13 +45,6 @@ export function CategoriesModal({
   const [newIcon, setNewIcon] = useState('tag');
   const [newIconTouched, setNewIconTouched] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
-  const trapRef = useFocusTrap<HTMLDivElement>();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const items: Item[] = kind === 'expense' ? categories : incomeCategories;
   const ids = items.map((c) => c.id);
@@ -95,23 +88,14 @@ export function CategoriesModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <div
-          ref={trapRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Categories"
-          onClick={(e) => e.stopPropagation()}
-          className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-2xl bg-raised shadow-pop"
-        >
+      <Sheet ariaLabel="Categories" onClose={onClose} surfaceClassName="flex max-h-[85dvh] w-full max-w-md flex-col">
+        {(requestClose) => (
+        <>
           <div className="flex items-center justify-between border-b border-rule px-5 py-3.5">
             <h2 className="text-[15px] font-medium">Categories</h2>
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               aria-label="Close"
               className="p-2 -m-2 text-[16px] text-muted hover:text-ink"
             >
@@ -230,8 +214,9 @@ export function CategoriesModal({
               </SortableList>
             )}
           </div>
-        </div>
-      </div>
+        </>
+        )}
+      </Sheet>
 
       {editing && (
         <EditNameColorModal

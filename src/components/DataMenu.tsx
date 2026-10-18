@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { buildSnapshot, isSnapshot, replaceWithSnapshot } from '../lib/db';
-import { useFocusTrap } from '../hooks/useFocusTrap';
+import { Sheet } from './Sheet';
 import type { Snapshot } from '../types';
 
 /**
@@ -16,14 +16,6 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const trapRef = useFocusTrap<HTMLDivElement>(Boolean(pending));
-
-  useEffect(() => {
-    if (!pending) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPending(null);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [pending]);
 
   async function save() {
     const snapshot = await buildSnapshot();
@@ -96,14 +88,9 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
       {notice && <p className="mt-2 text-[13px] text-muted">{notice}</p>}
 
       {pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
-          <div
-            ref={trapRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirm restore"
-            className="w-full max-w-md rounded-2xl bg-raised p-5 shadow-pop"
-          >
+        <Sheet ariaLabel="Confirm restore" onClose={() => setPending(null)} surfaceClassName="w-full max-w-md p-5">
+          {(requestClose) => (
+          <>
             <h2 className="text-[16px] font-medium">Replace everything with this backup?</h2>
 
             <p className="mt-2 text-[13.5px] text-muted">This file contains:</p>
@@ -123,7 +110,7 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                onClick={() => setPending(null)}
+                onClick={requestClose}
                 className="press flex-1 rounded-lg border border-rule py-2.5 text-[14px]"
               >
                 Cancel
@@ -137,8 +124,9 @@ export function DataMenu({ onChanged }: { onChanged: () => void }) {
                 {busy ? 'Restoring…' : 'Replace my data'}
               </button>
             </div>
-          </div>
-        </div>
+          </>
+          )}
+        </Sheet>
       )}
     </>
   );

@@ -97,11 +97,8 @@ export function SavingsGoals({
           </span>
         </div>
 
-        <div className="mt-1.5 h-[5px] overflow-hidden rounded-sm bg-rule">
-          <div
-            className={`bar-segmented h-full rounded-sm ${reached ? 'bg-under' : 'bg-brand'}`}
-            style={{ width: `${pct}%`, transition: 'width 380ms cubic-bezier(.2,.7,.3,1)' }}
-          />
+        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-rule/25">
+          <div className={`bar-fill h-full ${reached ? 'bg-under' : 'bg-brand'}`} style={{ width: `${pct}%` }} />
         </div>
 
         <div className="mt-1.5 flex items-baseline justify-between gap-2">
